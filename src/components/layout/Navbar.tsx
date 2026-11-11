@@ -60,8 +60,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left: Hamburger & Brand */}
           <div className="flex items-center gap-3">
@@ -77,18 +77,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
               <img
                 src={LOGO_SMK_DATA_URL}
                 alt="Logo SMK Bayt Al-Hikmah"
-                className="w-10 h-10 object-contain drop-shadow-sm"
+                className="w-9 h-9 object-contain drop-shadow-sm shrink-0"
               />
-              <div className="hidden sm:block">
+              <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-brand-800 text-lg tracking-tight">
+                  <span className="font-extrabold text-brand-800 text-base sm:text-lg tracking-tight">
                     SIGAP<span className="text-gold-600">-SMK</span>
                   </span>
                   <span className="text-[10px] bg-brand-50 text-brand-700 font-semibold px-2 py-0.5 rounded border border-brand-200">
                     E-OFFICE & SIMS
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-500 font-medium -mt-1">
+                <p className="text-[11px] text-gray-500 font-medium -mt-0.5">
                   SMK Bayt Al-Hikmah Pasuruan
                 </p>
               </div>

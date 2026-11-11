@@ -17,18 +17,17 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Fixed Sidebar on the Left */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      <div className="flex-1 flex">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Main Content Area (Offset by sidebar width 256px on desktop) */}
+      <div className="flex-1 lg:pl-64 flex flex-col min-w-0 min-h-screen">
+        <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         
-        {/* Main Content Area */}
-        <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
-          <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 max-w-7xl w-full mx-auto">
-            {children}
-          </main>
-        </div>
+        <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 max-w-7xl w-full mx-auto">
+          {children}
+        </main>
       </div>
     </div>
   );

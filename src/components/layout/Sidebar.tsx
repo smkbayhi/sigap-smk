@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
+import { LOGO_SMK_DATA_URL } from "@/lib/seedData";
 import {
   LayoutDashboard,
   Send,
@@ -65,16 +66,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         }`}
       >
         {/* Sidebar Header */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-emerald-800/60 bg-[#053d2e]">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-emerald-800/60 bg-[#053d2e]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gold-500/20 border border-gold-400/40 flex items-center justify-center text-gold-400 font-bold">
-              <Sparkles className="w-4 h-4 text-gold-400" />
-            </div>
+            <img
+              src={LOGO_SMK_DATA_URL}
+              alt="Logo SMK Bayt Al-Hikmah"
+              className="w-8 h-8 object-contain drop-shadow-sm"
+            />
             <div>
               <span className="font-extrabold text-white text-base tracking-wider">
                 SIGAP<span className="text-gold-400">-SMK</span>
               </span>
-              <p className="text-[10px] text-emerald-300 font-medium leading-none">
+              <p className="text-[10px] text-emerald-300 font-medium leading-none mt-0.5">
                 Bayt Al-Hikmah Pasuruan
               </p>
             </div>
