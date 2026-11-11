@@ -73,7 +73,7 @@ const CONTOH_INTI_PRESETS = [
 export default function BuatSuratKeluarPage() {
   const router = useRouter();
   const { currentUser } = useAuth();
-  const { suratKeluar, addSuratKeluar } = useAppData();
+  const { suratKeluar, addSuratKeluar, schoolSettings } = useAppData();
 
   // Calculate next auto number: [No_Urut]/SMK-BAYHI/[Bulan_Romawi]/[Tahun]
   const currentYear = new Date().getFullYear();
@@ -615,8 +615,8 @@ export default function BuatSuratKeluarPage() {
                 <div className="h-16 flex items-center justify-center text-gray-400 italic text-[10px] border border-dashed border-gray-200 my-1 rounded">
                   [Tempat TTD Digital & Stempel Sah]
                 </div>
-                <p className="font-bold underline text-[11px]">Mokhamat Ekhsan, S.Kom</p>
-                <p className="text-[9.5px] font-medium text-gray-700">NIY. 14215094</p>
+                <p className="font-bold underline text-[11px]">{schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom"}</p>
+                <p className="text-[9.5px] font-medium text-gray-700">NIY. {schoolSettings?.niyKepsek || "14215094"}</p>
               </div>
             </div>
           </div>

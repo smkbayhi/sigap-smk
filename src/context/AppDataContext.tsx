@@ -60,7 +60,11 @@ interface AppDataContextType {
   // Actions: Surat Keluar
   addSuratKeluar: (data: Omit<SuratKeluar, "id" | "no_urut" | "nomor_surat" | "bulan_romawi" | "tahun" | "created_at">) => SuratKeluar;
   updateSuratKeluar: (id: string, partial: Partial<SuratKeluar>) => void;
-  approveSuratKeluar: (id: string, kepsekName: string) => void;
+  approveSuratKeluar: (
+    id: string,
+    kepsekName: string,
+    options?: { customTtd?: string; includeStamp?: boolean }
+  ) => void;
   rejectSuratKeluar: (id: string, catatanRevisi: string) => void;
   deleteSuratKeluar: (id: string) => void;
 
@@ -276,19 +280,28 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     addToast("info", "Surat Diperbarui", "Data surat keluar telah disimpan.");
   };
 
-  const approveSuratKeluar = (id: string, kepsekName: string) => {
+  const approveSuratKeluar = (
+    id: string,
+    kepsekName: string,
+    options?: { customTtd?: string; includeStamp?: boolean }
+  ) => {
+    const activeTtd = options?.customTtd || schoolSettings.ttdKepsekUrl || TTD_KEPSEK_DATA_URL;
+    const activeStempel = schoolSettings.stempelUrl || STEMPEL_SEKOLAH_DATA_URL;
+    const shouldIncludeStamp = options?.includeStamp !== undefined ? options.includeStamp : true;
+    const activeKepsekName = schoolSettings.namaKepsek || kepsekName;
+
     const updated = suratKeluar.map((item) => {
       if (item.id === id) {
         return {
           ...item,
           status: "disetujui" as StatusSuratKeluar,
           approved_by: "user-kepsek",
-          approver_name: kepsekName,
+          approver_name: activeKepsekName,
           approved_at: new Date().toISOString(),
           has_ttd: true,
-          has_stempel: true,
-          ttd_image_url: schoolSettings.ttdKepsekUrl || TTD_KEPSEK_DATA_URL,
-          stempel_image_url: schoolSettings.stempelUrl || STEMPEL_SEKOLAH_DATA_URL,
+          has_stempel: shouldIncludeStamp,
+          ttd_image_url: activeTtd,
+          stempel_image_url: shouldIncludeStamp ? activeStempel : undefined,
           catatan_revisi: undefined,
         };
       }
@@ -594,12 +607,48 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const updated = { ...schoolSettings, ...partial };
     setSchoolSettings(updated);
     saveToStorage(STORAGE_KEYS.SCHOOL_SETTINGS, updated);
-    addToast("success", "Pengaturan Surat Disimpan", "Logo, stempel, atau tanda tangan berhasil diperbarui.");
+
+    // Also update all approved letters in state & storage so any existing surat immediately reflects new signature & stamp
+    setSuratKeluar((prev) => {
+      const updatedSK = prev.map((s) => {
+        if (s.status === "disetujui" || s.has_ttd || s.has_stempel) {
+          return {
+            ...s,
+            ttd_image_url: partial.ttdKepsekUrl || s.ttd_image_url || updated.ttdKepsekUrl,
+            stempel_image_url: partial.stempelUrl || s.stempel_image_url || updated.stempelUrl,
+            approver_name: partial.namaKepsek || s.approver_name || updated.namaKepsek,
+          };
+        }
+        return s;
+      });
+      saveToStorage(STORAGE_KEYS.SURAT_KELUAR, updatedSK);
+      return updatedSK;
+    });
+
+    addToast("success", "Pengaturan Surat Disimpan", "Logo, stempel, dan tanda tangan berhasil diperbarui.");
   };
 
   const resetSchoolSettings = () => {
     setSchoolSettings(DEFAULT_SCHOOL_SETTINGS);
     saveToStorage(STORAGE_KEYS.SCHOOL_SETTINGS, DEFAULT_SCHOOL_SETTINGS);
+
+    // Revert approved letters' stamp and signature to default seed values
+    setSuratKeluar((prev) => {
+      const updatedSK = prev.map((s) => {
+        if (s.status === "disetujui" || s.has_ttd || s.has_stempel) {
+          return {
+            ...s,
+            ttd_image_url: DEFAULT_SCHOOL_SETTINGS.ttdKepsekUrl,
+            stempel_image_url: DEFAULT_SCHOOL_SETTINGS.stempelUrl,
+            approver_name: DEFAULT_SCHOOL_SETTINGS.namaKepsek,
+          };
+        }
+        return s;
+      });
+      saveToStorage(STORAGE_KEYS.SURAT_KELUAR, updatedSK);
+      return updatedSK;
+    });
+
     addToast("info", "Pengaturan Direset", "Logo, stempel, dan tanda tangan resmi bawaan sekolah telah dipulihkan.");
   };
 

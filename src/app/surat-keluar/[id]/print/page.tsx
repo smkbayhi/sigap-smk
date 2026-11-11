@@ -9,7 +9,7 @@ import { formatIndonesianDate } from "@/lib/utils";
 export default function SuratKeluarPrintPage() {
   const params = useParams();
   const id = String(params.id);
-  const { suratKeluar } = useAppData();
+  const { suratKeluar, schoolSettings } = useAppData();
 
   const surat = suratKeluar.find((s) => s.id === id);
 
@@ -86,46 +86,58 @@ export default function SuratKeluarPrintPage() {
       />
 
       {/* Signature & Official Stamp Block (Bottom Right) */}
-      <div className="flex justify-end text-[11pt] mt-8 break-inside-avoid">
-        <div className="text-left w-72">
-          <p>Pasuruan, {formatIndonesianDate(surat.tanggal_surat)}</p>
-          <p className="font-bold">Kepala SMK Bayt Al-Hikmah</p>
+      {(() => {
+        const isApproved = surat.status === "disetujui";
+        const isApprovedOrHasTtd = surat.has_ttd || isApproved;
+        const isApprovedOrHasStempel = (surat.has_stempel || isApproved) && surat.has_stempel !== false;
+        const displayStamp = schoolSettings?.stempelUrl || surat.stempel_image_url;
+        const displayTtd = schoolSettings?.ttdKepsekUrl || surat.ttd_image_url;
+        const displayKepsek = schoolSettings?.namaKepsek || surat.approver_name || "Mokhamat Ekhsan, S.Kom";
+        const displayNiy = schoolSettings?.niyKepsek || "14215094";
 
-          {/* Stempel & Signature overlay */}
-          <div className="relative h-24 my-1 flex items-center justify-start">
-            {/* Official Stamp behind/intertwined with signature */}
-            {surat.has_stempel && surat.stempel_image_url && (
-              <div className="absolute -left-6 -top-1 pointer-events-none opacity-85 z-0">
-                <img
-                  src={surat.stempel_image_url}
-                  alt="Stempel Resmi"
-                  className="w-28 h-28 object-contain"
-                />
-              </div>
-            )}
+        return (
+          <div className="flex justify-end text-[11pt] mt-8 break-inside-avoid">
+            <div className="text-left w-72">
+              <p>Pasuruan, {formatIndonesianDate(surat.tanggal_surat)}</p>
+              <p className="font-bold">Kepala SMK Bayt Al-Hikmah</p>
 
-            {/* Signature */}
-            {surat.has_ttd && surat.ttd_image_url ? (
-              <div className="relative z-10 left-3">
-                <img
-                  src={surat.ttd_image_url}
-                  alt="Tanda Tangan Mokhamat Ekhsan"
-                  className="h-20 object-contain"
-                />
+              {/* Stempel & Signature overlay */}
+              <div className="relative h-24 my-1 flex items-center justify-start">
+                {/* Official Stamp behind/intertwined with signature */}
+                {isApprovedOrHasStempel && displayStamp && (
+                  <div className="absolute -left-6 -top-1 pointer-events-none opacity-85 z-0">
+                    <img
+                      src={displayStamp}
+                      alt="Stempel Resmi"
+                      className="w-28 h-28 object-contain"
+                    />
+                  </div>
+                )}
+
+                {/* Signature */}
+                {isApprovedOrHasTtd && displayTtd ? (
+                  <div className="relative z-10 left-3">
+                    <img
+                      src={displayTtd}
+                      alt={`Tanda Tangan ${displayKepsek}`}
+                      className="h-20 object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-16" />
+                )}
               </div>
-            ) : (
-              <div className="h-16" />
-            )}
+
+              <p className="font-bold underline text-[11.5pt] tracking-wide">
+                {displayKepsek}
+              </p>
+              <p className="text-[10.5pt] font-medium text-black">
+                NIY. {displayNiy}
+              </p>
+            </div>
           </div>
-
-          <p className="font-bold underline text-[11.5pt] tracking-wide">
-            {surat.approver_name || "Mokhamat Ekhsan, S.Kom"}
-          </p>
-          <p className="text-[10.5pt] font-medium text-black">
-            NIY. 14215094
-          </p>
-        </div>
-      </div>
+        );
+      })()}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { SuratKeluar } from "@/lib/database.types";
+import { useAppData } from "@/context/AppDataContext";
 import { TTD_KEPSEK_DATA_URL, STEMPEL_SEKOLAH_DATA_URL } from "@/lib/seedData";
 import { Check, X, ShieldCheck, PenTool, Sparkles, AlertTriangle } from "lucide-react";
 
@@ -10,9 +11,9 @@ interface DigitalSignatureModalProps {
   surat: SuratKeluar;
   isOpen: boolean;
   onClose: () => void;
-  onApprove: (id: string) => void;
+  onApprove: (id: string, options?: { customTtd?: string; includeStamp?: boolean }) => void;
   onReject: (id: string, notes: string) => void;
-  kepsekName: string;
+  kepsekName?: string;
 }
 
 export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
@@ -23,12 +24,18 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
   onReject,
   kepsekName,
 }) => {
+  const { schoolSettings } = useAppData();
   const [signatureMode, setSignatureMode] = useState<"preset" | "draw">("preset");
   const [includeStamp, setIncludeStamp] = useState(true);
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectNotes, setRejectNotes] = useState("");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+
+  const activeStamp = schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL;
+  const activeTtd = schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL;
+  const activeKepsek = schoolSettings?.namaKepsek || kepsekName || "Mokhamat Ekhsan, S.Kom";
+  const activeNiy = schoolSettings?.niyKepsek || "14215094";
 
   useEffect(() => {
     if (signatureMode === "draw" && canvasRef.current) {
@@ -98,7 +105,14 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
       console.log(e);
     }
 
-    onApprove(surat.id);
+    let customTtd: string | undefined = undefined;
+    if (signatureMode === "draw" && canvasRef.current) {
+      customTtd = canvasRef.current.toDataURL("image/png");
+    } else {
+      customTtd = activeTtd;
+    }
+
+    onApprove(surat.id, { customTtd, includeStamp });
     onClose();
   };
 
@@ -202,7 +216,7 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
                     {includeStamp && (
                       <div className="absolute -left-2 transform -rotate-6 pointer-events-none opacity-85">
                         <img
-                          src={STEMPEL_SEKOLAH_DATA_URL}
+                          src={activeStamp}
                           alt="Stempel Resmi"
                           className="w-28 h-28 object-contain"
                         />
@@ -213,8 +227,8 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
                     {signatureMode === "preset" ? (
                       <div className="relative z-10">
                         <img
-                          src={TTD_KEPSEK_DATA_URL}
-                          alt="Tanda Tangan Dr. H. Ahmad Fauzi"
+                          src={activeTtd}
+                          alt={`Tanda Tangan ${activeKepsek}`}
                           className="h-20 object-contain drop-shadow-sm"
                         />
                       </div>
@@ -245,8 +259,8 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
                   </div>
 
                   <div className="text-center mt-2 z-10">
-                    <p className="font-bold text-xs text-gray-900 underline">{kepsekName}</p>
-                    <p className="text-[10px] text-gray-500">Kepala SMK Bayt Al-Hikmah Pasuruan</p>
+                    <p className="font-bold text-xs text-gray-900 underline">{activeKepsek}</p>
+                    <p className="text-[10px] text-gray-500">NIY. {activeNiy} • Kepala SMK Bayt Al-Hikmah Pasuruan</p>
                   </div>
                 </div>
               </div>

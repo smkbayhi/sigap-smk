@@ -543,7 +543,7 @@ export default function DashboardPage() {
           surat={selectedSuratForSignature}
           isOpen={Boolean(selectedSuratForSignature)}
           onClose={() => setSelectedSuratForSignature(null)}
-          onApprove={(id) => approveSuratKeluar(id, currentUser.name)}
+          onApprove={(id, opts) => approveSuratKeluar(id, currentUser.name, opts)}
           onReject={(id, notes) => rejectSuratKeluar(id, notes)}
           kepsekName={currentUser.name}
         />

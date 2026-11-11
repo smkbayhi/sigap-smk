@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useAppData } from "@/context/AppDataContext";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import {
@@ -31,6 +31,18 @@ export default function MasterKopSuratPage() {
   const [stempel, setStempel] = useState(schoolSettings.stempelUrl);
   const [namaKepsek, setNamaKepsek] = useState(schoolSettings.namaKepsek || "Mokhamat Ekhsan, S.Kom");
   const [niyKepsek, setNiyKepsek] = useState(schoolSettings.niyKepsek || "14215094");
+
+  // Keep state in sync if schoolSettings loads from storage/cloud
+  useEffect(() => {
+    if (schoolSettings) {
+      if (schoolSettings.logoYayasanUrl) setLogoYayasan(schoolSettings.logoYayasanUrl);
+      if (schoolSettings.logoSmkUrl) setLogoSmk(schoolSettings.logoSmkUrl);
+      if (schoolSettings.ttdKepsekUrl) setTtdKepsek(schoolSettings.ttdKepsekUrl);
+      if (schoolSettings.stempelUrl) setStempel(schoolSettings.stempelUrl);
+      if (schoolSettings.namaKepsek) setNamaKepsek(schoolSettings.namaKepsek);
+      if (schoolSettings.niyKepsek) setNiyKepsek(schoolSettings.niyKepsek);
+    }
+  }, [schoolSettings]);
 
   const fileInputYayasan = useRef<HTMLInputElement>(null);
   const fileInputSmk = useRef<HTMLInputElement>(null);

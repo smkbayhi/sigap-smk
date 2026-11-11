@@ -29,6 +29,7 @@ export default function SuratKeluarDetailPage() {
     approveSuratKeluar,
     rejectSuratKeluar,
     deleteSuratKeluar,
+    schoolSettings,
   } = useAppData();
 
   const [showSignatureModal, setShowSignatureModal] = useState(false);
@@ -186,56 +187,68 @@ export default function SuratKeluarDetailPage() {
         />
 
         {/* Signature & Official Seal Block (Bottom Right) */}
-        <div className="flex justify-end font-serif text-xs sm:text-[13px] mt-8">
-          <div className="text-left w-72">
-            <p>Pasuruan, {formatIndonesianDate(surat.tanggal_surat)}</p>
-            <p className="font-bold text-gray-900 mt-0.5">
-              Kepala SMK Bayt Al-Hikmah
-            </p>
+        {(() => {
+          const isApproved = surat.status === "disetujui";
+          const isApprovedOrHasTtd = surat.has_ttd || isApproved;
+          const isApprovedOrHasStempel = (surat.has_stempel || isApproved) && surat.has_stempel !== false;
+          const displayStamp = schoolSettings?.stempelUrl || surat.stempel_image_url;
+          const displayTtd = schoolSettings?.ttdKepsekUrl || surat.ttd_image_url;
+          const displayKepsek = schoolSettings?.namaKepsek || surat.approver_name || "Mokhamat Ekhsan, S.Kom";
+          const displayNiy = schoolSettings?.niyKepsek || "14215094";
 
-            {/* Signature & Stamp Area */}
-            <div className="relative h-24 my-1 flex items-center justify-start">
-              {surat.has_stempel && surat.stempel_image_url && (
-                <div className="absolute -left-6 -top-1 pointer-events-none opacity-85 z-0">
-                  <img
-                    src={surat.stempel_image_url}
-                    alt="Stempel Resmi"
-                    className="w-28 h-28 object-contain"
-                  />
-                </div>
-              )}
+          return (
+            <div className="flex justify-end font-serif text-xs sm:text-[13px] mt-8">
+              <div className="text-left w-72">
+                <p>Pasuruan, {formatIndonesianDate(surat.tanggal_surat)}</p>
+                <p className="font-bold text-gray-900 mt-0.5">
+                  Kepala SMK Bayt Al-Hikmah
+                </p>
 
-              {surat.has_ttd && surat.ttd_image_url ? (
-                <div className="relative z-10 left-3">
-                  <img
-                    src={surat.ttd_image_url}
-                    alt="Tanda Tangan Digital Mokhamat Ekhsan"
-                    className="h-20 object-contain drop-shadow-sm"
-                  />
+                {/* Signature & Stamp Area */}
+                <div className="relative h-24 my-1 flex items-center justify-start">
+                  {isApprovedOrHasStempel && displayStamp && (
+                    <div className="absolute -left-6 -top-1 pointer-events-none opacity-85 z-0">
+                      <img
+                        src={displayStamp}
+                        alt="Stempel Resmi"
+                        className="w-28 h-28 object-contain"
+                      />
+                    </div>
+                  )}
+
+                  {isApprovedOrHasTtd && displayTtd ? (
+                    <div className="relative z-10 left-3">
+                      <img
+                        src={displayTtd}
+                        alt={`Tanda Tangan Digital ${displayKepsek}`}
+                        className="h-20 object-contain drop-shadow-sm"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-48 h-16 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[11px]">
+                      {surat.status === "menunggu_persetujuan"
+                        ? "Menunggu TTD & Pengesahan"
+                        : "Draf Dokumen"}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="w-48 h-16 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[11px]">
-                  {surat.status === "menunggu_persetujuan"
-                    ? "Menunggu TTD & Pengesahan"
-                    : "Draf Dokumen"}
-                </div>
-              )}
+
+                <p className="font-bold text-gray-950 underline text-sm tracking-wide">
+                  {displayKepsek}
+                </p>
+                <p className="text-gray-700 text-xs font-medium">
+                  NIY. {displayNiy}
+                </p>
+
+                {isApprovedOrHasTtd && (
+                  <span className="inline-block mt-2 text-[9px] bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded font-mono font-semibold">
+                    ✓ TERVERIFIKASI SISTEM SIGAP-SMK
+                  </span>
+                )}
+              </div>
             </div>
-
-            <p className="font-bold text-gray-950 underline text-sm tracking-wide">
-              {surat.approver_name || "Mokhamat Ekhsan, S.Kom"}
-            </p>
-            <p className="text-gray-700 text-xs font-medium">
-              NIY. 14215094
-            </p>
-
-            {surat.has_ttd && (
-              <span className="inline-block mt-2 text-[9px] bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded font-mono font-semibold">
-                ✓ TERVERIFIKASI SISTEM SIGAP-SMK
-              </span>
-            )}
-          </div>
-        </div>
+          );
+        })()}
       </div>
 
       {/* Signature Modal */}
@@ -244,9 +257,9 @@ export default function SuratKeluarDetailPage() {
           surat={surat}
           isOpen={showSignatureModal}
           onClose={() => setShowSignatureModal(false)}
-          onApprove={(id) => approveSuratKeluar(id, currentUser.name)}
+          onApprove={(id, opts) => approveSuratKeluar(id, schoolSettings?.namaKepsek || currentUser.name, opts)}
           onReject={(id, notes) => rejectSuratKeluar(id, notes)}
-          kepsekName={currentUser.name}
+          kepsekName={schoolSettings?.namaKepsek || currentUser.name}
         />
       )}
     </div>
