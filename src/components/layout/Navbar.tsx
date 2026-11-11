@@ -26,8 +26,10 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
   const router = useRouter();
   const { currentUser, users, setCurrentUserById, logout } = useAuth();
-  const { suratKeluar, disposisi, rkt, resetAllData, isCloudConnected } = useAppData();
+  const { suratKeluar, disposisi, rkt, resetAllData, isCloudConnected, schoolSettings } = useAppData();
   const [showRoleModal, setShowRoleModal] = useState(false);
+
+  const schoolLogo = schoolSettings?.logoSmkUrl || LOGO_SMK_DATA_URL;
 
   // Counters
   const pendingSK = suratKeluar.filter((s) => s.status === "menunggu_persetujuan").length;
@@ -80,7 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
 
             <div className="flex items-center gap-3">
               <img
-                src={LOGO_SMK_DATA_URL}
+                src={schoolLogo}
                 alt="Logo SMK Bayt Al-Hikmah"
                 className="w-9 h-9 object-contain drop-shadow-sm shrink-0"
               />

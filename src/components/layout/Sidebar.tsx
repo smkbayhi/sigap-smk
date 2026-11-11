@@ -34,7 +34,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const pathname = usePathname();
   const { currentUser, isKepsek, isTU, isKasubag, isGuru } = useAuth();
-  const { suratKeluar, disposisi, rkt } = useAppData();
+  const { suratKeluar, disposisi, rkt, schoolSettings } = useAppData();
+  const schoolLogo = schoolSettings?.logoSmkUrl || LOGO_SMK_DATA_URL;
 
   const pendingSK = suratKeluar.filter((s) => s.status === "menunggu_persetujuan").length;
   const pendingRKT = rkt.filter((r) => r.status === "menunggu_persetujuan").length;
@@ -71,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div className="h-16 flex items-center justify-between px-4 border-b border-emerald-800/60 bg-[#053d2e]">
           <div className="flex items-center gap-2.5">
             <img
-              src={LOGO_SMK_DATA_URL}
+              src={schoolLogo}
               alt="Logo SMK Bayt Al-Hikmah"
               className="w-8 h-8 object-contain drop-shadow-sm"
             />

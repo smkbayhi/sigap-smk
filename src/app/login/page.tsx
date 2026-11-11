@@ -20,7 +20,9 @@ import {
 export default function LoginPage() {
   const router = useRouter();
   const { users, login, setCurrentUserById } = useAuth();
-  const { addToast } = useAppData();
+  const { addToast, schoolSettings } = useAppData();
+
+  const schoolLogo = schoolSettings?.logoSmkUrl || LOGO_SMK_DATA_URL;
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -68,7 +70,7 @@ export default function LoginPage() {
         <div className="text-center space-y-3">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl p-2.5 mx-auto">
             <img
-              src={LOGO_SMK_DATA_URL}
+              src={schoolLogo}
               alt="Logo SMK Bayt Al-Hikmah"
               className="w-full h-full object-contain drop-shadow"
             />
