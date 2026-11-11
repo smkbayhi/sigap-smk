@@ -26,7 +26,10 @@ export default function SuratKeluarPrintPage() {
   }
 
   return (
-    <div className="bg-white min-h-screen text-black font-serif text-[11pt] sm:text-[11.5pt] leading-relaxed p-6 sm:p-10 print-container max-w-4xl mx-auto">
+    <div 
+      className="bg-white min-h-screen text-black surat-resmi text-[11pt] sm:text-[11.5pt] leading-relaxed p-6 sm:p-10 print-container max-w-4xl mx-auto"
+      style={{ fontFamily: '"Times New Roman", Times, "Nimbus Roman No9 L", Georgia, serif' }}
+    >
       {/* Floating Print Button (hidden when printed) */}
       <div className="no-print fixed top-4 right-4 z-50 flex items-center gap-2 bg-white/95 backdrop-blur-sm p-2 rounded-xl shadow-lg border border-gray-300">
         <button
@@ -47,13 +50,13 @@ export default function SuratKeluarPrintPage() {
       <OfficialKopSurat />
 
       {/* Letter Meta: Nomor, Lampiran, Perihal (Aligned colons, no top date) */}
-      <div className="mb-6 font-serif text-[11pt]">
+      <div className="mb-6 text-[11pt]">
         <table className="border-collapse">
           <tbody>
             <tr>
               <td className="w-24 py-0.5">Nomor</td>
               <td className="w-4 py-0.5">:</td>
-              <td className="py-0.5 font-sans font-medium">{surat.nomor_surat}</td>
+              <td className="py-0.5 font-medium">{surat.nomor_surat}</td>
             </tr>
             <tr>
               <td className="py-0.5">Lampiran</td>
@@ -70,7 +73,7 @@ export default function SuratKeluarPrintPage() {
       </div>
 
       {/* Destination */}
-      <div className="mb-6 font-serif text-[11pt] leading-snug">
+      <div className="mb-6 text-[11pt] leading-snug">
         <p>Kepada Yth.</p>
         <p className="font-bold">{surat.tujuan}</p>
         <p>Di tempat</p>
@@ -78,12 +81,12 @@ export default function SuratKeluarPrintPage() {
 
       {/* Letter Body */}
       <div
-        className="mb-8 font-serif text-[11pt] leading-relaxed text-justify space-y-3"
+        className="mb-8 text-[11pt] leading-relaxed text-justify space-y-3"
         dangerouslySetInnerHTML={{ __html: surat.isi_surat }}
       />
 
       {/* Signature & Official Stamp Block (Bottom Right) */}
-      <div className="flex justify-end font-serif text-[11pt] mt-8 break-inside-avoid">
+      <div className="flex justify-end text-[11pt] mt-8 break-inside-avoid">
         <div className="text-left w-72">
           <p>Pasuruan, {formatIndonesianDate(surat.tanggal_surat)}</p>
           <p className="font-bold">Kepala SMK Bayt Al-Hikmah</p>
@@ -118,7 +121,7 @@ export default function SuratKeluarPrintPage() {
           <p className="font-bold underline text-[11.5pt] tracking-wide">
             {surat.approver_name || "Mokhamat Ekhsan, S.Kom"}
           </p>
-          <p className="text-[10pt] font-sans font-medium text-black">
+          <p className="text-[10.5pt] font-medium text-black">
             NIY. 14215094
           </p>
         </div>

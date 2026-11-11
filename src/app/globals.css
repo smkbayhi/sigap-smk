@@ -64,3 +64,10 @@
     margin: 1.5cm 2cm;
   }
 }
+
+/* Official Letter Typography (Times New Roman) */
+.font-times,
+.surat-resmi,
+.surat-resmi * {
+  font-family: "Times New Roman", Times, "Nimbus Roman No9 L", Georgia, serif !important;
+}

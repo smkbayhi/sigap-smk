@@ -4,9 +4,11 @@ export type BidangStruktural = 'kurikulum' | 'kesiswaan' | 'sarpras' | 'humas_bk
 
 export interface User {
   id: string;
-  nip: string;
+  niy: string;
+  nip?: string;
   name: string;
   email: string;
+  password?: string;
   role: UserRole;
   jabatan: string;
   bidang?: BidangStruktural;
@@ -14,6 +16,15 @@ export interface User {
   avatar: string;
   ttd_url?: string;
   stempel_url?: string;
+}
+
+export interface SchoolSettings {
+  logoYayasanUrl: string;
+  logoSmkUrl: string;
+  stempelUrl: string;
+  ttdKepsekUrl: string;
+  namaKepsek: string;
+  niyKepsek: string;
 }
 
 export interface MasterPerspektif {

@@ -12,6 +12,7 @@ import {
   StatusSuratKeluar,
   StatusDisposisi,
   StatusRKT,
+  SchoolSettings,
 } from "@/lib/database.types";
 import {
   INITIAL_PERSPEKTIF,
@@ -21,6 +22,7 @@ import {
   INITIAL_RKT,
   INITIAL_ACTION_PLANS,
   INITIAL_ACTION_REPORTS,
+  DEFAULT_SCHOOL_SETTINGS,
   TTD_KEPSEK_DATA_URL,
   STEMPEL_SEKOLAH_DATA_URL,
 } from "@/lib/seedData";
@@ -49,6 +51,11 @@ interface AppDataContextType {
   actionPlans: ActionPlan[];
   actionReports: ActionReport[];
   toasts: ToastMessage[];
+
+  // School & Letter Settings (Logo, Stempel, TTD)
+  schoolSettings: SchoolSettings;
+  updateSchoolSettings: (settings: Partial<SchoolSettings>) => void;
+  resetSchoolSettings: () => void;
 
   // Actions: Surat Keluar
   addSuratKeluar: (data: Omit<SuratKeluar, "id" | "no_urut" | "nomor_surat" | "bulan_romawi" | "tahun" | "created_at">) => SuratKeluar;
@@ -104,9 +111,11 @@ const STORAGE_KEYS = {
   RKT: "sigap_smk_rkt",
   ACTION_PLANS: "sigap_smk_action_plans",
   ACTION_REPORTS: "sigap_smk_action_reports",
+  SCHOOL_SETTINGS: "sigap_smk_school_settings",
 };
 
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
   const [suratKeluar, setSuratKeluar] = useState<SuratKeluar[]>(INITIAL_SURAT_KELUAR);
   const [suratMasuk, setSuratMasuk] = useState<SuratMasuk[]>(INITIAL_SURAT_MASUK);
   const [disposisi, setDisposisi] = useState<Disposisi[]>(INITIAL_DISPOSISI);
@@ -214,6 +223,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
         const storedAR = localStorage.getItem(STORAGE_KEYS.ACTION_REPORTS);
         if (storedAR) setActionReports(JSON.parse(storedAR));
+
+        const storedSettings = localStorage.getItem(STORAGE_KEYS.SCHOOL_SETTINGS);
+        if (storedSettings) setSchoolSettings(JSON.parse(storedSettings));
       } catch (e) {
         console.error("Failed to load initial data from storage", e);
       }
@@ -275,8 +287,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           approved_at: new Date().toISOString(),
           has_ttd: true,
           has_stempel: true,
-          ttd_image_url: TTD_KEPSEK_DATA_URL,
-          stempel_image_url: STEMPEL_SEKOLAH_DATA_URL,
+          ttd_image_url: schoolSettings.ttdKepsekUrl || TTD_KEPSEK_DATA_URL,
+          stempel_image_url: schoolSettings.stempelUrl || STEMPEL_SEKOLAH_DATA_URL,
           catatan_revisi: undefined,
         };
       }
@@ -577,6 +589,20 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     addToast("info", "Laporan Diperbarui", "Data laporan berhasil diubah.");
   };
 
+  // School Settings Actions (Logo, Stempel, TTD)
+  const updateSchoolSettings = (partial: Partial<SchoolSettings>) => {
+    const updated = { ...schoolSettings, ...partial };
+    setSchoolSettings(updated);
+    saveToStorage(STORAGE_KEYS.SCHOOL_SETTINGS, updated);
+    addToast("success", "Pengaturan Surat Disimpan", "Logo, stempel, atau tanda tangan berhasil diperbarui.");
+  };
+
+  const resetSchoolSettings = () => {
+    setSchoolSettings(DEFAULT_SCHOOL_SETTINGS);
+    saveToStorage(STORAGE_KEYS.SCHOOL_SETTINGS, DEFAULT_SCHOOL_SETTINGS);
+    addToast("info", "Pengaturan Direset", "Logo, stempel, dan tanda tangan resmi bawaan sekolah telah dipulihkan.");
+  };
+
   // Reset to default seeders
   const resetAllData = () => {
     if (typeof window !== "undefined") {
@@ -597,6 +623,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       value={{
         isCloudConnected,
         syncWithCloud,
+        schoolSettings,
+        updateSchoolSettings,
+        resetSchoolSettings,
         suratKeluar,
         suratMasuk,
         disposisi,

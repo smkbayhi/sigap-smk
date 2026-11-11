@@ -22,6 +22,8 @@ import {
   FileCheck2,
   Clock,
   Sparkles,
+  Stamp,
+  LogOut,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -287,6 +289,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 </Link>
 
                 <Link
+                  href="/master/kop-surat"
+                  onClick={onClose}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    isActive("/master/kop-surat")
+                      ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
+                      : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Stamp className="w-4 h-4 text-emerald-300" />
+                    <span>Kop, Logo & TTD Resmi</span>
+                  </div>
+                </Link>
+
+                <Link
                   href="/master/users"
                   onClick={onClose}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
@@ -303,6 +320,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               </nav>
             </div>
           )}
+        </div>
+
+        {/* Logout Link */}
+        <div className="px-3 py-2 border-t border-emerald-800/40">
+          <Link
+            href="/login"
+            onClick={onClose}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-emerald-200 hover:bg-emerald-800/80 hover:text-white transition-colors"
+          >
+            <LogOut className="w-4 h-4 text-emerald-300" />
+            <span>Halaman Login / Ganti Akun</span>
+          </Link>
         </div>
 
         {/* Footer Info */}

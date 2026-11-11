@@ -9,11 +9,12 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
-  // If path is a pure print view, hide navbar and sidebar completely
+  // If path is a pure print view or login view, hide navbar and sidebar completely
   const isPrintView = pathname?.includes("/print");
+  const isAuthView = pathname === "/login";
 
-  if (isPrintView) {
-    return <main className="min-h-screen bg-white">{children}</main>;
+  if (isPrintView || isAuthView) {
+    return <main className="min-h-screen">{children}</main>;
   }
 
   return (

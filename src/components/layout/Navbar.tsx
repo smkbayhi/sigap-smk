@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { LOGO_SMK_DATA_URL } from "@/lib/seedData";
@@ -13,6 +15,8 @@ import {
   FileCheck2,
   Mail,
   CheckCircle,
+  LogOut,
+  LogIn,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -20,7 +24,8 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
-  const { currentUser, users, setCurrentUserById } = useAuth();
+  const router = useRouter();
+  const { currentUser, users, setCurrentUserById, logout } = useAuth();
   const { suratKeluar, disposisi, rkt, resetAllData, isCloudConnected } = useAppData();
   const [showRoleModal, setShowRoleModal] = useState(false);
 
@@ -244,8 +249,26 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                       })}
                     </div>
 
-                    <div className="px-4 pt-2 border-t border-gray-100 bg-gray-50/80 -mb-1 text-[11px] text-gray-500">
-                      💡 Tip: Anda dapat langsung berpindah antar role untuk menguji proses approval TTD, OCR, dan RKT secara nyata.
+                    <div className="px-4 py-2 border-t border-gray-100 bg-gray-50/80 -mb-1 flex items-center justify-between text-xs">
+                      <Link
+                        href="/login"
+                        onClick={() => setShowRoleModal(false)}
+                        className="text-brand-800 hover:text-brand-950 font-semibold flex items-center gap-1"
+                      >
+                        <LogIn className="w-3.5 h-3.5" />
+                        Halaman Login
+                      </Link>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setShowRoleModal(false);
+                          router.push("/login");
+                        }}
+                        className="text-rose-600 hover:text-rose-800 font-semibold flex items-center gap-1"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        Keluar
+                      </button>
                     </div>
                   </div>
                 </>

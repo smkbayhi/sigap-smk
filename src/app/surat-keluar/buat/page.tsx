@@ -564,18 +564,21 @@ export default function BuatSuratKeluarPage() {
           </div>
 
           {/* Letter Sheet Simulation */}
-          <div className="bg-white border border-gray-300 rounded-xl p-5 shadow-sm font-serif text-[11px] text-gray-900 leading-relaxed overflow-hidden">
+          <div 
+            className="bg-white border border-gray-300 rounded-xl p-5 shadow-sm surat-resmi text-[11px] text-gray-900 leading-relaxed overflow-hidden"
+            style={{ fontFamily: '"Times New Roman", Times, "Nimbus Roman No9 L", Georgia, serif' }}
+          >
             {/* Kop Surat Resmi */}
             <OfficialKopSurat />
 
             {/* Letter Meta (Nomor, Lampiran, Perihal aligned) */}
-            <div className="mb-4 font-serif text-[11px]">
+            <div className="mb-4 text-[11px]">
               <table className="border-collapse">
                 <tbody>
                   <tr>
                     <td className="w-16 py-0.5 text-gray-700">Nomor</td>
                     <td className="w-3 py-0.5">:</td>
-                    <td className="py-0.5 font-sans font-medium">{previewNomorSurat}</td>
+                    <td className="py-0.5 font-medium">{previewNomorSurat}</td>
                   </tr>
                   <tr>
                     <td className="py-0.5 text-gray-700">Lampiran</td>
@@ -592,7 +595,7 @@ export default function BuatSuratKeluarPage() {
             </div>
 
             {/* Destination */}
-            <div className="mb-4 font-serif text-[11px] leading-snug">
+            <div className="mb-4 text-[11px] leading-snug">
               <p>Kepada Yth.</p>
               <p className="font-bold">{tujuan || "[Penerima Surat]"}</p>
               <p>Di tempat</p>
@@ -600,12 +603,12 @@ export default function BuatSuratKeluarPage() {
 
             {/* Full Assembled Body (Salam Pembuka + Inti + Tabel Pelaksana [jika aktif] + Salam Penutup) */}
             <div
-              className="prose prose-sm max-w-none text-[11px] text-gray-900 mb-6 font-serif space-y-2 leading-relaxed"
+              className="prose prose-sm max-w-none text-[11px] text-gray-900 mb-6 space-y-2 leading-relaxed"
               dangerouslySetInnerHTML={{ __html: currentPreviewHtml }}
             />
 
             {/* Closing & Placeholder TTD */}
-            <div className="flex justify-end font-serif mt-6">
+            <div className="flex justify-end mt-6">
               <div className="text-left w-56">
                 <p className="text-[11px]">Pasuruan, {formatIndonesianDate(tanggalSurat)}</p>
                 <p className="font-bold text-[11px]">Kepala SMK Bayt Al-Hikmah</p>
@@ -613,7 +616,7 @@ export default function BuatSuratKeluarPage() {
                   [Tempat TTD Digital & Stempel Sah]
                 </div>
                 <p className="font-bold underline text-[11px]">Mokhamat Ekhsan, S.Kom</p>
-                <p className="text-[9.5px] font-sans font-medium text-gray-700">NIY. 14215094</p>
+                <p className="text-[9.5px] font-medium text-gray-700">NIY. 14215094</p>
               </div>
             </div>
           </div>

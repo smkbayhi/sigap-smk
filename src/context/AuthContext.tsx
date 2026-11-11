@@ -1,13 +1,20 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { User, UserRole, BidangStruktural } from "@/lib/database.types";
 import { INITIAL_USERS } from "@/lib/seedData";
+import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 
 interface AuthContextType {
   currentUser: User;
   users: User[];
   setCurrentUserById: (userId: string) => void;
+  updateUser: (userId: string, data: Partial<User>) => void;
+  addUser: (data: Omit<User, "id">) => User;
+  deleteUser: (userId: string) => void;
+  login: (identifier: string, password?: string) => { success: boolean; message?: string };
+  logout: () => void;
+  isAuthenticated: boolean;
   isKepsek: boolean;
   isTU: boolean;
   isKasubag: boolean;
@@ -17,29 +24,205 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_STORAGE_KEY = "sigap_smk_current_user_id";
+const AUTH_USER_KEY = "sigap_smk_current_user_id";
+const USERS_STORAGE_KEY = "sigap_smk_users";
+const AUTH_STATUS_KEY = "sigap_smk_is_authenticated";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [users] = useState<User[]>(INITIAL_USERS);
-  const [currentUser, setCurrentUser] = useState<User>(INITIAL_USERS[0]); // Default to Kepala Sekolah
+  const [users, setUsers] = useState<User[]>(INITIAL_USERS);
+  const [currentUser, setCurrentUser] = useState<User>(INITIAL_USERS[0]);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true); // default true for seamless initial usage
 
+  // Sync users to Supabase in background
+  const syncUserToCloud = async (user: User) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      await supabase.from("users").upsert({
+        id: user.id,
+        nip: user.niy || user.nip || user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        jabatan: user.jabatan,
+        bidang: user.bidang || null,
+        phone: user.phone,
+        avatar: user.avatar,
+        ttd_url: user.ttd_url || null,
+        stempel_url: user.stempel_url || null,
+      });
+    } catch (e) {
+      console.warn("Failed to sync user to Supabase:", e);
+    }
+  };
+
+  // Load from local storage & Supabase
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedUserId = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (savedUserId) {
-        const found = users.find((u) => u.id === savedUserId);
-        if (found) setCurrentUser(found);
+      try {
+        const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
+        let parsedUsers: User[] = INITIAL_USERS;
+        if (storedUsers) {
+          parsedUsers = JSON.parse(storedUsers);
+          // Ensure NIY is mapped
+          parsedUsers = parsedUsers.map((u) => ({
+            ...u,
+            niy: u.niy || u.nip || "",
+          }));
+          setUsers(parsedUsers);
+        }
+
+        const storedAuthStatus = localStorage.getItem(AUTH_STATUS_KEY);
+        if (storedAuthStatus !== null) {
+          setIsAuthenticated(storedAuthStatus === "true");
+        }
+
+        const savedUserId = localStorage.getItem(AUTH_USER_KEY);
+        if (savedUserId) {
+          const found = parsedUsers.find((u) => u.id === savedUserId);
+          if (found) setCurrentUser(found);
+        } else {
+          setCurrentUser(parsedUsers[0]);
+        }
+      } catch (e) {
+        console.error("Failed to load users from localStorage", e);
       }
     }
-  }, [users]);
+
+    // Try fetching users from Supabase if configured
+    if (isSupabaseConfigured && supabase) {
+      supabase
+        .from("users")
+        .select("*")
+        .then(({ data, error }) => {
+          if (!error && data && data.length > 0) {
+            const mapped: User[] = data.map((row: any) => ({
+              id: row.id,
+              niy: row.nip || row.niy || "",
+              nip: row.nip || "",
+              name: row.name,
+              email: row.email,
+              password: row.password || "password123",
+              role: row.role,
+              jabatan: row.jabatan,
+              bidang: row.bidang,
+              phone: row.phone,
+              avatar: row.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+              ttd_url: row.ttd_url,
+              stempel_url: row.stempel_url,
+            }));
+            setUsers(mapped);
+            if (typeof window !== "undefined") {
+              localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(mapped));
+            }
+          }
+        });
+    }
+  }, []);
+
+  const saveUsersState = (updatedList: User[]) => {
+    setUsers(updatedList);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updatedList));
+    }
+  };
 
   const setCurrentUserById = (userId: string) => {
     const found = users.find((u) => u.id === userId);
     if (found) {
       setCurrentUser(found);
+      setIsAuthenticated(true);
       if (typeof window !== "undefined") {
-        localStorage.setItem(AUTH_STORAGE_KEY, found.id);
+        localStorage.setItem(AUTH_USER_KEY, found.id);
+        localStorage.setItem(AUTH_STATUS_KEY, "true");
       }
+    }
+  };
+
+  const updateUser = (userId: string, data: Partial<User>) => {
+    const updated = users.map((u) => {
+      if (u.id === userId) {
+        const merged = { ...u, ...data };
+        if (data.niy) merged.nip = data.niy; // keep nip in sync
+        return merged;
+      }
+      return u;
+    });
+    saveUsersState(updated);
+
+    const updatedCurrent = updated.find((u) => u.id === userId);
+    if (updatedCurrent) {
+      syncUserToCloud(updatedCurrent);
+      if (currentUser.id === userId) {
+        setCurrentUser(updatedCurrent);
+      }
+    }
+  };
+
+  const addUser = (data: Omit<User, "id">): User => {
+    const newId = "user-" + Date.now();
+    const newUser: User = {
+      ...data,
+      id: newId,
+      niy: data.niy || data.nip || "",
+      nip: data.niy || data.nip || "",
+      password: data.password || "password123",
+    };
+    const updated = [...users, newUser];
+    saveUsersState(updated);
+    syncUserToCloud(newUser);
+    return newUser;
+  };
+
+  const deleteUser = (userId: string) => {
+    const updated = users.filter((u) => u.id !== userId);
+    saveUsersState(updated);
+    if (isSupabaseConfigured && supabase) {
+      supabase.from("users").delete().eq("id", userId);
+    }
+    if (currentUser.id === userId && updated.length > 0) {
+      setCurrentUser(updated[0]);
+    }
+  };
+
+  const login = (identifier: string, password?: string) => {
+    const cleanId = identifier.trim().toLowerCase();
+    const cleanPass = password?.trim();
+
+    // Match by NIY, NIP, email, or name
+    const found = users.find((u) => {
+      const matchNiy = (u.niy || "").toLowerCase() === cleanId;
+      const matchNip = (u.nip || "").toLowerCase() === cleanId;
+      const matchEmail = (u.email || "").toLowerCase() === cleanId;
+      const matchName = u.name.toLowerCase().includes(cleanId);
+      return matchNiy || matchNip || matchEmail || matchName;
+    });
+
+    if (!found) {
+      return { success: false, message: "Pengguna dengan NIY/Email tersebut tidak ditemukan." };
+    }
+
+    // If password provided and user has a password set, verify (or allow default "123456" / "password123")
+    if (cleanPass && found.password) {
+      const validPasswords = [found.password, "123456", "password123", "admin"];
+      if (!validPasswords.includes(cleanPass)) {
+        return { success: false, message: "Password yang Anda masukkan salah. (Default: 123456)" };
+      }
+    }
+
+    setCurrentUser(found);
+    setIsAuthenticated(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(AUTH_USER_KEY, found.id);
+      localStorage.setItem(AUTH_STATUS_KEY, "true");
+    }
+
+    return { success: true };
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(AUTH_STATUS_KEY, "false");
     }
   };
 
@@ -55,6 +238,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         users,
         setCurrentUserById,
+        updateUser,
+        addUser,
+        deleteUser,
+        login,
+        logout,
+        isAuthenticated,
         isKepsek,
         isTU,
         isKasubag,

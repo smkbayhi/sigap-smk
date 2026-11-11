@@ -1,4 +1,4 @@
-import { User, MasterPerspektif, SuratKeluar, SuratMasuk, Disposisi, RKT, ActionPlan, ActionReport } from "./database.types";
+import { User, MasterPerspektif, SuratKeluar, SuratMasuk, Disposisi, RKT, ActionPlan, ActionReport, SchoolSettings } from "./database.types";
 
 // Official Logo Yayasan Pondok Pesantren Bayt Al-Hikmah (Left Logo)
 export const LOGO_YAYASAN_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -119,12 +119,23 @@ export const STEMPEL_SEKOLAH_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComp
 </svg>
 `)}`;
 
+export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
+  logoYayasanUrl: LOGO_YAYASAN_DATA_URL,
+  logoSmkUrl: LOGO_SMK_CIRCULAR_DATA_URL,
+  stempelUrl: STEMPEL_SEKOLAH_DATA_URL,
+  ttdKepsekUrl: TTD_KEPSEK_DATA_URL,
+  namaKepsek: "Mokhamat Ekhsan, S.Kom",
+  niyKepsek: "14215094",
+};
+
 export const INITIAL_USERS: User[] = [
   {
     id: "user-kepsek",
-    nip: "14215094", // NIY. 14215094
+    niy: "14215094",
+    nip: "14215094",
     name: "Mokhamat Ekhsan, S.Kom",
     email: "kepsek@smk.baytalhikmah.sch.id",
+    password: "password123",
     role: "kepala_sekolah",
     jabatan: "Kepala SMK Bayt Al-Hikmah",
     phone: "6281234567890",
@@ -134,9 +145,11 @@ export const INITIAL_USERS: User[] = [
   },
   {
     id: "user-tu",
+    niy: "14215098",
     nip: "14215098",
     name: "Siti Rahmawati, S.Kom.",
     email: "smkbayhi@gmail.com",
+    password: "password123",
     role: "tata_usaha",
     jabatan: "Kepala Tata Usaha",
     phone: "6281398765432",
@@ -144,9 +157,11 @@ export const INITIAL_USERS: User[] = [
   },
   {
     id: "user-kasubag-kurikulum",
+    niy: "14215102",
     nip: "14215102",
     name: "M. Ridwan, S.T., M.Kom.",
     email: "kurikulum@smk.baytalhikmah.sch.id",
+    password: "password123",
     role: "kasubag",
     jabatan: "Kasubag Kurikulum & Akademik",
     bidang: "kurikulum",
@@ -155,9 +170,11 @@ export const INITIAL_USERS: User[] = [
   },
   {
     id: "user-kasubag-kesiswaan",
+    niy: "14215105",
     nip: "14215105",
     name: "Ust. Farhan Maulana, S.Pd.I.",
     email: "kesiswaan@smk.baytalhikmah.sch.id",
+    password: "password123",
     role: "kasubag",
     jabatan: "Kasubag Kesiswaan & Kedisiplinan",
     bidang: "kesiswaan",
@@ -166,9 +183,11 @@ export const INITIAL_USERS: User[] = [
   },
   {
     id: "user-kasubag-sarpras",
+    niy: "14215110",
     nip: "14215110",
     name: "Bambang Haryanto, S.T.",
     email: "sarpras@smk.baytalhikmah.sch.id",
+    password: "password123",
     role: "kasubag",
     jabatan: "Kasubag Sarana & Prasarana",
     bidang: "sarpras",
@@ -177,9 +196,11 @@ export const INITIAL_USERS: User[] = [
   },
   {
     id: "user-kasubag-humas",
+    niy: "14215114",
     nip: "14215114",
     name: "Nabila Zahra, M.Si.",
     email: "humas@smk.baytalhikmah.sch.id",
+    password: "password123",
     role: "kasubag",
     jabatan: "Kasubag Hubungan Industri & BKK",
     bidang: "humas_bkk",
@@ -188,9 +209,11 @@ export const INITIAL_USERS: User[] = [
   },
   {
     id: "user-guru-1",
+    niy: "14215120",
     nip: "14215120",
     name: "Ahmad Junaidi, S.Pd.",
     email: "junaidi@smk.baytalhikmah.sch.id",
+    password: "password123",
     role: "guru",
     jabatan: "Guru Kejuruan TJKT / Pembina OSIS",
     phone: "6287812345678",

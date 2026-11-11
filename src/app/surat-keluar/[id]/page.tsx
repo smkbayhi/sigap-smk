@@ -142,7 +142,10 @@ export default function SuratKeluarDetailPage() {
       )}
 
       {/* Document Sheet (Visual Paper Simulation matching official PDF) */}
-      <div className="max-w-4xl mx-auto bg-white border border-gray-300 rounded-2xl shadow-xl p-8 sm:p-14 font-serif text-gray-900 text-sm leading-relaxed">
+      <div 
+        className="max-w-4xl mx-auto bg-white border border-gray-300 rounded-2xl shadow-xl p-8 sm:p-14 surat-resmi text-gray-900 text-sm leading-relaxed"
+        style={{ fontFamily: '"Times New Roman", Times, "Nimbus Roman No9 L", Georgia, serif' }}
+      >
         {/* Kop Surat Resmi */}
         <OfficialKopSurat />
 
@@ -153,7 +156,7 @@ export default function SuratKeluarDetailPage() {
               <tr>
                 <td className="w-24 py-0.5 text-gray-700">Nomor</td>
                 <td className="w-4 py-0.5">:</td>
-                <td className="py-0.5 font-sans font-semibold text-gray-950">{surat.nomor_surat}</td>
+                <td className="py-0.5 font-semibold text-gray-950">{surat.nomor_surat}</td>
               </tr>
               <tr>
                 <td className="py-0.5 text-gray-700">Lampiran</td>
@@ -222,7 +225,7 @@ export default function SuratKeluarDetailPage() {
             <p className="font-bold text-gray-950 underline text-sm tracking-wide">
               {surat.approver_name || "Mokhamat Ekhsan, S.Kom"}
             </p>
-            <p className="text-gray-700 text-xs font-sans font-medium">
+            <p className="text-gray-700 text-xs font-medium">
               NIY. 14215094
             </p>
 
