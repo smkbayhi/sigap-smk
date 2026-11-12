@@ -252,8 +252,8 @@ export default function MasterUsersPage() {
         </div>
       </div>
 
-      {/* Grid of User Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Grid of User Cards (Compact & Neat with Outside Action Buttons) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {filteredUsers.map((user) => {
           const isCurrentActive = user.id === currentUser.id;
           const userNiy = user.niy || user.nip || "-";
@@ -261,117 +261,129 @@ export default function MasterUsersPage() {
           return (
             <div
               key={user.id}
-              className={`bg-white rounded-2xl border p-5 shadow-xs transition-all flex flex-col justify-between space-y-4 ${
+              className={`bg-white rounded-xl border p-4 shadow-2xs transition-all flex flex-col justify-between space-y-3 ${
                 isCurrentActive
-                  ? "border-2 border-brand-600 ring-2 ring-brand-500/15 shadow-card"
-                  : "border-slate-200 hover:border-gray-300"
+                  ? "border-2 border-brand-600 ring-2 ring-brand-500/10 shadow-xs"
+                  : "border-slate-200 hover:border-brand-300 hover:shadow-xs"
               }`}
             >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-brand-800 text-white font-black text-sm flex items-center justify-center border-2 border-gold-400 shadow-xs">
+              {/* Card Header: Avatar, Name, Role Badge */}
+              <div className="space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-brand-800 text-white font-bold text-xs flex items-center justify-center border border-gold-400 shrink-0 shadow-2xs">
                       {user.name
                         .split(" ")
                         .map((n) => n[0])
                         .slice(0, 2)
                         .join("")}
                     </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-gray-900">{user.name}</h3>
-                      <p className="text-[11px] text-gray-600">{user.jabatan}</p>
+                    <div className="min-w-0">
+                      <h3 className="text-xs font-bold text-gray-900 truncate" title={user.name}>
+                        {user.name}
+                      </h3>
+                      <p className="text-[10.5px] text-gray-500 truncate" title={user.jabatan}>
+                        {user.jabatan}
+                      </p>
                     </div>
                   </div>
 
-                  {isCurrentActive && (
-                    <span className="text-[10px] bg-brand-600 text-white font-bold px-2 py-0.5 rounded-full shrink-0">
-                      Sedang Aktif
-                    </span>
-                  )}
-                </div>
-
-                <div className="pt-2 border-t border-gray-100 space-y-1.5 text-xs text-gray-600">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-[11px]">Role RBAC:</span>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getRoleBadge(
+                      className={`text-[9.5px] font-bold px-2 py-0.5 rounded border ${getRoleBadge(
                         user.role
                       )}`}
                     >
-                      {getRoleLabel(user.role)}
+                      {getRoleLabel(user.role).split(" ")[0]}
                     </span>
+                    {isCurrentActive && (
+                      <span className="text-[9px] bg-brand-600 text-white font-bold px-1.5 py-0.2 rounded-full">
+                        Aktif
+                      </span>
+                    )}
                   </div>
+                </div>
 
+                {/* Compact Info List */}
+                <div className="pt-2 border-t border-gray-100 space-y-1 text-[11px] text-gray-600">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-[11px]">NIY (Nomor Induk):</span>
-                    <span className="font-mono font-bold text-brand-900 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">
+                    <span className="text-gray-400 text-[10.5px]">NIY:</span>
+                    <span className="font-mono font-bold text-brand-900 bg-brand-50/80 px-1.5 py-0.2 rounded border border-brand-200 text-[10.5px]">
                       {userNiy}
                     </span>
                   </div>
 
                   {user.bidang && (
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-400 text-[11px]">Bidang:</span>
-                      <span className="font-semibold text-gray-800 capitalize">
+                      <span className="text-gray-400 text-[10.5px]">Bidang:</span>
+                      <span className="font-medium text-gray-800 capitalize text-[10.5px]">
                         {user.bidang.replace("_", " ")}
                       </span>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-[11px]">WhatsApp:</span>
+                    <span className="text-gray-400 text-[10.5px]">WhatsApp:</span>
                     <a
                       href={`https://wa.me/${user.phone}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="font-mono text-emerald-700 font-bold hover:underline"
+                      className="font-mono text-emerald-700 font-bold hover:underline text-[10.5px]"
                     >
                       +{user.phone}
                     </a>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400 text-[11px]">Email / Login:</span>
-                    <span className="text-gray-700 truncate max-w-[160px] font-mono text-[11px]">
+                    <span className="text-gray-400 text-[10.5px]">Email:</span>
+                    <span className="text-gray-700 truncate max-w-[150px] font-mono text-[10.5px]" title={user.email}>
                       {user.email}
                     </span>
                   </div>
-
-                  {user.ttd_url && (
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-gray-400 text-[10px]">TTD Digital:</span>
-                      <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                        ✓ Terpasang
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {/* Action Buttons: Edit Data & Switch Profile */}
-              <div className="pt-3 border-t border-gray-100 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOpenEdit(user)}
-                  className="flex-1 py-2 px-3 bg-white hover:bg-slate-100 text-gray-800 rounded-xl text-xs font-bold border border-gray-200 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <Edit3 className="w-3.5 h-3.5 text-gray-600" />
-                  Edit Data
-                </button>
+              {/* Action Buttons Directly on Card Outside (Edit, Hapus, Switch) */}
+              <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between gap-1.5">
+                <div className="flex items-center gap-1.5">
+                  {/* EDIT BUTTON OUTSIDE */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEdit(user)}
+                    className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1"
+                    title="Edit Data Pengguna"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Edit</span>
+                  </button>
 
+                  {/* DELETE BUTTON OUTSIDE */}
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(user.id, user.name)}
+                    className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1"
+                    title="Hapus Pengguna"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Hapus</span>
+                  </button>
+                </div>
+
+                {/* Switch profile / Status */}
                 {isCurrentActive ? (
-                  <div className="flex-1 py-2 bg-brand-50 text-brand-800 rounded-xl text-center text-xs font-bold border border-brand-200 flex items-center justify-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-brand-600" />
-                    Aktif
-                  </div>
+                  <span className="text-[10px] text-brand-800 bg-brand-50 border border-brand-200 px-2 py-1 rounded-lg font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-brand-600" />
+                    Profil Ini
+                  </span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => setCurrentUserById(user.id)}
-                    className="flex-1 py-2 px-3 bg-brand-50 hover:bg-brand-700 hover:text-white text-brand-900 border border-brand-200 hover:border-brand-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                    className="px-2.5 py-1 bg-gray-100 hover:bg-brand-700 hover:text-white text-gray-700 rounded-lg text-[10.5px] font-semibold transition-all flex items-center gap-1"
+                    title="Ganti ke Akun Ini"
                   >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    Ganti
+                    <UserCheck className="w-3 h-3" />
+                    <span>Ganti</span>
                   </button>
                 )}
               </div>

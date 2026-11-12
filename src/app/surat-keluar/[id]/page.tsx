@@ -16,6 +16,10 @@ import {
   AlertTriangle,
   Download,
   Trash2,
+  Send,
+  X,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 
 export default function SuratKeluarDetailPage() {
@@ -33,6 +37,8 @@ export default function SuratKeluarDetailPage() {
   } = useAppData();
 
   const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [waTargetPhone, setWaTargetPhone] = useState("628");
 
   const surat = suratKeluar.find((s) => s.id === id);
 
@@ -70,6 +76,16 @@ export default function SuratKeluarDetailPage() {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Kirim via WhatsApp Button */}
+          <button
+            onClick={() => setShowWhatsAppModal(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all"
+            title="Kirim dokumen surat ini ke WhatsApp tujuan"
+          >
+            <Send className="w-4 h-4" />
+            Kirim ke WhatsApp
+          </button>
+
           {/* Print / Download Button */}
           <Link
             href={`/surat-keluar/${surat.id}/print`}
@@ -261,6 +277,156 @@ export default function SuratKeluarDetailPage() {
           onReject={(id, notes) => rejectSuratKeluar(id, notes)}
           kepsekName={schoolSettings?.namaKepsek || currentUser.name}
         />
+      )}
+
+      {/* WhatsApp Modal Pengiriman Surat Resmi */}
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in fade-in-50 zoom-in-95">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-800 text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
+                  <Send className="w-4 h-4 text-emerald-200" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Kirim Dokumen via WhatsApp</h3>
+                  <p className="text-[11px] text-emerald-200">Kirim surat keluar resmi ke penerima atau pihak terkait</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowWhatsAppModal(false)}
+                className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Recipient & Status Info */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500 text-[10.5px]">Tujuan / Penerima:</span>
+                  <span className="font-bold text-gray-900">{surat.tujuan}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500 text-[10.5px]">Perihal:</span>
+                  <span className="font-medium text-gray-800 truncate max-w-[200px]" title={surat.perihal}>
+                    {surat.perihal}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-gray-200">
+                  <span className="text-gray-500 text-[10.5px]">Status Dokumen:</span>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      surat.status === "disetujui"
+                        ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                        : "bg-amber-100 text-amber-800 border border-amber-300"
+                    }`}
+                  >
+                    {surat.status === "disetujui" ? "✓ Sah & Bertanda Tangan Digital" : "Draf / Menunggu TTD"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Status Warning if draft */}
+              {surat.status !== "disetujui" && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-[11px] leading-relaxed">
+                    <strong>Catatan:</strong> Surat ini masih berstatus <em>Draf</em> dan belum ditandatangani oleh Kepala Sekolah. Anda dapat mengirimkan notifikasi ke WhatsApp Kepala Sekolah agar ditinjau terlebih dahulu.
+                  </p>
+                </div>
+              )}
+
+              {/* Phone Input */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Nomor WhatsApp Penerima (Contoh: 6281234567890):
+                </label>
+                <input
+                  type="text"
+                  value={waTargetPhone}
+                  onChange={(e) => setWaTargetPhone(e.target.value.replace(/\D/g, ""))}
+                  placeholder="6281234567890"
+                  className="w-full text-xs font-mono rounded-xl border border-gray-300 p-2.5 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              {/* Message Preview */}
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                  Pratinjau Format Pesan WhatsApp:
+                </label>
+                <div className="bg-emerald-50/50 border border-emerald-200/80 rounded-xl p-3 text-[11px] text-gray-800 font-mono whitespace-pre-wrap leading-relaxed">
+                  {(() => {
+                    const host = typeof window !== "undefined" ? window.location.origin : "https://sigap-smk.vercel.app";
+                    const printLink = `${host}/surat-keluar/${surat.id}/print`;
+                    const kepsek = schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom";
+
+                    if (surat.status === "disetujui") {
+                      return `Kepada Yth.\n${surat.tujuan}\nDi tempat\n\nAssalamu’alaikum wr. wb.\nBerikut kami sampaikan Surat Resmi dari SMK Bayt Al-Hikmah Pasuruan:\n\n• Nomor Surat: ${surat.nomor_surat}\n• Perihal: ${surat.perihal}\n• Tanggal: ${formatIndonesianDate(surat.tanggal_surat)}\n\nDokumen resmi ini telah disahkan & ditandatangani secara digital oleh Kepala Sekolah (${kepsek}) serta dibubuhi stempel resmi lembaga.\n\nSilakan unduh atau cetak dokumen PDF resmi melalui tautan berikut:\n${printLink}\n\nDemikian kami sampaikan, terima kasih.\nWassalamu’alaikum wr. wb.`;
+                    } else {
+                      return `Assalamu’alaikum wr. wb.\nYth. Bapak Kepala Sekolah (${kepsek})\n\nPemberitahuan Draf Pengajuan Surat Keluar:\n• Nomor: ${surat.nomor_surat}\n• Perihal: ${surat.perihal}\n• Tujuan: ${surat.tujuan}\n\nDokumen membutuhkan otorisasi tanda tangan digital Anda:\n${host}/surat-keluar/${surat.id}\n\nTerima kasih.`;
+                    }
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <Link
+                href={`/surat-keluar/${surat.id}/print`}
+                target="_blank"
+                className="px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200 rounded-xl flex items-center gap-1.5 transition-colors"
+              >
+                <Printer className="w-3.5 h-3.5 text-gray-600" />
+                <span>Unduh / Cetak PDF</span>
+              </Link>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWhatsAppModal(false)}
+                  className="px-3.5 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-200 rounded-xl"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cleanPhone = waTargetPhone.replace(/\D/g, "");
+                    if (!cleanPhone || cleanPhone.length < 8) {
+                      alert("Masukkan nomor WhatsApp yang valid (awali dengan kode negara 62).");
+                      return;
+                    }
+                    const host = typeof window !== "undefined" ? window.location.origin : "https://sigap-smk.vercel.app";
+                    const printLink = `${host}/surat-keluar/${surat.id}/print`;
+                    const kepsek = schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom";
+
+                    let msg = "";
+                    if (surat.status === "disetujui") {
+                      msg = `Kepada Yth.\n${surat.tujuan}\nDi tempat\n\nAssalamu’alaikum wr. wb.\nBerikut kami sampaikan Surat Resmi dari SMK Bayt Al-Hikmah Pasuruan:\n\n• Nomor Surat: ${surat.nomor_surat}\n• Perihal: ${surat.perihal}\n• Tanggal: ${formatIndonesianDate(surat.tanggal_surat)}\n\nDokumen resmi ini telah disahkan & ditandatangani secara digital oleh Kepala Sekolah (${kepsek}) serta dibubuhi stempel resmi lembaga.\n\nSilakan unduh atau cetak dokumen PDF resmi melalui tautan berikut:\n${printLink}\n\nDemikian kami sampaikan, terima kasih.\nWassalamu’alaikum wr. wb.`;
+                    } else {
+                      msg = `Assalamu’alaikum wr. wb.\nYth. Bapak Kepala Sekolah (${kepsek})\n\nPemberitahuan Draf Pengajuan Surat Keluar:\n• Nomor: ${surat.nomor_surat}\n• Perihal: ${surat.perihal}\n• Tujuan: ${surat.tujuan}\n\nDokumen membutuhkan otorisasi tanda tangan digital Anda:\n${host}/surat-keluar/${surat.id}\n\nTerima kasih.`;
+                    }
+
+                    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+                    window.open(waUrl, "_blank");
+                    setShowWhatsAppModal(false);
+                  }}
+                  className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Buka WhatsApp & Kirim
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

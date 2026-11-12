@@ -75,6 +75,7 @@ interface AppDataContextType {
 
   // Actions: Disposisi
   createDisposisi: (data: Omit<Disposisi, "id" | "created_at">) => Disposisi;
+  updateDisposisi: (id: string, partial: Partial<Disposisi>) => void;
   updateDisposisiStatus: (id: string, status: StatusDisposisi, tanggapan?: string) => void;
   deleteDisposisi: (id: string) => void;
 
@@ -399,6 +400,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     return newItem;
   };
 
+  const updateDisposisi = (id: string, partial: Partial<Disposisi>) => {
+    const updated = disposisi.map((d) => (d.id === id ? { ...d, ...partial } : d));
+    setDisposisi(updated);
+    saveToStorage(STORAGE_KEYS.DISPOSISI, updated);
+    const target = updated.find((d) => d.id === id);
+    if (target) cloudSync.saveDisposisi(target);
+    addToast("info", "Disposisi Diperbarui", "Perubahan data disposisi telah disimpan.");
+  };
+
   const updateDisposisiStatus = (id: string, status: StatusDisposisi, tanggapan?: string) => {
     const updated = disposisi.map((d) => {
       if (d.id === id) {
@@ -692,6 +702,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         updateSuratMasuk,
         deleteSuratMasuk,
         createDisposisi,
+        updateDisposisi,
         updateDisposisiStatus,
         deleteDisposisi,
         addPerspektif,
