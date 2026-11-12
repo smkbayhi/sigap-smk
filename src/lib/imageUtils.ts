@@ -47,10 +47,23 @@ export function compressImage(
         ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Keep PNG transparency if PNG, else JPEG for smallest size
-        const isPng = file.type === "image/png";
-        const mimeType = isPng ? "image/png" : "image/jpeg";
-        const dataUrl = canvas.toDataURL(mimeType, isPng ? undefined : quality);
+        // Export as WebP if supported (maintains transparency and provides 90%+ compression)
+        let dataUrl = "";
+        try {
+          const webpUrl = canvas.toDataURL("image/webp", quality);
+          if (webpUrl && webpUrl.startsWith("data:image/webp")) {
+            dataUrl = webpUrl;
+          }
+        } catch {
+          // fallback to PNG/JPEG
+        }
+
+        if (!dataUrl) {
+          const isPng = file.type === "image/png";
+          const mimeType = isPng ? "image/png" : "image/jpeg";
+          dataUrl = canvas.toDataURL(mimeType, isPng ? undefined : quality);
+        }
+
         resolve(dataUrl);
       };
       img.onerror = () => resolve(event.target?.result as string);

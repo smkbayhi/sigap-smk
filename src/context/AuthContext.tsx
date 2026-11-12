@@ -152,6 +152,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
+      let ttdToSave = user.ttd_url || null;
+      let stempelToSave = user.stempel_url || null;
+      if (user.id === "user-kepsek" && (!ttdToSave || !stempelToSave)) {
+        try {
+          const { data: existing } = await supabase
+            .from("users")
+            .select("ttd_url, stempel_url")
+            .eq("id", user.id)
+            .single();
+          if (existing) {
+            if (!ttdToSave) ttdToSave = existing.ttd_url;
+            if (!stempelToSave) stempelToSave = existing.stempel_url;
+          }
+        } catch {}
+      }
+
       await supabase.from("users").upsert({
         id: user.id,
         nip: user.niy || user.nip || user.id,
@@ -162,8 +178,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         bidang: user.bidang || null,
         phone: user.phone,
         avatar: avatarPayload,
-        ttd_url: user.ttd_url || null,
-        stempel_url: user.stempel_url || null,
+        ttd_url: ttdToSave,
+        stempel_url: stempelToSave,
       });
     } catch (e) {
       console.warn("Failed to sync user to Supabase:", e);

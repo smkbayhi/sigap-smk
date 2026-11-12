@@ -340,7 +340,16 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       try {
         localStorage.setItem(key, JSON.stringify(data));
       } catch (e) {
-        console.error("Storage save failed", e);
+        console.warn("Storage save quota warning:", e);
+        try {
+          if (key === STORAGE_KEYS.SCHOOL_SETTINGS) {
+            // Priority save for school settings
+            localStorage.removeItem(STORAGE_KEYS.ACTION_REPORTS);
+            localStorage.setItem(key, JSON.stringify(data));
+          }
+        } catch {
+          // IndexedDB and Supabase will remain the primary sources of truth
+        }
       }
     }
   };
@@ -673,7 +682,13 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
         // Also query IndexedDB as persistent secondary layer
         getIndexedDBSettings().then((idbSettings) => {
-          if (idbSettings && (idbSettings.logoYayasanUrl || idbSettings.ttdKepsekUrl || idbSettings.stempelUrl)) {
+          if (
+            idbSettings &&
+            (idbSettings.logoYayasanUrl ||
+              idbSettings.logoSmkUrl ||
+              idbSettings.ttdKepsekUrl ||
+              idbSettings.stempelUrl)
+          ) {
             setSchoolSettings((prev) => {
               const merged = { ...prev, ...idbSettings };
               saveToStorage(STORAGE_KEYS.SCHOOL_SETTINGS, merged);
@@ -1114,16 +1129,30 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         }
         if (!kepsekPass) kepsekPass = "14215094";
 
-        await supabase.from("users").upsert({
-          id: "user-kepsek",
+        const kepsekPayload = {
           name: updated.namaKepsek || "Mokhamat Ekhsan, S.Kom",
           nip: updated.niyKepsek || "14215094",
-          role: "kepala_sekolah",
+          email: "ekhsan.design@gmail.com",
+          phone: "6281333400702",
+          role: "kepala_sekolah" as const,
           jabatan: "Kepala SMK Bayt Al-Hikmah",
           ttd_url: updated.ttdKepsekUrl || null,
           stempel_url: updated.stempelUrl || null,
           avatar: JSON.stringify({ ...updated, password: kepsekPass, url: updated.logoSmkUrl }),
-        });
+        };
+
+        const { error: updateErr } = await supabase
+          .from("users")
+          .update(kepsekPayload)
+          .eq("id", "user-kepsek");
+
+        if (updateErr) {
+          console.warn("Update user-kepsek failed, trying upsert:", updateErr);
+          await supabase.from("users").upsert({
+            id: "user-kepsek",
+            ...kepsekPayload,
+          });
+        }
       } catch (e) {
         console.warn("Failed to sync school settings to Supabase:", e);
       }

@@ -60,9 +60,10 @@ export default function MasterKopSuratPage() {
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     setter: (val: string) => void,
+    fieldKey: keyof typeof schoolSettings,
     label: string,
-    maxWidth = 450,
-    maxHeight = 450
+    maxWidth = 350,
+    maxHeight = 350
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -75,16 +76,25 @@ export default function MasterKopSuratPage() {
     try {
       setProcessingField(label);
       addToast("info", `Memproses ${label}`, "Mengompresi berkas gambar agar ringan & tersimpan stabil...");
-      const compressedDataUrl = await compressImage(file, maxWidth, maxHeight, 0.9);
+      const compressedDataUrl = await compressImage(file, maxWidth, maxHeight, 0.88);
       setter(compressedDataUrl);
-      addToast("success", `${label} Siap Disimpan`, "Gambar berhasil dioptimalkan. Klik tombol 'Simpan Perubahan' di atas.");
+
+      // Auto-save immediately to state, storage, and Supabase cloud
+      await updateSchoolSettings({
+        [fieldKey]: compressedDataUrl,
+      });
+
+      addToast("success", `${label} Berhasil Disimpan`, `${label} telah diperbarui dan langsung aktif di seluruh sistem.`);
     } catch (err) {
       console.warn(`Fallback pembacaan gambar standar untuk ${label}:`, err);
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const result = event.target?.result as string;
         setter(result);
-        addToast("info", `${label} Dipilih`, "Klik tombol 'Simpan Perubahan' di atas.");
+        await updateSchoolSettings({
+          [fieldKey]: result,
+        });
+        addToast("success", `${label} Berhasil Disimpan`, `${label} telah diperbarui.`);
       };
       reader.readAsDataURL(file);
     } finally {
@@ -232,7 +242,7 @@ export default function MasterKopSuratPage() {
               ref={fileInputYayasan}
               accept="image/png,image/jpeg,image/svg+xml,image/webp"
               className="hidden"
-              onChange={(e) => handleFileUpload(e, setLogoYayasan, "Logo Yayasan", 450, 450)}
+              onChange={(e) => handleFileUpload(e, setLogoYayasan, "logoYayasanUrl", "Logo Yayasan", 350, 350)}
             />
             <button
               type="button"
@@ -281,7 +291,7 @@ export default function MasterKopSuratPage() {
               ref={fileInputSmk}
               accept="image/png,image/jpeg,image/svg+xml,image/webp"
               className="hidden"
-              onChange={(e) => handleFileUpload(e, setLogoSmk, "Logo SMK", 450, 450)}
+              onChange={(e) => handleFileUpload(e, setLogoSmk, "logoSmkUrl", "Logo SMK", 350, 350)}
             />
             <button
               type="button"
@@ -330,7 +340,7 @@ export default function MasterKopSuratPage() {
               ref={fileInputTtd}
               accept="image/png,image/jpeg,image/svg+xml,image/webp"
               className="hidden"
-              onChange={(e) => handleFileUpload(e, setTtdKepsek, "Tanda Tangan Digital", 600, 300)}
+              onChange={(e) => handleFileUpload(e, setTtdKepsek, "ttdKepsekUrl", "Tanda Tangan Digital", 500, 250)}
             />
             <button
               type="button"
@@ -379,7 +389,7 @@ export default function MasterKopSuratPage() {
               ref={fileInputStempel}
               accept="image/png,image/jpeg,image/svg+xml,image/webp"
               className="hidden"
-              onChange={(e) => handleFileUpload(e, setStempel, "Stempel Resmi", 450, 450)}
+              onChange={(e) => handleFileUpload(e, setStempel, "stempelUrl", "Stempel Resmi", 350, 350)}
             />
             <button
               type="button"
