@@ -211,25 +211,25 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
                     Pratinjau Bubuhan di Dokumen
                   </div>
 
-                  <div className="relative flex items-center justify-center w-full max-w-sm h-32">
-                    {/* Stamp in background/left */}
+                  <div className="relative flex items-center justify-center w-full max-w-sm h-36">
+                    {/* Stamp in background/left (Ukuran besar sesuai Gambar 2) */}
                     {includeStamp && (
-                      <div className="absolute -left-2 transform -rotate-6 pointer-events-none opacity-85">
+                      <div className="absolute -left-6 -top-4 pointer-events-none opacity-90 z-0">
                         <img
                           src={activeStamp}
                           alt="Stempel Resmi"
-                          className="w-28 h-28 object-contain"
+                          className="w-40 h-40 object-contain mix-blend-multiply"
                         />
                       </div>
                     )}
 
                     {/* Signature */}
                     {signatureMode === "preset" ? (
-                      <div className="relative z-10">
+                      <div className="relative z-10 left-8 -top-1">
                         <img
                           src={activeTtd}
                           alt={`Tanda Tangan ${activeKepsek}`}
-                          className="h-20 object-contain drop-shadow-sm"
+                          className="h-28 object-contain drop-shadow-sm mix-blend-multiply"
                         />
                       </div>
                     ) : (

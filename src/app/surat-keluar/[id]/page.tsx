@@ -220,28 +220,28 @@ export default function SuratKeluarDetailPage() {
                   Kepala SMK Bayt Al-Hikmah
                 </p>
 
-                {/* Signature & Stamp Area */}
+                {/* Signature & Stamp Area (Sesuai Standar Format Resmi Gambar 2) */}
                 <div className="relative h-24 my-1 flex items-center justify-start">
                   {isApprovedOrHasStempel && displayStamp && (
-                    <div className="absolute -left-6 -top-1 pointer-events-none opacity-85 z-0">
+                    <div className="absolute -left-10 -top-9 pointer-events-none opacity-90 z-0">
                       <img
                         src={displayStamp}
                         alt="Stempel Resmi"
-                        className="w-28 h-28 object-contain"
+                        className="w-44 h-44 object-contain mix-blend-multiply"
                       />
                     </div>
                   )}
 
                   {isApprovedOrHasTtd && displayTtd ? (
-                    <div className="relative z-10 left-3">
+                    <div className="relative z-10 left-11 -top-2">
                       <img
                         src={displayTtd}
                         alt={`Tanda Tangan Digital ${displayKepsek}`}
-                        className="h-20 object-contain drop-shadow-sm"
+                        className="h-28 object-contain mix-blend-multiply drop-shadow-sm"
                       />
                     </div>
                   ) : (
-                    <div className="w-48 h-16 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[11px]">
+                    <div className="w-48 h-20 border border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-400 italic text-[11px] bg-gray-50/50">
                       {surat.status === "menunggu_persetujuan"
                         ? "Menunggu TTD & Pengesahan"
                         : "Draf Dokumen"}
@@ -249,10 +249,10 @@ export default function SuratKeluarDetailPage() {
                   )}
                 </div>
 
-                <p className="font-bold text-gray-950 underline text-sm tracking-wide">
+                <p className="font-bold text-gray-950 underline text-sm tracking-wide relative z-20">
                   {displayKepsek}
                 </p>
-                <p className="text-gray-700 text-xs font-medium">
+                <p className="text-gray-700 text-xs font-medium relative z-20">
                   NIY. {displayNiy}
                 </p>
 

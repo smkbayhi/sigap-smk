@@ -101,37 +101,37 @@ export default function SuratKeluarPrintPage() {
               <p>Pasuruan, {formatIndonesianDate(surat.tanggal_surat)}</p>
               <p className="font-bold">Kepala SMK Bayt Al-Hikmah</p>
 
-              {/* Stempel & Signature overlay */}
+              {/* Stempel & Signature overlay (Sesuai Format Baku Gambar 2) */}
               <div className="relative h-24 my-1 flex items-center justify-start">
-                {/* Official Stamp behind/intertwined with signature */}
+                {/* Official Stamp: Ukuran besar (w-44 h-44 / 176px), menimpa jabatan atas & nama bawah */}
                 {isApprovedOrHasStempel && displayStamp && (
-                  <div className="absolute -left-6 -top-1 pointer-events-none opacity-85 z-0">
+                  <div className="absolute -left-10 -top-9 pointer-events-none opacity-90 z-0">
                     <img
                       src={displayStamp}
                       alt="Stempel Resmi"
-                      className="w-28 h-28 object-contain"
+                      className="w-44 h-44 object-contain mix-blend-multiply"
                     />
                   </div>
                 )}
 
-                {/* Signature */}
+                {/* Signature: Ukuran proporsional & tinggi (h-28 / 112px), menimpa sisi kanan stempel & nama */}
                 {isApprovedOrHasTtd && displayTtd ? (
-                  <div className="relative z-10 left-3">
+                  <div className="relative z-10 left-11 -top-2">
                     <img
                       src={displayTtd}
                       alt={`Tanda Tangan ${displayKepsek}`}
-                      className="h-20 object-contain"
+                      className="h-28 object-contain mix-blend-multiply"
                     />
                   </div>
                 ) : (
-                  <div className="h-16" />
+                  <div className="h-20" />
                 )}
               </div>
 
-              <p className="font-bold underline text-[11.5pt] tracking-wide">
+              <p className="font-bold underline text-[11.5pt] tracking-wide relative z-20">
                 {displayKepsek}
               </p>
-              <p className="text-[10.5pt] font-medium text-black">
+              <p className="text-[10.5pt] font-medium text-black relative z-20">
                 NIY. {displayNiy}
               </p>
             </div>
