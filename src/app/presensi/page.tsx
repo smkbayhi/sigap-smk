@@ -195,15 +195,19 @@ Wassalamu’alaikum Wr. Wb.
               ))}
             </select>
 
-            {allReports.length > 1 && (
+            {(isKepsek || isTU) && (
               <button
                 onClick={() => {
-                  if (confirm(`Hapus arsip periode "${currentReport.bulan} ${currentReport.tahun}"?`)) {
+                  const confirmMsg =
+                    allReports.length > 1
+                      ? `Apakah Anda yakin ingin menghapus arsip periode "${currentReport.bulan} ${currentReport.tahun}" (${currentReport.teachers.length} guru/pegawai)?\n\nData yang dihapus akan otomatis tersinkronisasi ke Cloud.`
+                      : `Apakah Anda yakin ingin menghapus dan mereset periode "${currentReport.bulan} ${currentReport.tahun}"?`;
+                  if (confirm(confirmMsg)) {
                     deleteReport(currentReport.id);
-                    addToast("info", "Arsip Dihapus", "Periode presensi berhasil dihapus dari daftar.");
+                    addToast("info", "Arsip Dihapus", "Periode presensi berhasil dihapus dan disinkronkan ke Cloud.");
                   }
                 }}
-                title="Hapus periode aktif ini"
+                title="Hapus arsip periode aktif ini"
                 className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
