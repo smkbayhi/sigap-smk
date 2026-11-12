@@ -23,7 +23,6 @@ import {
   Clock,
   Sparkles,
   Stamp,
-  LogOut,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -134,7 +133,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               >
                 <div className="flex items-center gap-3">
                   <LayoutDashboard className="w-4 h-4 text-emerald-300" />
-                  <span>Dashboard Eksekutif</span>
+                  <span>
+                    {isKepsek
+                      ? "Dashboard Eksekutif"
+                      : isTU
+                      ? "Dashboard Tata Usaha"
+                      : isKasubag
+                      ? "Dashboard Struktural"
+                      : "Dashboard Guru"}
+                  </span>
                 </div>
               </Link>
             </nav>
@@ -267,11 +274,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             </nav>
           </div>
 
-          {/* Master Data (TU & Admin) */}
+          {/* Master Data */}
           {(isTU || isKepsek) && (
             <div>
               <p className="px-3 text-[10px] font-bold text-emerald-300 uppercase tracking-widest mb-2">
-                Master Data & Tata Usaha
+                Master Data
               </p>
               <nav className="space-y-1">
                 <Link
@@ -289,50 +296,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   </div>
                 </Link>
 
-                <Link
-                  href="/master/kop-surat"
-                  onClick={onClose}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    isActive("/master/kop-surat")
-                      ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
-                      : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Stamp className="w-4 h-4 text-emerald-300" />
-                    <span>Kop, Logo & TTD Resmi</span>
-                  </div>
-                </Link>
+                {isKepsek && (
+                  <>
+                    <Link
+                      href="/master/kop-surat"
+                      onClick={onClose}
+                      className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                        isActive("/master/kop-surat")
+                          ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
+                          : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Stamp className="w-4 h-4 text-emerald-300" />
+                        <span>Kop, Logo & TTD Resmi</span>
+                      </div>
+                    </Link>
 
-                <Link
-                  href="/master/users"
-                  onClick={onClose}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    isActive("/master/users")
-                      ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
-                      : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Users className="w-4 h-4 text-emerald-300" />
-                    <span>Pengguna & Hak Akses</span>
-                  </div>
-                </Link>
+                    <Link
+                      href="/master/users"
+                      onClick={onClose}
+                      className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                        isActive("/master/users")
+                          ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
+                          : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Users className="w-4 h-4 text-emerald-300" />
+                        <span>Pengguna & Hak Akses</span>
+                      </div>
+                    </Link>
+                  </>
+                )}
               </nav>
             </div>
           )}
-        </div>
-
-        {/* Logout Link */}
-        <div className="px-3 py-2 border-t border-emerald-800/40">
-          <Link
-            href="/login"
-            onClick={onClose}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-emerald-200 hover:bg-emerald-800/80 hover:text-white transition-colors"
-          >
-            <LogOut className="w-4 h-4 text-emerald-300" />
-            <span>Halaman Login / Ganti Akun</span>
-          </Link>
         </div>
 
         {/* Footer Info */}
