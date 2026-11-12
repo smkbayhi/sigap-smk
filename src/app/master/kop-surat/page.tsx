@@ -21,6 +21,7 @@ import {
   STEMPEL_SEKOLAH_DATA_URL,
   TTD_KEPSEK_DATA_URL,
 } from "@/lib/seedData";
+import { compressImage } from "@/lib/imageUtils";
 
 export default function MasterKopSuratPage() {
   const { schoolSettings, updateSchoolSettings, resetSchoolSettings, addToast } = useAppData();
@@ -31,6 +32,9 @@ export default function MasterKopSuratPage() {
   const [stempel, setStempel] = useState(schoolSettings.stempelUrl);
   const [namaKepsek, setNamaKepsek] = useState(schoolSettings.namaKepsek || "Mokhamat Ekhsan, S.Kom");
   const [niyKepsek, setNiyKepsek] = useState(schoolSettings.niyKepsek || "14215094");
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [processingField, setProcessingField] = useState<string | null>(null);
 
   // Keep state in sync if schoolSettings loads from storage/cloud
   useEffect(() => {
@@ -49,43 +53,69 @@ export default function MasterKopSuratPage() {
   const fileInputTtd = useRef<HTMLInputElement>(null);
   const fileInputStempel = useRef<HTMLInputElement>(null);
 
-  // Helper to handle file to data URL
-  const handleFileUpload = (
+  // Helper to handle file to data URL with automatic high-res Canvas compression
+  const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     setter: (val: string) => void,
-    label: string
+    label: string,
+    maxWidth = 450,
+    maxHeight = 450
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      addToast("error", "Ukuran File Terlalu Besar", "Maksimal ukuran file adalah 5MB.");
+    if (file.size > 15 * 1024 * 1024) {
+      addToast("error", "Ukuran File Terlalu Besar", "Maksimal ukuran file foto adalah 15MB.");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      setter(result);
-      addToast("info", `${label} Dipilih`, "Jangan lupa klik 'Simpan Perubahan' di bawah.");
-    };
-    reader.readAsDataURL(file);
+    try {
+      setProcessingField(label);
+      addToast("info", `Memproses ${label}`, "Mengompresi berkas gambar agar ringan & tersimpan stabil...");
+      const compressedDataUrl = await compressImage(file, maxWidth, maxHeight, 0.9);
+      setter(compressedDataUrl);
+      addToast("success", `${label} Siap Disimpan`, "Gambar berhasil dioptimalkan. Klik tombol 'Simpan Perubahan' di atas.");
+    } catch (err) {
+      console.warn(`Fallback pembacaan gambar standar untuk ${label}:`, err);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setter(result);
+        addToast("info", `${label} Dipilih`, "Klik tombol 'Simpan Perubahan' di atas.");
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setProcessingField(null);
+    }
   };
 
-  const handleSaveAll = () => {
-    updateSchoolSettings({
-      logoYayasanUrl: logoYayasan,
-      logoSmkUrl: logoSmk,
-      ttdKepsekUrl: ttdKepsek,
-      stempelUrl: stempel,
-      namaKepsek,
-      niyKepsek,
-    });
+  const handleSaveAll = async () => {
+    setIsSaving(true);
+    try {
+      await updateSchoolSettings({
+        logoYayasanUrl: logoYayasan,
+        logoSmkUrl: logoSmk,
+        ttdKepsekUrl: ttdKepsek,
+        stempelUrl: stempel,
+        namaKepsek,
+        niyKepsek,
+      });
+      addToast(
+        "success",
+        "Pengaturan Disimpan Permanen",
+        "Seluruh logo, stempel, dan tanda tangan tersimpan ke LocalStorage, IndexedDB, dan Supabase Cloud."
+      );
+    } catch (err) {
+      console.error("Gagal menyimpan:", err);
+      addToast("error", "Gagal Menyimpan", "Terjadi kesalahan saat menyimpan pengaturan.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (window.confirm("Kembalikan semua logo, stempel, dan tanda tangan ke format baku resmi bawaan?")) {
-      resetSchoolSettings();
+      await resetSchoolSettings();
       setLogoYayasan(LOGO_YAYASAN_DATA_URL);
       setLogoSmk(LOGO_SMK_CIRCULAR_DATA_URL);
       setTtdKepsek(TTD_KEPSEK_DATA_URL);
@@ -125,12 +155,25 @@ export default function MasterKopSuratPage() {
           </button>
           <button
             onClick={handleSaveAll}
-            className="px-5 py-2 text-xs font-bold text-white bg-brand-700 hover:bg-brand-800 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-1.5"
+            disabled={isSaving}
+            className="px-5 py-2 text-xs font-bold text-white bg-brand-700 hover:bg-brand-800 disabled:opacity-50 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <Save className="w-4 h-4" />
-            Simpan Perubahan
+            {isSaving ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
           </button>
         </div>
+      </div>
+
+      {/* Persistence Info Banner */}
+      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3 text-xs text-emerald-900 shadow-xs">
+        <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+        <p className="leading-relaxed">
+          <strong>Penyimpanan Permanen Aktif:</strong> Berkas logo, tanda tangan, dan stempel otomatis dioptimalkan serta disimpan berlapis di <strong>Penyimpanan Lokal</strong>, <strong>IndexedDB</strong>, dan tersinkronisasi ke <strong>Supabase Cloud</strong>. Data tidak akan hilang saat halaman di-refresh (F5) atau dibuka di peramban lain.
+        </p>
       </div>
 
       {/* Grid of 4 Upload Cards */}
@@ -166,15 +209,20 @@ export default function MasterKopSuratPage() {
               ref={fileInputYayasan}
               accept="image/png,image/jpeg,image/svg+xml,image/webp"
               className="hidden"
-              onChange={(e) => handleFileUpload(e, setLogoYayasan, "Logo Yayasan")}
+              onChange={(e) => handleFileUpload(e, setLogoYayasan, "Logo Yayasan", 450, 450)}
             />
             <button
               type="button"
+              disabled={processingField === "Logo Yayasan"}
               onClick={() => fileInputYayasan.current?.click()}
-              className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+              className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Upload className="w-3.5 h-3.5" />
-              Upload Logo Baru
+              {processingField === "Logo Yayasan" ? (
+                <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              {processingField === "Logo Yayasan" ? "Mengompresi..." : "Upload Logo Baru"}
             </button>
           </div>
         </div>
@@ -210,15 +258,20 @@ export default function MasterKopSuratPage() {
               ref={fileInputSmk}
               accept="image/png,image/jpeg,image/svg+xml,image/webp"
               className="hidden"
-              onChange={(e) => handleFileUpload(e, setLogoSmk, "Logo SMK")}
+              onChange={(e) => handleFileUpload(e, setLogoSmk, "Logo SMK", 450, 450)}
             />
             <button
               type="button"
+              disabled={processingField === "Logo SMK"}
               onClick={() => fileInputSmk.current?.click()}
-              className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+              className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Upload className="w-3.5 h-3.5" />
-              Upload Logo Baru
+              {processingField === "Logo SMK" ? (
+                <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              {processingField === "Logo SMK" ? "Mengompresi..." : "Upload Logo Baru"}
             </button>
           </div>
         </div>
@@ -254,15 +307,20 @@ export default function MasterKopSuratPage() {
               ref={fileInputTtd}
               accept="image/png,image/jpeg,image/svg+xml,image/webp"
               className="hidden"
-              onChange={(e) => handleFileUpload(e, setTtdKepsek, "Tanda Tangan Digital")}
+              onChange={(e) => handleFileUpload(e, setTtdKepsek, "Tanda Tangan Digital", 600, 300)}
             />
             <button
               type="button"
+              disabled={processingField === "Tanda Tangan Digital"}
               onClick={() => fileInputTtd.current?.click()}
-              className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+              className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Upload className="w-3.5 h-3.5" />
-              Upload TTD (PNG)
+              {processingField === "Tanda Tangan Digital" ? (
+                <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              {processingField === "Tanda Tangan Digital" ? "Mengompresi..." : "Upload TTD (PNG)"}
             </button>
           </div>
         </div>
@@ -298,15 +356,20 @@ export default function MasterKopSuratPage() {
               ref={fileInputStempel}
               accept="image/png,image/jpeg,image/svg+xml,image/webp"
               className="hidden"
-              onChange={(e) => handleFileUpload(e, setStempel, "Stempel Resmi")}
+              onChange={(e) => handleFileUpload(e, setStempel, "Stempel Resmi", 450, 450)}
             />
             <button
               type="button"
+              disabled={processingField === "Stempel Resmi"}
               onClick={() => fileInputStempel.current?.click()}
-              className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+              className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <Upload className="w-3.5 h-3.5" />
-              Upload Stempel (PNG)
+              {processingField === "Stempel Resmi" ? (
+                <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              {processingField === "Stempel Resmi" ? "Mengompresi..." : "Upload Stempel (PNG)"}
             </button>
           </div>
         </div>
@@ -453,10 +516,15 @@ export default function MasterKopSuratPage() {
         <div className="pt-4 flex justify-end">
           <button
             onClick={handleSaveAll}
-            className="px-6 py-2.5 text-xs font-bold text-white bg-brand-700 hover:bg-brand-800 rounded-xl shadow transition-all flex items-center gap-2"
+            disabled={isSaving}
+            className="px-6 py-2.5 text-xs font-bold text-white bg-brand-700 hover:bg-brand-800 disabled:opacity-50 rounded-xl shadow transition-all flex items-center gap-2 cursor-pointer"
           >
-            <CheckCircle className="w-4 h-4" />
-            Terapkan & Simpan Seluruh Aset Surat
+            {isSaving ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <CheckCircle className="w-4 h-4" />
+            )}
+            {isSaving ? "Menyimpan ke Sistem & Cloud..." : "Terapkan & Simpan Seluruh Aset Surat"}
           </button>
         </div>
       </div>

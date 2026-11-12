@@ -121,12 +121,34 @@ export default function SuratKeluarPrintPage() {
   const isApproved = surat.status === "disetujui";
   const isApprovedOrHasTtd = surat.has_ttd || isApproved;
   const isApprovedOrHasStempel = (surat.has_stempel || isApproved) && surat.has_stempel !== false;
-  const displayStamp = surat.stempel_image_url || schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL;
-  const displayTtd = surat.ttd_image_url || schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL;
-  const displayKepsek = surat.approver_name || schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom";
+  
+  // Prefer active schoolSettings if letter still uses seeder defaults
+  const displayStamp =
+    surat.stempel_image_url && surat.stempel_image_url !== STEMPEL_SEKOLAH_DATA_URL
+      ? surat.stempel_image_url
+      : (schoolSettings?.stempelUrl || surat.stempel_image_url || STEMPEL_SEKOLAH_DATA_URL);
+
+  const displayTtd =
+    surat.ttd_image_url && surat.ttd_image_url !== TTD_KEPSEK_DATA_URL
+      ? surat.ttd_image_url
+      : (schoolSettings?.ttdKepsekUrl || surat.ttd_image_url || TTD_KEPSEK_DATA_URL);
+
+  const displayKepsek =
+    surat.approver_name && surat.approver_name !== "Mokhamat Ekhsan, S.Kom"
+      ? surat.approver_name
+      : (schoolSettings?.namaKepsek || surat.approver_name || "Mokhamat Ekhsan, S.Kom");
+
   const displayNiy = schoolSettings?.niyKepsek || "14215094";
-  const displayLogoYayasan = surat.logo_yayasan_url || schoolSettings?.logoYayasanUrl || LOGO_YAYASAN_DATA_URL;
-  const displayLogoSmk = surat.logo_smk_url || schoolSettings?.logoSmkUrl || LOGO_SMK_CIRCULAR_DATA_URL;
+
+  const displayLogoYayasan =
+    surat.logo_yayasan_url && surat.logo_yayasan_url !== LOGO_YAYASAN_DATA_URL
+      ? surat.logo_yayasan_url
+      : (schoolSettings?.logoYayasanUrl || LOGO_YAYASAN_DATA_URL);
+
+  const displayLogoSmk =
+    surat.logo_smk_url && surat.logo_smk_url !== LOGO_SMK_CIRCULAR_DATA_URL
+      ? surat.logo_smk_url
+      : (schoolSettings?.logoSmkUrl || LOGO_SMK_CIRCULAR_DATA_URL);
 
   return (
     <>

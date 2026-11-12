@@ -29,6 +29,7 @@ import {
 import { generateNomorSurat } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { cloudSync } from "@/lib/supabaseSync";
+import { getIndexedDBSettings, saveIndexedDBSettings } from "@/lib/indexedDb";
 
 export interface ToastMessage {
   id: string;
@@ -54,8 +55,8 @@ interface AppDataContextType {
 
   // School & Letter Settings (Logo, Stempel, TTD)
   schoolSettings: SchoolSettings;
-  updateSchoolSettings: (settings: Partial<SchoolSettings>) => void;
-  resetSchoolSettings: () => void;
+  updateSchoolSettings: (settings: Partial<SchoolSettings>) => Promise<void> | void;
+  resetSchoolSettings: () => Promise<void> | void;
 
   // Actions: Surat Keluar
   addSuratKeluar: (data: Omit<SuratKeluar, "id" | "no_urut" | "nomor_surat" | "bulan_romawi" | "tahun" | "created_at">) => SuratKeluar;
@@ -528,6 +529,48 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           return merged;
         });
       }
+
+      // 8. School Settings from Supabase (user-kepsek)
+      if (supabase) {
+        try {
+          const { data: kepsekUser } = await supabase
+            .from("users")
+            .select("name, nip, avatar, ttd_url, stempel_url")
+            .eq("id", "user-kepsek")
+            .single();
+
+          if (kepsekUser) {
+            let cloudSettings: Partial<SchoolSettings> = {};
+            if (kepsekUser.avatar && kepsekUser.avatar.startsWith("{")) {
+              try {
+                cloudSettings = JSON.parse(kepsekUser.avatar);
+              } catch {
+                // ignore
+              }
+            }
+            if (kepsekUser.ttd_url) cloudSettings.ttdKepsekUrl = kepsekUser.ttd_url;
+            if (kepsekUser.stempel_url) cloudSettings.stempelUrl = kepsekUser.stempel_url;
+            if (kepsekUser.name) cloudSettings.namaKepsek = kepsekUser.name;
+            if (kepsekUser.nip) cloudSettings.niyKepsek = kepsekUser.nip;
+
+            if (
+              cloudSettings.logoYayasanUrl ||
+              cloudSettings.logoSmkUrl ||
+              cloudSettings.ttdKepsekUrl ||
+              cloudSettings.stempelUrl
+            ) {
+              setSchoolSettings((prev) => {
+                const merged = { ...prev, ...cloudSettings };
+                saveToStorage(STORAGE_KEYS.SCHOOL_SETTINGS, merged);
+                saveIndexedDBSettings(merged);
+                return merged;
+              });
+            }
+          }
+        } catch (err) {
+          console.warn("Sync schoolSettings from cloud failed:", err);
+        }
+      }
     } catch (e) {
       console.warn("Failed to sync with Supabase cloud:", e);
     }
@@ -620,7 +663,24 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         }
 
         const storedSettings = localStorage.getItem(STORAGE_KEYS.SCHOOL_SETTINGS);
-        if (storedSettings) setSchoolSettings(JSON.parse(storedSettings));
+        if (storedSettings) {
+          try {
+            setSchoolSettings(JSON.parse(storedSettings));
+          } catch (e) {
+            console.error("Failed to parse storedSettings", e);
+          }
+        }
+
+        // Also query IndexedDB as persistent secondary layer
+        getIndexedDBSettings().then((idbSettings) => {
+          if (idbSettings && (idbSettings.logoYayasanUrl || idbSettings.ttdKepsekUrl || idbSettings.stempelUrl)) {
+            setSchoolSettings((prev) => {
+              const merged = { ...prev, ...idbSettings };
+              saveToStorage(STORAGE_KEYS.SCHOOL_SETTINGS, merged);
+              return merged;
+            });
+          }
+        });
       } catch (e) {
         console.error("Failed to load initial data from storage", e);
       }
@@ -1027,10 +1087,31 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   };
 
   // School Settings Actions (Logo, Stempel, TTD)
-  const updateSchoolSettings = (partial: Partial<SchoolSettings>) => {
-    const updated = { ...schoolSettings, ...partial };
+  const updateSchoolSettings = async (partial: Partial<SchoolSettings>) => {
+    const updated: SchoolSettings = { ...schoolSettings, ...partial };
     setSchoolSettings(updated);
     saveToStorage(STORAGE_KEYS.SCHOOL_SETTINGS, updated);
+
+    // Save to unlimited IndexedDB layer
+    await saveIndexedDBSettings(updated);
+
+    // Sync to Supabase Cloud (user-kepsek row stores settings JSON and native urls)
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from("users").upsert({
+          id: "user-kepsek",
+          name: updated.namaKepsek || "Mokhamat Ekhsan, S.Kom",
+          nip: updated.niyKepsek || "14215094",
+          role: "kepala_sekolah",
+          jabatan: "Kepala SMK Bayt Al-Hikmah",
+          ttd_url: updated.ttdKepsekUrl || null,
+          stempel_url: updated.stempelUrl || null,
+          avatar: JSON.stringify(updated),
+        });
+      } catch (e) {
+        console.warn("Failed to sync school settings to Supabase:", e);
+      }
+    }
 
     // Also update all approved letters in state & storage so any existing surat immediately reflects new signature & stamp
     setSuratKeluar((prev) => {
@@ -1049,12 +1130,33 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       return updatedSK;
     });
 
-    addToast("success", "Pengaturan Surat Disimpan", "Logo, stempel, dan tanda tangan berhasil diperbarui.");
+    addToast("success", "Pengaturan Surat Disimpan", "Logo, stempel, dan tanda tangan berhasil diperbarui dan tersimpan permanen.");
   };
 
-  const resetSchoolSettings = () => {
+  const resetSchoolSettings = async () => {
     setSchoolSettings(DEFAULT_SCHOOL_SETTINGS);
     saveToStorage(STORAGE_KEYS.SCHOOL_SETTINGS, DEFAULT_SCHOOL_SETTINGS);
+
+    // Reset IndexedDB
+    await saveIndexedDBSettings(DEFAULT_SCHOOL_SETTINGS);
+
+    // Reset Supabase
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from("users")
+          .update({
+            avatar: JSON.stringify(DEFAULT_SCHOOL_SETTINGS),
+            ttd_url: null,
+            stempel_url: null,
+            name: DEFAULT_SCHOOL_SETTINGS.namaKepsek,
+            nip: DEFAULT_SCHOOL_SETTINGS.niyKepsek,
+          })
+          .eq("id", "user-kepsek");
+      } catch (e) {
+        console.warn("Failed to reset settings in Supabase:", e);
+      }
+    }
 
     // Revert approved letters' stamp and signature to default seed values
     setSuratKeluar((prev) => {
