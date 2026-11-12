@@ -69,6 +69,8 @@ export interface SuratKeluar {
   has_stempel: boolean;
   ttd_image_url?: string;
   stempel_image_url?: string;
+  logo_yayasan_url?: string;
+  logo_smk_url?: string;
   created_at: string;
 }
 

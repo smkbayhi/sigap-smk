@@ -23,7 +23,15 @@ import {
   X,
   Copy,
   ExternalLink,
+  Edit3,
+  Save,
 } from "lucide-react";
+import {
+  LOGO_YAYASAN_DATA_URL,
+  LOGO_SMK_CIRCULAR_DATA_URL,
+  STEMPEL_SEKOLAH_DATA_URL,
+  TTD_KEPSEK_DATA_URL,
+} from "@/lib/seedData";
 
 export default function SuratKeluarDetailPage() {
   const params = useParams();
@@ -33,6 +41,7 @@ export default function SuratKeluarDetailPage() {
   const { currentUser, isKepsek, isTU } = useAuth();
   const {
     suratKeluar,
+    updateSuratKeluar,
     approveSuratKeluar,
     rejectSuratKeluar,
     deleteSuratKeluar,
@@ -42,6 +51,41 @@ export default function SuratKeluarDetailPage() {
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [waTargetPhone, setWaTargetPhone] = useState("628");
+
+  // Edit Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editNomor, setEditNomor] = useState("");
+  const [editPerihal, setEditPerihal] = useState("");
+  const [editTujuan, setEditTujuan] = useState("");
+  const [editLampiran, setEditLampiran] = useState("");
+  const [editTanggal, setEditTanggal] = useState("");
+  const [editIsiSurat, setEditIsiSurat] = useState("");
+
+  const handleOpenEditModal = () => {
+    if (!surat) return;
+    setEditNomor(surat.nomor_surat);
+    setEditPerihal(surat.perihal);
+    setEditTujuan(surat.tujuan);
+    setEditLampiran(surat.lampiran || "-");
+    setEditTanggal(surat.tanggal_surat);
+    setEditIsiSurat(surat.isi_surat);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!surat) return;
+    const partial = {
+      nomor_surat: editNomor,
+      perihal: editPerihal,
+      tujuan: editTujuan,
+      lampiran: editLampiran,
+      tanggal_surat: editTanggal,
+      isi_surat: editIsiSurat,
+    };
+    updateSuratKeluar(surat.id, partial);
+    setSurat((prev) => (prev ? { ...prev, ...partial } : null));
+    setShowEditModal(false);
+  };
 
   const [surat, setSurat] = useState<SuratKeluar | null>(() => {
     return suratKeluar.find((s) => s.id === id) || null;
@@ -141,6 +185,16 @@ export default function SuratKeluarDetailPage() {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Edit / Koreksi Surat Button */}
+          <button
+            onClick={handleOpenEditModal}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-xs font-bold rounded-xl shadow-xs transition-all"
+            title="Edit nomor, tujuan, perihal, atau isi surat"
+          >
+            <Edit3 className="w-4 h-4 text-amber-600" />
+            Edit / Koreksi Surat
+          </button>
+
           {/* Kirim via WhatsApp Button */}
           <button
             onClick={() => setShowWhatsAppModal(true)}
@@ -229,7 +283,10 @@ export default function SuratKeluarDetailPage() {
         style={{ fontFamily: '"Times New Roman", Times, "Nimbus Roman No9 L", Georgia, serif' }}
       >
         {/* Kop Surat Resmi */}
-        <OfficialKopSurat />
+        <OfficialKopSurat
+          logoYayasanOverride={surat.logo_yayasan_url || schoolSettings?.logoYayasanUrl || LOGO_YAYASAN_DATA_URL}
+          logoSmkOverride={surat.logo_smk_url || schoolSettings?.logoSmkUrl || LOGO_SMK_CIRCULAR_DATA_URL}
+        />
 
         {/* Letter Meta: Nomor, Lampiran, Perihal with aligned colons */}
         <div className="mb-6 font-serif text-xs sm:text-[13px]">
@@ -272,9 +329,9 @@ export default function SuratKeluarDetailPage() {
           const isApproved = surat.status === "disetujui";
           const isApprovedOrHasTtd = surat.has_ttd || isApproved;
           const isApprovedOrHasStempel = (surat.has_stempel || isApproved) && surat.has_stempel !== false;
-          const displayStamp = schoolSettings?.stempelUrl || surat.stempel_image_url;
-          const displayTtd = schoolSettings?.ttdKepsekUrl || surat.ttd_image_url;
-          const displayKepsek = schoolSettings?.namaKepsek || surat.approver_name || "Mokhamat Ekhsan, S.Kom";
+          const displayStamp = surat.stempel_image_url || schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL;
+          const displayTtd = surat.ttd_image_url || schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL;
+          const displayKepsek = surat.approver_name || schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom";
           const displayNiy = schoolSettings?.niyKepsek || "14215094";
 
           return (
@@ -489,6 +546,134 @@ export default function SuratKeluarDetailPage() {
                   Buka WhatsApp & Kirim
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit / Koreksi Surat Keluar */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full border border-gray-200 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-amber-600 to-amber-700 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                  <Edit3 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">Edit / Koreksi Surat Keluar</h3>
+                  <p className="text-[11px] text-amber-100">
+                    Perbaiki nomor, tujuan, perihal, atau isi badan surat dinas
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 font-bold mb-1">
+                    Nomor Surat:
+                  </label>
+                  <input
+                    type="text"
+                    value={editNomor}
+                    onChange={(e) => setEditNomor(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-bold mb-1">
+                    Lampiran:
+                  </label>
+                  <input
+                    type="text"
+                    value={editLampiran}
+                    onChange={(e) => setEditLampiran(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-bold mb-1">
+                  Perihal Surat:
+                </label>
+                <input
+                  type="text"
+                  value={editPerihal}
+                  onChange={(e) => setEditPerihal(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 font-bold mb-1">
+                    Tujuan Surat (Kepada Yth):
+                  </label>
+                  <input
+                    type="text"
+                    value={editTujuan}
+                    onChange={(e) => setEditTujuan(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-bold mb-1">
+                    Tanggal Surat:
+                  </label>
+                  <input
+                    type="date"
+                    value={editTanggal}
+                    onChange={(e) => setEditTanggal(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-bold mb-1">
+                  Isi Surat (HTML / Teks Paragraf):
+                </label>
+                <textarea
+                  rows={8}
+                  value={editIsiSurat}
+                  onChange={(e) => setEditIsiSurat(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 font-mono text-[11px]"
+                  placeholder="Masukkan isi lengkap surat..."
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Tips: Anda dapat memasukkan teks langsung atau tag HTML &lt;p&gt;, &lt;table&gt;, &lt;b&gt; untuk pemformatan rapi.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-200 rounded-xl"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                className="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                Simpan Perubahan
+              </button>
             </div>
           </div>
         </div>
