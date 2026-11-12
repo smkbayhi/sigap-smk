@@ -170,9 +170,9 @@ export default function MasterUsersPage() {
     setIsModalOpen(false);
   };
 
-  const handleDelete = (userId: string, name: string) => {
-    if (window.confirm(`Yakin ingin menghapus akun ${name}? Tindakan ini tidak dapat dibatalkan.`)) {
-      deleteUser(userId);
+  const handleDelete = async (userId: string, name: string) => {
+    if (window.confirm(`Yakin ingin menghapus akun ${name}? Tindakan ini akan menghapus akun secara permanen dari sistem dan database cloud.`)) {
+      await deleteUser(userId);
       setIsModalOpen(false);
       addToast("info", "Akun Dihapus", `Pengguna ${name} telah dihapus.`);
     }

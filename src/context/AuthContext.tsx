@@ -11,7 +11,7 @@ interface AuthContextType {
   setCurrentUserById: (userId: string) => void;
   updateUser: (userId: string, data: Partial<User>) => void;
   addUser: (data: Omit<User, "id">) => User;
-  deleteUser: (userId: string) => void;
+  deleteUser: (userId: string) => Promise<void> | void;
   login: (identifier: string, password?: string) => { success: boolean; message?: string };
   logout: () => void;
   isAuthenticated: boolean;
@@ -27,6 +27,42 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const AUTH_USER_KEY = "sigap_smk_current_user_id";
 const USERS_STORAGE_KEY = "sigap_smk_users";
 const AUTH_STATUS_KEY = "sigap_smk_is_authenticated";
+const DELETED_USERS_STORAGE_KEY = "sigap_smk_deleted_user_ids";
+
+// Helper to track and persist deleted users to prevent unwanted resurrecting on reload
+const getDeletedUserIds = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(DELETED_USERS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const markUserAsDeleted = (userId: string) => {
+  if (typeof window === "undefined") return;
+  try {
+    const current = getDeletedUserIds();
+    if (!current.includes(userId)) {
+      const updated = [...current, userId];
+      localStorage.setItem(DELETED_USERS_STORAGE_KEY, JSON.stringify(updated));
+    }
+  } catch (e) {
+    console.error("Failed to mark user as deleted in storage:", e);
+  }
+};
+
+const unmarkUserAsDeleted = (userId: string) => {
+  if (typeof window === "undefined") return;
+  try {
+    const current = getDeletedUserIds();
+    const updated = current.filter((id) => id !== userId);
+    localStorage.setItem(DELETED_USERS_STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error("Failed to unmark user in storage:", e);
+  }
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
@@ -59,15 +95,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
+        const deletedIds = getDeletedUserIds();
         const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
-        let parsedUsers: User[] = INITIAL_USERS;
+        let parsedUsers: User[] = INITIAL_USERS.filter((u) => !deletedIds.includes(u.id));
         if (storedUsers) {
           parsedUsers = JSON.parse(storedUsers);
-          // Ensure NIY is mapped
-          parsedUsers = parsedUsers.map((u) => ({
-            ...u,
-            niy: u.niy || u.nip || "",
-          }));
+          // Ensure NIY is mapped & deleted IDs are excluded
+          parsedUsers = parsedUsers
+            .filter((u) => !deletedIds.includes(u.id))
+            .map((u) => ({
+              ...u,
+              niy: u.niy || u.nip || "",
+            }));
+          setUsers(parsedUsers);
+        } else {
           setUsers(parsedUsers);
         }
 
@@ -77,10 +118,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         const savedUserId = localStorage.getItem(AUTH_USER_KEY);
-        if (savedUserId) {
+        if (savedUserId && !deletedIds.includes(savedUserId)) {
           const found = parsedUsers.find((u) => u.id === savedUserId);
           if (found) setCurrentUser(found);
-        } else {
+        } else if (parsedUsers.length > 0) {
           setCurrentUser(parsedUsers[0]);
         }
       } catch (e) {
@@ -93,26 +134,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       supabase
         .from("users")
         .select("*")
-        .then(({ data, error }) => {
-          if (!error && data && data.length > 0) {
-            const mapped: User[] = data.map((row: any) => ({
-              id: row.id,
-              niy: row.nip || row.niy || "",
-              nip: row.nip || "",
-              name: row.name,
-              email: row.email,
-              password: row.password || "password123",
-              role: row.role,
-              jabatan: row.jabatan,
-              bidang: row.bidang,
-              phone: row.phone,
-              avatar: row.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-              ttd_url: row.ttd_url,
-              stempel_url: row.stempel_url,
-            }));
-            setUsers(mapped);
-            if (typeof window !== "undefined") {
-              localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(mapped));
+        .then(async ({ data, error }) => {
+          if (!error && data) {
+            const deletedIds = getDeletedUserIds();
+
+            // Background clean-up of any previously deleted users that still linger in Supabase cloud
+            const leftoverIds = data.map((r: any) => r.id).filter((id: string) => deletedIds.includes(id));
+            if (leftoverIds.length > 0 && supabase) {
+              try {
+                await supabase.from("users").delete().in("id", leftoverIds);
+              } catch (delErr) {
+                console.warn("Failed to cleanup deleted users from Supabase:", delErr);
+              }
+            }
+
+            const activeRows = data.filter((row: any) => !deletedIds.includes(row.id));
+            if (activeRows.length > 0) {
+              const mapped: User[] = activeRows.map((row: any) => ({
+                id: row.id,
+                niy: row.nip || row.niy || "",
+                nip: row.nip || "",
+                name: row.name,
+                email: row.email,
+                password: row.password || "password123",
+                role: row.role,
+                jabatan: row.jabatan,
+                bidang: row.bidang,
+                phone: row.phone,
+                avatar: row.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+                ttd_url: row.ttd_url,
+                stempel_url: row.stempel_url,
+              }));
+              setUsers(mapped);
+              if (typeof window !== "undefined") {
+                localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(mapped));
+              }
             }
           }
         });
@@ -139,6 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateUser = (userId: string, data: Partial<User>) => {
+    unmarkUserAsDeleted(userId);
     const updated = users.map((u) => {
       if (u.id === userId) {
         const merged = { ...u, ...data };
@@ -160,6 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const addUser = (data: Omit<User, "id">): User => {
     const newId = "user-" + Date.now();
+    unmarkUserAsDeleted(newId);
     const newUser: User = {
       ...data,
       id: newId,
@@ -173,11 +231,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return newUser;
   };
 
-  const deleteUser = (userId: string) => {
+  const deleteUser = async (userId: string) => {
+    markUserAsDeleted(userId);
     const updated = users.filter((u) => u.id !== userId);
     saveUsersState(updated);
     if (isSupabaseConfigured && supabase) {
-      supabase.from("users").delete().eq("id", userId);
+      try {
+        const { error } = await supabase.from("users").delete().eq("id", userId);
+        if (error) {
+          console.error("Failed to delete user in Supabase:", error);
+        }
+      } catch (err) {
+        console.error("Error executing user delete in Supabase:", err);
+      }
     }
     if (currentUser.id === userId && updated.length > 0) {
       setCurrentUser(updated[0]);

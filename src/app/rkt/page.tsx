@@ -25,11 +25,19 @@ import {
   Layers,
   Edit3,
   Trash2,
+  Eye,
+  FileText,
+  Save,
+  ArrowRight,
+  Sparkles,
+  Building2,
+  User,
+  Calendar,
 } from "lucide-react";
 
 export default function RKTPage() {
   const { currentUser, isKepsek, isTU, isKasubag, userBidang } = useAuth();
-  const { rkt, perspektif, addRKT, approveRKT, rejectRKT, updateRKT, deleteRKT } =
+  const { rkt, perspektif, addRKT, approveRKT, rejectRKT, updateRKT, deleteRKT, addToast } =
     useAppData();
 
   // Active sub-menu tab: 'tambah' | 'disetujui' | 'ditolak' | 'verifikasi'
@@ -48,6 +56,20 @@ export default function RKTPage() {
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBidang, setFilterBidang] = useState<string>("semua");
+
+  // Modal States: Detail (Lihat) & Edit
+  const [selectedDetailRkt, setSelectedDetailRkt] = useState<RKT | null>(null);
+  const [editingModalRkt, setEditingModalRkt] = useState<RKT | null>(null);
+
+  // Edit Modal Form States
+  const [editTahunAnggaran, setEditTahunAnggaran] = useState("2026/2027");
+  const [editBidang, setEditBidang] = useState<BidangStruktural>("kurikulum");
+  const [editPerspektifId, setEditPerspektifId] = useState("");
+  const [editNamaKegiatan, setEditNamaKegiatan] = useState("");
+  const [editWaktuPelaksanaan, setEditWaktuPelaksanaan] = useState("");
+  const [editPic, setEditPic] = useState("");
+  const [editTargetCapaian, setEditTargetCapaian] = useState("");
+  const [editStatus, setEditStatus] = useState<StatusRKT>("disetujui");
 
   // Handlers
   const handleSaveRKT = (e: React.FormEvent) => {
@@ -107,10 +129,92 @@ export default function RKTPage() {
     setActiveTab("tambah");
   };
 
+  // Open Edit Modal
+  const handleOpenEditModal = (item: RKT) => {
+    setEditingModalRkt(item);
+    setEditTahunAnggaran(item.tahun_anggaran);
+    setEditBidang(item.bidang);
+    setEditPerspektifId(item.perspektif_id || "");
+    setEditNamaKegiatan(item.nama_kegiatan);
+    setEditWaktuPelaksanaan(item.waktu_pelaksanaan);
+    setEditPic(item.pic);
+    setEditTargetCapaian(item.target_capaian);
+    setEditStatus(item.status);
+  };
+
+  // Save changes from Edit Modal
+  const handleSaveEditModal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingModalRkt) return;
+    if (!editNamaKegiatan.trim() || !editWaktuPelaksanaan.trim() || !editPic.trim() || !editTargetCapaian.trim()) {
+      alert("Harap lengkapi semua kolom wajib!");
+      return;
+    }
+
+    const selectedPers = perspektif.find((p) => p.id === editPerspektifId);
+    const updatedPayload: Partial<RKT> = {
+      tahun_anggaran: editTahunAnggaran,
+      bidang: editBidang,
+      perspektif_id: editPerspektifId || undefined,
+      perspektif_nama: selectedPers ? `${selectedPers.kode} - ${selectedPers.nama}` : undefined,
+      nama_kegiatan: editNamaKegiatan.trim(),
+      waktu_pelaksanaan: editWaktuPelaksanaan.trim(),
+      pic: editPic.trim(),
+      target_capaian: editTargetCapaian.trim(),
+      status: editStatus,
+    };
+
+    updateRKT(editingModalRkt.id, updatedPayload);
+
+    // If detail modal is also viewing this item, keep it updated
+    if (selectedDetailRkt?.id === editingModalRkt.id) {
+      setSelectedDetailRkt({
+        ...selectedDetailRkt,
+        ...updatedPayload,
+      } as RKT);
+    }
+
+    setEditingModalRkt(null);
+    addToast("success", "RKT Diperbarui", `Perubahan data "${editNamaKegiatan}" berhasil disimpan.`);
+  };
+
+  // Delete Action Handler
+  const handleDeleteRKT = (item: RKT) => {
+    if (
+      window.confirm(
+        `Yakin ingin menghapus rencana kerja: "${item.nama_kegiatan}"?\n\nTindakan ini akan menghapus data dari sistem dan database cloud.`
+      )
+    ) {
+      deleteRKT(item.id);
+      if (selectedDetailRkt?.id === item.id) {
+        setSelectedDetailRkt(null);
+      }
+      if (editingModalRkt?.id === item.id) {
+        setEditingModalRkt(null);
+      }
+    }
+  };
+
+  // Filter helper for lists
+  const filterItem = (r: RKT) => {
+    const matchesSearch =
+      r.nama_kegiatan.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.pic.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.target_capaian.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (r.perspektif_nama || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesBidang = filterBidang === "semua" || r.bidang === filterBidang;
+    return matchesSearch && matchesBidang;
+  };
+
   // Filtered lists
-  const approvedList = rkt.filter((r) => r.status === "disetujui");
-  const rejectedList = rkt.filter((r) => r.status === "ditolak");
-  const pendingList = rkt.filter((r) => r.status === "menunggu_persetujuan");
+  const approvedList = rkt.filter((r) => r.status === "disetujui" && filterItem(r));
+  const rejectedList = rkt.filter((r) => r.status === "ditolak" && filterItem(r));
+  const pendingList = rkt.filter((r) => r.status === "menunggu_persetujuan" && filterItem(r));
+
+  // Count without search filter for tab counters
+  const totalApprovedCount = rkt.filter((r) => r.status === "disetujui").length;
+  const totalRejectedCount = rkt.filter((r) => r.status === "ditolak").length;
+  const totalPendingCount = rkt.filter((r) => r.status === "menunggu_persetujuan").length;
 
   return (
     <div className="space-y-6 pb-12">
@@ -373,71 +477,144 @@ export default function RKTPage() {
         </div>
       )}
 
+      {/* Search & Filter Bar (Available for list tabs) */}
+      {activeTab !== "tambah" && (
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Cari nama kegiatan, target capaian, PIC, atau perspektif..."
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-slate-50 focus:bg-white transition-all"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-400 shrink-0" />
+            <select
+              value={filterBidang}
+              onChange={(e) => setFilterBidang(e.target.value)}
+              className="text-xs py-2 px-3 rounded-xl border border-gray-200 bg-white font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="semua">Semua Bidang Kasubag</option>
+              <option value="kurikulum">Kurikulum & Akademik</option>
+              <option value="kesiswaan">Kesiswaan & Kedisiplinan</option>
+              <option value="sarpras">Sarana & Prasarana</option>
+              <option value="humas_bkk">Humas, Industri & BKK</option>
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* TAB 2: DAFTAR RENCANA (DISETUJUI KEPALA SEKOLAH) */}
       {activeTab === "disetujui" && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200">
             <span className="text-xs font-bold text-gray-700">
-              Menampilkan {approvedList.length} Rencana Kerja Tahunan yang telah disetujui
+              Menampilkan {approvedList.length} dari {totalApprovedCount} Rencana Kerja Tahunan yang telah disetujui
             </span>
             <p className="text-[11px] text-gray-500">
               💡 Rencana yang disetujui di bawah ini dapat dipilih sebagai <strong>Induk Kegiatan</strong> pada Modul Action Plan.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {approvedList.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 p-5 shadow-sm hover:shadow-card transition-all flex flex-col justify-between space-y-3"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getBidangBadgeColor(
-                        item.bidang
-                      )}`}
-                    >
-                      {getBidangLabel(item.bidang)}
-                    </span>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Disetujui
-                    </span>
+          {approvedList.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-gray-400">
+              <CheckCircle2 className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+              <p className="text-xs font-semibold text-gray-600">
+                Tidak ada rencana kerja yang cocok dengan filter pencarian.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {approvedList.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 p-5 shadow-sm hover:shadow-card transition-all flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getBidangBadgeColor(
+                          item.bidang
+                        )}`}
+                      >
+                        {getBidangLabel(item.bidang)}
+                      </span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Disetujui
+                      </span>
+                    </div>
+
+                    <h3 className="text-xs font-extrabold text-gray-900 leading-snug">
+                      {item.nama_kegiatan}
+                    </h3>
+
+                    {item.perspektif_nama && (
+                      <p className="text-[11px] text-gold-800 bg-amber-50/60 p-2 rounded-lg border border-amber-200/60 font-medium">
+                        Perspektif: {item.perspektif_nama}
+                      </p>
+                    )}
+
+                    <div className="text-[11px] text-gray-600 space-y-1">
+                      <p>
+                        <strong>Target:</strong> {item.target_capaian}
+                      </p>
+                      <p>
+                        <strong>Waktu:</strong> {item.waktu_pelaksanaan} • <strong>PIC:</strong> {item.pic}
+                      </p>
+                    </div>
                   </div>
 
-                  <h3 className="text-xs font-extrabold text-gray-900 leading-snug">
-                    {item.nama_kegiatan}
-                  </h3>
+                  {/* Action Menu (Lihat, Edit, Hapus) & Action Plan Button */}
+                  <div className="pt-2.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setSelectedDetailRkt(item)}
+                        className="px-2.5 py-1 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold flex items-center gap-1 transition-colors text-[11px]"
+                        title="Lihat Detail RKT"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Lihat</span>
+                      </button>
 
-                  {item.perspektif_nama && (
-                    <p className="text-[11px] text-gold-800 bg-amber-50/60 p-2 rounded-lg border border-amber-200/60 font-medium">
-                      Perspektif: {item.perspektif_nama}
-                    </p>
-                  )}
+                      <button
+                        onClick={() => handleOpenEditModal(item)}
+                        className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg font-semibold flex items-center gap-1 transition-colors text-[11px]"
+                        title="Edit RKT"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Edit</span>
+                      </button>
 
-                  <div className="text-[11px] text-gray-600 space-y-1">
-                    <p>
-                      <strong>Target:</strong> {item.target_capaian}
-                    </p>
-                    <p>
-                      <strong>Waktu:</strong> {item.waktu_pelaksanaan} • <strong>PIC:</strong> {item.pic}
-                    </p>
+                      <button
+                        onClick={() => handleDeleteRKT(item)}
+                        className="px-2.5 py-1 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg font-semibold flex items-center gap-1 transition-colors text-[11px]"
+                        title="Hapus RKT"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Hapus</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 text-[10px]">T.A. {item.tahun_anggaran}</span>
+                      <Link
+                        href={`/action-plan?rkt_id=${item.id}`}
+                        className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg flex items-center gap-1 text-[10.5px] transition-all shadow-xs"
+                      >
+                        <span>+ Action Plan</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
-
-                <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
-                  <span className="text-gray-400">T.A. {item.tahun_anggaran}</span>
-                  <Link
-                    href={`/action-plan?rkt_id=${item.id}`}
-                    className="text-brand-700 hover:text-brand-900 font-bold flex items-center gap-1"
-                  >
-                    + Buat Action Plan Bulanan
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -449,7 +626,7 @@ export default function RKTPage() {
             <div>
               <h4 className="font-bold">Daftar Rencana yang Perlu Diperbaiki</h4>
               <p className="mt-0.5 text-rose-800">
-                Silakan baca catatan koreksi dari Kepala Sekolah, klik tombol <strong>"Revisi & Ajukan Ulang"</strong> untuk mengedit dan mengirimkan kembali.
+                Silakan baca catatan koreksi dari Kepala Sekolah, klik tombol <strong>"Revisi & Ajukan Ulang"</strong> atau <strong>"Edit"</strong> untuk mengedit dan mengirimkan kembali.
               </p>
             </div>
           </div>
@@ -482,13 +659,43 @@ export default function RKTPage() {
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => handleStartEditRejected(item)}
-                      className="px-3.5 py-1.5 bg-brand-700 hover:bg-brand-800 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 self-start sm:self-auto"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      Revisi & Ajukan Ulang
-                    </button>
+                    {/* Action buttons on Rejected card */}
+                    <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                      <button
+                        onClick={() => setSelectedDetailRkt(item)}
+                        className="px-2.5 py-1 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold flex items-center gap-1 transition-colors text-xs"
+                        title="Lihat Detail RKT"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Lihat</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleOpenEditModal(item)}
+                        className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg font-semibold flex items-center gap-1 transition-colors text-xs"
+                        title="Edit RKT"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Edit</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteRKT(item)}
+                        className="px-2.5 py-1 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg font-semibold flex items-center gap-1 transition-colors text-xs"
+                        title="Hapus RKT"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Hapus</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleStartEditRejected(item)}
+                        className="px-3 py-1 bg-brand-700 hover:bg-brand-800 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-xs"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        Revisi & Ajukan
+                      </button>
+                    </div>
                   </div>
 
                   <h3 className="text-xs font-bold text-gray-900">{item.nama_kegiatan}</h3>
@@ -526,7 +733,7 @@ export default function RKTPage() {
                 key={item.id}
                 className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 flex-1">
                   <div className="flex items-center gap-2">
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getBidangBadgeColor(
@@ -543,33 +750,430 @@ export default function RKTPage() {
                   </p>
                 </div>
 
-                {isKepsek ? (
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                  {/* Action group on pending item */}
+                  <div className="flex items-center gap-1">
                     <button
-                      onClick={() => {
-                        const note = prompt("Alasan revisi / penolakan:");
-                        if (note) rejectRKT(item.id, note);
-                      }}
-                      className="px-3.5 py-1.5 border border-rose-300 text-rose-700 hover:bg-rose-50 text-xs font-bold rounded-xl transition-colors"
+                      onClick={() => setSelectedDetailRkt(item)}
+                      className="px-2.5 py-1.5 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold flex items-center gap-1 transition-colors text-xs"
+                      title="Lihat Detail RKT"
                     >
-                      Tolak
+                      <Eye className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Lihat</span>
                     </button>
+
                     <button
-                      onClick={() => approveRKT(item.id)}
-                      className="px-4 py-1.5 bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                      onClick={() => handleOpenEditModal(item)}
+                      className="px-2.5 py-1.5 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg font-semibold flex items-center gap-1 transition-colors text-xs"
+                      title="Edit RKT"
                     >
-                      <Check className="w-3.5 h-3.5" />
-                      Setujui RKT
+                      <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Edit</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteRKT(item)}
+                      className="px-2.5 py-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg font-semibold flex items-center gap-1 transition-colors text-xs"
+                      title="Hapus RKT"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Hapus</span>
                     </button>
                   </div>
-                ) : (
-                  <span className="text-xs text-amber-700 bg-amber-100 px-3 py-1 rounded-full font-bold">
-                    Menunggu Kepsek
-                  </span>
-                )}
+
+                  {isKepsek ? (
+                    <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200">
+                      <button
+                        onClick={() => {
+                          const note = prompt("Alasan revisi / penolakan:");
+                          if (note) rejectRKT(item.id, note);
+                        }}
+                        className="px-3.5 py-1.5 border border-rose-300 text-rose-700 hover:bg-rose-50 text-xs font-bold rounded-xl transition-colors"
+                      >
+                        Tolak
+                      </button>
+                      <button
+                        onClick={() => approveRKT(item.id)}
+                        className="px-4 py-1.5 bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        Setujui RKT
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-amber-700 bg-amber-100 px-3 py-1 rounded-full font-bold ml-1">
+                      Menunggu Kepsek
+                    </span>
+                  )}
+                </div>
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* MODAL 1: LIHAT DETAIL RKT */}
+      {selectedDetailRkt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 animate-in fade-in-50 zoom-in-95">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-brand-900 via-brand-800 to-brand-900 text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gold-400/20 border border-gold-400/40 flex items-center justify-center text-gold-400">
+                  <FileText className="w-5 h-5 text-gold-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">
+                    Detail Rencana Kerja Tahunan (RKT)
+                  </h3>
+                  <p className="text-xs text-emerald-200">
+                    ID: {selectedDetailRkt.id} • T.A. {selectedDetailRkt.tahun_anggaran}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedDetailRkt(null)}
+                className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+              {/* Badges & Status */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${getBidangBadgeColor(
+                      selectedDetailRkt.bidang
+                    )}`}
+                  >
+                    {getBidangLabel(selectedDetailRkt.bidang)}
+                  </span>
+                  <span className="text-xs text-gray-500 font-semibold">
+                    Tahun Anggaran: <strong>{selectedDetailRkt.tahun_anggaran}</strong>
+                  </span>
+                </div>
+
+                <div>
+                  {selectedDetailRkt.status === "disetujui" && (
+                    <span className="text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Disetujui Kepala Sekolah
+                    </span>
+                  )}
+                  {selectedDetailRkt.status === "menunggu_persetujuan" && (
+                    <span className="text-xs bg-amber-100 text-amber-900 border border-amber-300 font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-600" />
+                      Menunggu Persetujuan
+                    </span>
+                  )}
+                  {selectedDetailRkt.status === "ditolak" && (
+                    <span className="text-xs bg-rose-100 text-rose-800 border border-rose-300 font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                      <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                      Ditolak / Perlu Revisi
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Main Activity Title */}
+              <div>
+                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                  Nama Kegiatan / Program Kerja
+                </span>
+                <h2 className="text-base font-extrabold text-gray-950 mt-0.5 leading-snug">
+                  {selectedDetailRkt.nama_kegiatan}
+                </h2>
+              </div>
+
+              {/* Master Perspektif Box */}
+              <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 space-y-1">
+                <span className="text-[10px] font-bold text-gold-900 uppercase tracking-wide flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-gold-600" />
+                  Kaitan Master Perspektif RKT Yayasan
+                </span>
+                <p className="text-xs font-bold text-amber-950">
+                  {selectedDetailRkt.perspektif_nama || "Belum dipilih"}
+                </p>
+              </div>
+
+              {/* Meta Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold block mb-1">
+                    Penanggung Jawab (PIC)
+                  </span>
+                  <p className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-brand-700" />
+                    {selectedDetailRkt.pic}
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold block mb-1">
+                    Waktu Pelaksanaan
+                  </span>
+                  <p className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-brand-700" />
+                    {selectedDetailRkt.waktu_pelaksanaan}
+                  </p>
+                </div>
+              </div>
+
+              {/* Target & Indikator Capaian */}
+              <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-1.5">
+                <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
+                  Target & Indikator Capaian Keberhasilan
+                </span>
+                <p className="text-xs text-gray-800 leading-relaxed whitespace-pre-wrap">
+                  {selectedDetailRkt.target_capaian}
+                </p>
+              </div>
+
+              {/* Catatan Revisi jika ditolak */}
+              {selectedDetailRkt.status === "ditolak" && selectedDetailRkt.catatan_revisi && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 space-y-1">
+                  <span className="text-xs font-bold text-rose-900 flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    Catatan Koreksi dari Kepala Sekolah:
+                  </span>
+                  <p className="text-xs text-rose-800 italic">
+                    "{selectedDetailRkt.catatan_revisi}"
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => handleDeleteRKT(selectedDetailRkt)}
+                className="px-3.5 py-2 text-xs font-bold text-rose-700 hover:text-rose-800 hover:bg-rose-100/60 rounded-xl transition-colors flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Hapus RKT
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDetailRkt(null)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-200 rounded-xl transition-colors"
+                >
+                  Tutup
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const item = selectedDetailRkt;
+                    setSelectedDetailRkt(null);
+                    handleOpenEditModal(item);
+                  }}
+                  className="px-4 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 flex items-center gap-1.5 transition-colors"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  Edit RKT
+                </button>
+
+                {selectedDetailRkt.status === "disetujui" && (
+                  <Link
+                    href={`/action-plan?rkt_id=${selectedDetailRkt.id}`}
+                    onClick={() => setSelectedDetailRkt(null)}
+                    className="px-4 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                  >
+                    <span>+ Action Plan</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: EDIT DATA RKT */}
+      {editingModalRkt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 animate-in fade-in-50 zoom-in-95">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-400/20 border border-blue-400/40 flex items-center justify-center text-blue-200">
+                  <Edit3 className="w-5 h-5 text-blue-300" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">
+                    Edit Rencana Kerja Tahunan (RKT)
+                  </h3>
+                  <p className="text-xs text-blue-200">
+                    ID: {editingModalRkt.id} • Modifikasi informasi kegiatan
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingModalRkt(null)}
+                className="text-blue-200 hover:text-white p-1 rounded-lg hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveEditModal} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Row 1: Tahun Anggaran & Bidang */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Tahun Anggaran <span className="text-rose-500">*</span>:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editTahunAnggaran}
+                    onChange={(e) => setEditTahunAnggaran(e.target.value)}
+                    placeholder="Contoh: 2026/2027"
+                    className="w-full text-xs rounded-xl border border-gray-300 p-2.5 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Bidang Struktural / Kasubag <span className="text-rose-500">*</span>:
+                  </label>
+                  <select
+                    value={editBidang}
+                    onChange={(e) => setEditBidang(e.target.value as BidangStruktural)}
+                    className="w-full text-xs rounded-xl border border-gray-300 p-2.5 focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="kurikulum">Kurikulum & Akademik</option>
+                    <option value="kesiswaan">Kesiswaan & Kedisiplinan</option>
+                    <option value="sarpras">Sarana & Prasarana</option>
+                    <option value="humas_bkk">Humas, Industri & BKK</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Master Perspektif */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Kaitan Master Perspektif RKT Yayasan <span className="text-rose-500">*</span>:
+                </label>
+                <select
+                  value={editPerspektifId}
+                  onChange={(e) => setEditPerspektifId(e.target.value)}
+                  className="w-full text-xs rounded-xl border border-gray-300 p-2.5 focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">-- Pilih Master Perspektif RKT Yayasan --</option>
+                  {perspektif
+                    .filter((p) => p.is_active)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.kode} - {p.nama}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Row 3: Nama Kegiatan */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Nama Kegiatan / Program Kerja <span className="text-rose-500">*</span>:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editNamaKegiatan}
+                  onChange={(e) => setEditNamaKegiatan(e.target.value)}
+                  placeholder="Contoh: Sinkronisasi Kurikulum Bersama Industri Mitra"
+                  className="w-full text-xs rounded-xl border border-gray-300 p-2.5 focus:ring-2 focus:ring-blue-500 font-semibold"
+                />
+              </div>
+
+              {/* Row 4: Waktu & PIC */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Waktu Pelaksanaan <span className="text-rose-500">*</span>:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editWaktuPelaksanaan}
+                    onChange={(e) => setEditWaktuPelaksanaan(e.target.value)}
+                    placeholder="Contoh: Semester Ganjil (Juli - Desember 2026)"
+                    className="w-full text-xs rounded-xl border border-gray-300 p-2.5 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Penanggung Jawab (PIC) <span className="text-rose-500">*</span>:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editPic}
+                    onChange={(e) => setEditPic(e.target.value)}
+                    placeholder="Nama PIC"
+                    className="w-full text-xs rounded-xl border border-gray-300 p-2.5 focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Row 5: Target Capaian */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Keterangan / Target Capaian <span className="text-rose-500">*</span>:
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={editTargetCapaian}
+                  onChange={(e) => setEditTargetCapaian(e.target.value)}
+                  placeholder="Tuliskan indikator keberhasilan, target kuantitatif/kualitatif kegiatan..."
+                  className="w-full text-xs rounded-xl border border-gray-300 p-2.5 focus:ring-2 focus:ring-blue-500 leading-relaxed"
+                />
+              </div>
+
+              {/* Row 6: Status RKT */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Status Rencana Kerja:
+                </label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value as StatusRKT)}
+                  className="w-full text-xs rounded-xl border border-gray-300 p-2.5 focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="disetujui">Disetujui (Dapat langsung dibuat Action Plan)</option>
+                  <option value="menunggu_persetujuan">Menunggu Persetujuan Kepala Sekolah</option>
+                  <option value="ditolak">Ditolak / Perlu Revisi</option>
+                </select>
+              </div>
+
+              {/* Form Actions */}
+              <div className="pt-4 border-t border-gray-200 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setEditingModalRkt(null)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
