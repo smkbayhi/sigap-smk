@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
+import { usePresensi } from "@/context/PresensiContext";
 import { LOGO_SMK_DATA_URL } from "@/lib/seedData";
 import {
   LayoutDashboard,
@@ -34,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const pathname = usePathname();
   const { currentUser, isKepsek, isTU, isKasubag, isGuru } = useAuth();
   const { suratKeluar, disposisi, rkt, schoolSettings } = useAppData();
+  const { currentReport } = usePresensi();
   const schoolLogo = schoolSettings?.logoSmkUrl || LOGO_SMK_DATA_URL;
 
   const pendingSK = suratKeluar.filter((s) => s.status === "menunggu_persetujuan").length;
@@ -270,6 +272,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
                   <span>Action Report & Evaluasi</span>
                 </div>
+              </Link>
+
+              {/* Presensi & Rekap Fingerprint */}
+              <Link
+                href="/presensi"
+                onClick={onClose}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  isActive("/presensi")
+                    ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
+                    : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Clock className="w-4 h-4 text-emerald-300" />
+                  <span>Presensi & Fingerprint</span>
+                </div>
+                {currentReport.guruTidakKkmCount > 0 && (
+                  <span className="text-[10px] bg-rose-500 text-white font-black px-1.5 py-0.5 rounded-full shadow-xs">
+                    {currentReport.guruTidakKkmCount} Alert
+                  </span>
+                )}
               </Link>
             </nav>
           </div>

@@ -302,6 +302,36 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Quick Banner: Rekapitulasi Presensi Fingerprint Bulanan */}
+          <div className="bg-gradient-to-r from-emerald-900 to-teal-900 rounded-2xl p-4 sm:p-5 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-300" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-emerald-500/30 text-emerald-200 font-bold px-2 py-0.5 rounded uppercase">
+                    Otomasi Absensi
+                  </span>
+                  <span className="text-xs text-emerald-200">• Periode Aktif Bulanan</span>
+                </div>
+                <h4 className="text-sm font-bold mt-0.5">
+                  Rekapitulasi Presensi & Kedisiplinan Guru SMK
+                </h4>
+                <p className="text-xs text-emerald-100/80 mt-0.5">
+                  Unggah file mentah mesin fingerprint HCD, sistem otomatis menghitung keterlambatan & KKM (≥50%).
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/presensi"
+              className="py-2 px-4 bg-white text-emerald-950 hover:bg-emerald-50 font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>Buka Menu Presensi</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
           {/* TU Main Sections */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left 2 Cols: Monitoring Draf & Surat Keluar Siap Kirim */}

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { AppDataProvider } from "@/context/AppDataContext";
+import { PresensiProvider } from "@/context/PresensiContext";
 import { ToastContainer } from "@/components/common/Toast";
 import { AppShell } from "@/components/layout/AppShell";
 
@@ -27,8 +28,10 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased min-h-screen bg-slate-50 text-slate-900`}>
         <AuthProvider>
           <AppDataProvider>
-            <AppShell>{children}</AppShell>
-            <ToastContainer />
+            <PresensiProvider>
+              <AppShell>{children}</AppShell>
+              <ToastContainer />
+            </PresensiProvider>
           </AppDataProvider>
         </AuthProvider>
       </body>
