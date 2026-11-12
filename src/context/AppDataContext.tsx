@@ -129,13 +129,37 @@ const DELETED_KEYS = {
   ACTION_REPORTS: "sigap_smk_deleted_ar_ids",
 };
 
+// Legacy dummy seed IDs that must never be resurrected on any browser/device
+const LEGACY_DUMMY_IDS = new Set([
+  "sk-146",
+  "sk-147",
+  "sm-001",
+  "sm-002",
+  "disp-001",
+  "rkt-001",
+  "rkt-002",
+  "rkt-003",
+  "ap-001",
+  "ap-002",
+  "ar-001",
+]);
+
 function getDeletedIds(key: string): string[] {
-  if (typeof window === "undefined") return [];
+  const legacyForThisKey: string[] = [];
+  if (key === DELETED_KEYS.SURAT_KELUAR) legacyForThisKey.push("sk-146", "sk-147");
+  if (key === DELETED_KEYS.SURAT_MASUK) legacyForThisKey.push("sm-001", "sm-002");
+  if (key === DELETED_KEYS.DISPOSISI) legacyForThisKey.push("disp-001");
+  if (key === DELETED_KEYS.RKT) legacyForThisKey.push("rkt-001", "rkt-002", "rkt-003");
+  if (key === DELETED_KEYS.ACTION_PLANS) legacyForThisKey.push("ap-001", "ap-002");
+  if (key === DELETED_KEYS.ACTION_REPORTS) legacyForThisKey.push("ar-001");
+
+  if (typeof window === "undefined") return legacyForThisKey;
   try {
     const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : [];
+    const stored: string[] = raw ? JSON.parse(raw) : [];
+    return Array.from(new Set([...stored, ...legacyForThisKey]));
   } catch {
-    return [];
+    return legacyForThisKey;
   }
 }
 
@@ -183,9 +207,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem(STORAGE_KEYS.SURAT_KELUAR);
         if (stored) {
           const parsed: SuratKeluar[] = JSON.parse(stored);
-          return (Array.isArray(parsed) ? parsed : []).filter((s) => !deleted.includes(s.id));
+          return (Array.isArray(parsed) ? parsed : []).filter(
+            (s) => !deleted.includes(s.id) && !LEGACY_DUMMY_IDS.has(s.id)
+          );
         }
-        return INITIAL_SURAT_KELUAR.filter((s) => !deleted.includes(s.id));
+        return INITIAL_SURAT_KELUAR;
       } catch {
         return INITIAL_SURAT_KELUAR;
       }
@@ -200,9 +226,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem(STORAGE_KEYS.SURAT_MASUK);
         if (stored) {
           const parsed: SuratMasuk[] = JSON.parse(stored);
-          return (Array.isArray(parsed) ? parsed : []).filter((s) => !deleted.includes(s.id));
+          return (Array.isArray(parsed) ? parsed : []).filter(
+            (s) => !deleted.includes(s.id) && !LEGACY_DUMMY_IDS.has(s.id)
+          );
         }
-        return INITIAL_SURAT_MASUK.filter((s) => !deleted.includes(s.id));
+        return INITIAL_SURAT_MASUK;
       } catch {
         return INITIAL_SURAT_MASUK;
       }
@@ -217,9 +245,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem(STORAGE_KEYS.DISPOSISI);
         if (stored) {
           const parsed: Disposisi[] = JSON.parse(stored);
-          return (Array.isArray(parsed) ? parsed : []).filter((d) => !deleted.includes(d.id));
+          return (Array.isArray(parsed) ? parsed : []).filter(
+            (d) => !deleted.includes(d.id) && !LEGACY_DUMMY_IDS.has(d.id)
+          );
         }
-        return INITIAL_DISPOSISI.filter((d) => !deleted.includes(d.id));
+        return INITIAL_DISPOSISI;
       } catch {
         return INITIAL_DISPOSISI;
       }
@@ -236,7 +266,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           const parsed: MasterPerspektif[] = JSON.parse(stored);
           return (Array.isArray(parsed) ? parsed : []).filter((p) => !deleted.includes(p.id));
         }
-        return INITIAL_PERSPEKTIF.filter((p) => !deleted.includes(p.id));
+        return INITIAL_PERSPEKTIF;
       } catch {
         return INITIAL_PERSPEKTIF;
       }
@@ -251,9 +281,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem(STORAGE_KEYS.RKT);
         if (stored) {
           const parsed: RKT[] = JSON.parse(stored);
-          return (Array.isArray(parsed) ? parsed : []).filter((r) => !deleted.includes(r.id));
+          return (Array.isArray(parsed) ? parsed : []).filter(
+            (r) => !deleted.includes(r.id) && !LEGACY_DUMMY_IDS.has(r.id)
+          );
         }
-        return INITIAL_RKT.filter((r) => !deleted.includes(r.id));
+        return INITIAL_RKT;
       } catch {
         return INITIAL_RKT;
       }
@@ -268,9 +300,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem(STORAGE_KEYS.ACTION_PLANS);
         if (stored) {
           const parsed: ActionPlan[] = JSON.parse(stored);
-          return (Array.isArray(parsed) ? parsed : []).filter((a) => !deleted.includes(a.id));
+          return (Array.isArray(parsed) ? parsed : []).filter(
+            (a) => !deleted.includes(a.id) && !LEGACY_DUMMY_IDS.has(a.id)
+          );
         }
-        return INITIAL_ACTION_PLANS.filter((a) => !deleted.includes(a.id));
+        return INITIAL_ACTION_PLANS;
       } catch {
         return INITIAL_ACTION_PLANS;
       }
@@ -285,9 +319,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem(STORAGE_KEYS.ACTION_REPORTS);
         if (stored) {
           const parsed: ActionReport[] = JSON.parse(stored);
-          return (Array.isArray(parsed) ? parsed : []).filter((r) => !deleted.includes(r.id));
+          return (Array.isArray(parsed) ? parsed : []).filter(
+            (r) => !deleted.includes(r.id) && !LEGACY_DUMMY_IDS.has(r.id)
+          );
         }
-        return INITIAL_ACTION_REPORTS.filter((r) => !deleted.includes(r.id));
+        return INITIAL_ACTION_REPORTS;
       } catch {
         return INITIAL_ACTION_REPORTS;
       }
@@ -333,16 +369,20 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       const deletedSK = getDeletedIds(DELETED_KEYS.SURAT_KELUAR);
       if (cloudData.suratKeluar) {
         const lingeringSK = cloudData.suratKeluar
-          .filter((s) => deletedSK.includes(s.id))
+          .filter((s) => deletedSK.includes(s.id) || LEGACY_DUMMY_IDS.has(s.id))
           .map((s) => s.id);
-        if (lingeringSK.length > 0) {
+        if (lingeringSK.length > 0 && supabase) {
           supabase.from("surat_keluar").delete().in("id", lingeringSK).then();
         }
 
-        const activeCloudSK = cloudData.suratKeluar.filter((s) => !deletedSK.includes(s.id));
+        const activeCloudSK = cloudData.suratKeluar.filter(
+          (s) => !deletedSK.includes(s.id) && !LEGACY_DUMMY_IDS.has(s.id)
+        );
         setSuratKeluar((prev) => {
           const cloudIds = new Set(activeCloudSK.map((s) => s.id));
-          const localOnly = prev.filter((s) => !cloudIds.has(s.id) && !deletedSK.includes(s.id));
+          const localOnly = prev.filter(
+            (s) => !cloudIds.has(s.id) && !deletedSK.includes(s.id) && !LEGACY_DUMMY_IDS.has(s.id)
+          );
           const merged = [...activeCloudSK, ...localOnly];
           saveToStorage(STORAGE_KEYS.SURAT_KELUAR, merged);
           return merged;
@@ -353,16 +393,20 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       const deletedSM = getDeletedIds(DELETED_KEYS.SURAT_MASUK);
       if (cloudData.suratMasuk) {
         const lingeringSM = cloudData.suratMasuk
-          .filter((s) => deletedSM.includes(s.id))
+          .filter((s) => deletedSM.includes(s.id) || LEGACY_DUMMY_IDS.has(s.id))
           .map((s) => s.id);
-        if (lingeringSM.length > 0) {
+        if (lingeringSM.length > 0 && supabase) {
           supabase.from("surat_masuk").delete().in("id", lingeringSM).then();
         }
 
-        const activeCloudSM = cloudData.suratMasuk.filter((s) => !deletedSM.includes(s.id));
+        const activeCloudSM = cloudData.suratMasuk.filter(
+          (s) => !deletedSM.includes(s.id) && !LEGACY_DUMMY_IDS.has(s.id)
+        );
         setSuratMasuk((prev) => {
           const cloudIds = new Set(activeCloudSM.map((s) => s.id));
-          const localOnly = prev.filter((s) => !cloudIds.has(s.id) && !deletedSM.includes(s.id));
+          const localOnly = prev.filter(
+            (s) => !cloudIds.has(s.id) && !deletedSM.includes(s.id) && !LEGACY_DUMMY_IDS.has(s.id)
+          );
           const merged = [...activeCloudSM, ...localOnly];
           saveToStorage(STORAGE_KEYS.SURAT_MASUK, merged);
           return merged;
@@ -373,16 +417,20 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       const deletedDisp = getDeletedIds(DELETED_KEYS.DISPOSISI);
       if (cloudData.disposisi) {
         const lingeringDisp = cloudData.disposisi
-          .filter((d) => deletedDisp.includes(d.id))
+          .filter((d) => deletedDisp.includes(d.id) || LEGACY_DUMMY_IDS.has(d.id))
           .map((d) => d.id);
-        if (lingeringDisp.length > 0) {
+        if (lingeringDisp.length > 0 && supabase) {
           supabase.from("disposisi").delete().in("id", lingeringDisp).then();
         }
 
-        const activeCloudDisp = cloudData.disposisi.filter((d) => !deletedDisp.includes(d.id));
+        const activeCloudDisp = cloudData.disposisi.filter(
+          (d) => !deletedDisp.includes(d.id) && !LEGACY_DUMMY_IDS.has(d.id)
+        );
         setDisposisi((prev) => {
           const cloudIds = new Set(activeCloudDisp.map((d) => d.id));
-          const localOnly = prev.filter((d) => !cloudIds.has(d.id) && !deletedDisp.includes(d.id));
+          const localOnly = prev.filter(
+            (d) => !cloudIds.has(d.id) && !deletedDisp.includes(d.id) && !LEGACY_DUMMY_IDS.has(d.id)
+          );
           const merged = [...activeCloudDisp, ...localOnly];
           saveToStorage(STORAGE_KEYS.DISPOSISI, merged);
           return merged;
@@ -395,7 +443,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         const lingeringPers = cloudData.perspektif
           .filter((p) => deletedPers.includes(p.id))
           .map((p) => p.id);
-        if (lingeringPers.length > 0) {
+        if (lingeringPers.length > 0 && supabase) {
           supabase.from("master_perspektif").delete().in("id", lingeringPers).then();
         }
 
@@ -413,16 +461,20 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       const deletedRkt = getDeletedIds(DELETED_KEYS.RKT);
       if (cloudData.rkt) {
         const lingeringRkt = cloudData.rkt
-          .filter((r) => deletedRkt.includes(r.id))
+          .filter((r) => deletedRkt.includes(r.id) || LEGACY_DUMMY_IDS.has(r.id))
           .map((r) => r.id);
-        if (lingeringRkt.length > 0) {
+        if (lingeringRkt.length > 0 && supabase) {
           supabase.from("rkt").delete().in("id", lingeringRkt).then();
         }
 
-        const activeCloudRkt = cloudData.rkt.filter((r) => !deletedRkt.includes(r.id));
+        const activeCloudRkt = cloudData.rkt.filter(
+          (r) => !deletedRkt.includes(r.id) && !LEGACY_DUMMY_IDS.has(r.id)
+        );
         setRkt((prev) => {
           const cloudIds = new Set(activeCloudRkt.map((r) => r.id));
-          const localOnly = prev.filter((r) => !cloudIds.has(r.id) && !deletedRkt.includes(r.id));
+          const localOnly = prev.filter(
+            (r) => !cloudIds.has(r.id) && !deletedRkt.includes(r.id) && !LEGACY_DUMMY_IDS.has(r.id)
+          );
           const merged = [...activeCloudRkt, ...localOnly];
           saveToStorage(STORAGE_KEYS.RKT, merged);
           return merged;
@@ -433,16 +485,20 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       const deletedAP = getDeletedIds(DELETED_KEYS.ACTION_PLANS);
       if (cloudData.actionPlans) {
         const lingeringAP = cloudData.actionPlans
-          .filter((a) => deletedAP.includes(a.id))
+          .filter((a) => deletedAP.includes(a.id) || LEGACY_DUMMY_IDS.has(a.id))
           .map((a) => a.id);
-        if (lingeringAP.length > 0) {
+        if (lingeringAP.length > 0 && supabase) {
           supabase.from("action_plans").delete().in("id", lingeringAP).then();
         }
 
-        const activeCloudAP = cloudData.actionPlans.filter((a) => !deletedAP.includes(a.id));
+        const activeCloudAP = cloudData.actionPlans.filter(
+          (a) => !deletedAP.includes(a.id) && !LEGACY_DUMMY_IDS.has(a.id)
+        );
         setActionPlans((prev) => {
           const cloudIds = new Set(activeCloudAP.map((a) => a.id));
-          const localOnly = prev.filter((a) => !cloudIds.has(a.id) && !deletedAP.includes(a.id));
+          const localOnly = prev.filter(
+            (a) => !cloudIds.has(a.id) && !deletedAP.includes(a.id) && !LEGACY_DUMMY_IDS.has(a.id)
+          );
           const merged = [...activeCloudAP, ...localOnly];
           saveToStorage(STORAGE_KEYS.ACTION_PLANS, merged);
           return merged;
@@ -453,16 +509,20 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       const deletedAR = getDeletedIds(DELETED_KEYS.ACTION_REPORTS);
       if (cloudData.actionReports) {
         const lingeringAR = cloudData.actionReports
-          .filter((r) => deletedAR.includes(r.id))
+          .filter((r) => deletedAR.includes(r.id) || LEGACY_DUMMY_IDS.has(r.id))
           .map((r) => r.id);
-        if (lingeringAR.length > 0) {
+        if (lingeringAR.length > 0 && supabase) {
           supabase.from("action_reports").delete().in("id", lingeringAR).then();
         }
 
-        const activeCloudAR = cloudData.actionReports.filter((r) => !deletedAR.includes(r.id));
+        const activeCloudAR = cloudData.actionReports.filter(
+          (r) => !deletedAR.includes(r.id) && !LEGACY_DUMMY_IDS.has(r.id)
+        );
         setActionReports((prev) => {
           const cloudIds = new Set(activeCloudAR.map((r) => r.id));
-          const localOnly = prev.filter((r) => !cloudIds.has(r.id) && !deletedAR.includes(r.id));
+          const localOnly = prev.filter(
+            (r) => !cloudIds.has(r.id) && !deletedAR.includes(r.id) && !LEGACY_DUMMY_IDS.has(r.id)
+          );
           const merged = [...activeCloudAR, ...localOnly];
           saveToStorage(STORAGE_KEYS.ACTION_REPORTS, merged);
           return merged;
@@ -482,9 +542,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         if (storedSK) {
           const parsedSK = JSON.parse(storedSK);
           const filteredSK = (Array.isArray(parsedSK) ? parsedSK : []).filter(
-            (s: SuratKeluar) => !deletedSK.includes(s.id)
+            (s: SuratKeluar) => !deletedSK.includes(s.id) && !LEGACY_DUMMY_IDS.has(s.id)
           );
           setSuratKeluar(filteredSK);
+          saveToStorage(STORAGE_KEYS.SURAT_KELUAR, filteredSK);
         }
 
         const deletedSM = getDeletedIds(DELETED_KEYS.SURAT_MASUK);
@@ -492,7 +553,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         if (storedSM) {
           const parsed = JSON.parse(storedSM);
           const sanitized = (Array.isArray(parsed) ? parsed : [])
-            .filter((item: any) => !deletedSM.includes(item.id))
+            .filter((item: any) => !deletedSM.includes(item.id) && !LEGACY_DUMMY_IDS.has(item.id))
             .map((item: any) => {
               if (item.file_url && item.file_url.includes("unsplash.com")) {
                 return { ...item, file_url: "" };
@@ -500,41 +561,62 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
               return item;
             });
           setSuratMasuk(sanitized);
+          saveToStorage(STORAGE_KEYS.SURAT_MASUK, sanitized);
         }
 
         const deletedDisp = getDeletedIds(DELETED_KEYS.DISPOSISI);
         const storedDisp = localStorage.getItem(STORAGE_KEYS.DISPOSISI);
         if (storedDisp) {
           const parsedDisp = JSON.parse(storedDisp);
-          setDisposisi((Array.isArray(parsedDisp) ? parsedDisp : []).filter((d: Disposisi) => !deletedDisp.includes(d.id)));
+          const filteredDisp = (Array.isArray(parsedDisp) ? parsedDisp : []).filter(
+            (d: Disposisi) => !deletedDisp.includes(d.id) && !LEGACY_DUMMY_IDS.has(d.id)
+          );
+          setDisposisi(filteredDisp);
+          saveToStorage(STORAGE_KEYS.DISPOSISI, filteredDisp);
         }
 
         const deletedPers = getDeletedIds(DELETED_KEYS.PERSPEKTIF);
         const storedPers = localStorage.getItem(STORAGE_KEYS.PERSPEKTIF);
         if (storedPers) {
           const parsedPers = JSON.parse(storedPers);
-          setPerspektif((Array.isArray(parsedPers) ? parsedPers : []).filter((p: MasterPerspektif) => !deletedPers.includes(p.id)));
+          const filteredPers = (Array.isArray(parsedPers) ? parsedPers : []).filter(
+            (p: MasterPerspektif) => !deletedPers.includes(p.id)
+          );
+          setPerspektif(filteredPers);
+          saveToStorage(STORAGE_KEYS.PERSPEKTIF, filteredPers);
         }
 
         const deletedRkt = getDeletedIds(DELETED_KEYS.RKT);
         const storedRkt = localStorage.getItem(STORAGE_KEYS.RKT);
         if (storedRkt) {
           const parsedRkt = JSON.parse(storedRkt);
-          setRkt((Array.isArray(parsedRkt) ? parsedRkt : []).filter((r: RKT) => !deletedRkt.includes(r.id)));
+          const filteredRkt = (Array.isArray(parsedRkt) ? parsedRkt : []).filter(
+            (r: RKT) => !deletedRkt.includes(r.id) && !LEGACY_DUMMY_IDS.has(r.id)
+          );
+          setRkt(filteredRkt);
+          saveToStorage(STORAGE_KEYS.RKT, filteredRkt);
         }
 
         const deletedAP = getDeletedIds(DELETED_KEYS.ACTION_PLANS);
         const storedAP = localStorage.getItem(STORAGE_KEYS.ACTION_PLANS);
         if (storedAP) {
           const parsedAP = JSON.parse(storedAP);
-          setActionPlans((Array.isArray(parsedAP) ? parsedAP : []).filter((a: ActionPlan) => !deletedAP.includes(a.id)));
+          const filteredAP = (Array.isArray(parsedAP) ? parsedAP : []).filter(
+            (a: ActionPlan) => !deletedAP.includes(a.id) && !LEGACY_DUMMY_IDS.has(a.id)
+          );
+          setActionPlans(filteredAP);
+          saveToStorage(STORAGE_KEYS.ACTION_PLANS, filteredAP);
         }
 
         const deletedAR = getDeletedIds(DELETED_KEYS.ACTION_REPORTS);
         const storedAR = localStorage.getItem(STORAGE_KEYS.ACTION_REPORTS);
         if (storedAR) {
           const parsedAR = JSON.parse(storedAR);
-          setActionReports((Array.isArray(parsedAR) ? parsedAR : []).filter((r: ActionReport) => !deletedAR.includes(r.id)));
+          const filteredAR = (Array.isArray(parsedAR) ? parsedAR : []).filter(
+            (r: ActionReport) => !deletedAR.includes(r.id) && !LEGACY_DUMMY_IDS.has(r.id)
+          );
+          setActionReports(filteredAR);
+          saveToStorage(STORAGE_KEYS.ACTION_REPORTS, filteredAR);
         }
 
         const storedSettings = localStorage.getItem(STORAGE_KEYS.SCHOOL_SETTINGS);

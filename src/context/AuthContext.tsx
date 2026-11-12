@@ -29,14 +29,25 @@ const USERS_STORAGE_KEY = "sigap_smk_users";
 const AUTH_STATUS_KEY = "sigap_smk_is_authenticated";
 const DELETED_USERS_STORAGE_KEY = "sigap_smk_deleted_user_ids";
 
+// Legacy deleted demo users that must never reappear on any browser
+const LEGACY_DELETED_USER_IDS = new Set([
+  "user-tu",
+  "user-kasubag-kurikulum",
+  "user-kasubag-kesiswaan",
+  "user-kasubag-sarpras",
+  "user-kasubag-humas",
+  "user-guru-1",
+]);
+
 // Helper to track and persist deleted users to prevent unwanted resurrecting on reload
 const getDeletedUserIds = (): string[] => {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return Array.from(LEGACY_DELETED_USER_IDS);
   try {
     const raw = localStorage.getItem(DELETED_USERS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const stored: string[] = raw ? JSON.parse(raw) : [];
+    return Array.from(new Set([...stored, ...Array.from(LEGACY_DELETED_USER_IDS)]));
   } catch {
-    return [];
+    return Array.from(LEGACY_DELETED_USER_IDS);
   }
 };
 

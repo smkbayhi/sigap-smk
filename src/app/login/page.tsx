@@ -56,12 +56,6 @@ export default function LoginPage() {
     router.push("/");
   };
 
-  // 4 Core Roles for 1-Click login
-  const kepsekUser = users.find((u) => u.role === "kepala_sekolah") || users[0];
-  const tuUser = users.find((u) => u.role === "tata_usaha") || users[1];
-  const kasubagUser = users.find((u) => u.role === "kasubag") || users[2];
-  const guruUser = users.find((u) => u.role === "guru") || users[users.length - 1];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#064e3b] via-[#053d2e] to-[#03261c] flex flex-col justify-center items-center p-4 sm:p-6">
       {/* Container */}
@@ -167,82 +161,48 @@ export default function LoginPage() {
           </div>
 
           {/* Quick 1-Click Role Login */}
-          <div className="grid grid-cols-2 gap-2">
-            {/* Kepsek */}
-            <button
-              type="button"
-              onClick={() => handleQuickLogin(kepsekUser.id, "Kepala Sekolah")}
-              className="p-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-left transition-colors flex items-center gap-2.5"
-            >
-              <div className="w-7 h-7 rounded-lg bg-amber-200 text-amber-900 font-bold text-xs flex items-center justify-center shrink-0">
-                KS
-              </div>
-              <div className="min-w-0">
-                <span className="text-xs font-bold text-amber-950 block truncate">
-                  Kepala Sekolah
-                </span>
-                <span className="text-[10px] text-amber-800 block truncate font-mono">
-                  NIY. {kepsekUser.niy || kepsekUser.nip}
-                </span>
-              </div>
-            </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {users.map((user) => {
+              const isKS = user.role === "kepala_sekolah";
+              const isTU = user.role === "tata_usaha";
+              const isKB = user.role === "kasubag";
+              const badgeColor = isKS
+                ? "bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-950"
+                : isTU
+                ? "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-950"
+                : isKB
+                ? "bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-950"
+                : "bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-950";
+              const avatarBg = isKS
+                ? "bg-amber-200 text-amber-900"
+                : isTU
+                ? "bg-emerald-200 text-emerald-900"
+                : isKB
+                ? "bg-blue-200 text-blue-900"
+                : "bg-purple-200 text-purple-900";
+              const shortRole = isKS ? "KS" : isTU ? "TU" : isKB ? "KB" : "GU";
 
-            {/* TU */}
-            <button
-              type="button"
-              onClick={() => handleQuickLogin(tuUser.id, "Tata Usaha")}
-              className="p-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-left transition-colors flex items-center gap-2.5"
-            >
-              <div className="w-7 h-7 rounded-lg bg-emerald-200 text-emerald-900 font-bold text-xs flex items-center justify-center shrink-0">
-                TU
-              </div>
-              <div className="min-w-0">
-                <span className="text-xs font-bold text-emerald-950 block truncate">
-                  Tata Usaha
-                </span>
-                <span className="text-[10px] text-emerald-800 block truncate font-mono">
-                  NIY. {tuUser.niy || tuUser.nip}
-                </span>
-              </div>
-            </button>
-
-            {/* Kasubag */}
-            <button
-              type="button"
-              onClick={() => handleQuickLogin(kasubagUser.id, "Kasubag Kurikulum")}
-              className="p-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-left transition-colors flex items-center gap-2.5"
-            >
-              <div className="w-7 h-7 rounded-lg bg-blue-200 text-blue-900 font-bold text-xs flex items-center justify-center shrink-0">
-                KB
-              </div>
-              <div className="min-w-0">
-                <span className="text-xs font-bold text-blue-950 block truncate">
-                  Kasubag
-                </span>
-                <span className="text-[10px] text-blue-800 block truncate font-mono">
-                  NIY. {kasubagUser.niy || kasubagUser.nip}
-                </span>
-              </div>
-            </button>
-
-            {/* Guru */}
-            <button
-              type="button"
-              onClick={() => handleQuickLogin(guruUser.id, "Dewan Guru")}
-              className="p-2.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl text-left transition-colors flex items-center gap-2.5"
-            >
-              <div className="w-7 h-7 rounded-lg bg-purple-200 text-purple-900 font-bold text-xs flex items-center justify-center shrink-0">
-                GU
-              </div>
-              <div className="min-w-0">
-                <span className="text-xs font-bold text-purple-950 block truncate">
-                  Dewan Guru
-                </span>
-                <span className="text-[10px] text-purple-800 block truncate font-mono">
-                  NIY. {guruUser.niy || guruUser.nip}
-                </span>
-              </div>
-            </button>
+              return (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => handleQuickLogin(user.id, user.jabatan || user.name)}
+                  className={`p-2.5 border rounded-xl text-left transition-colors flex items-center gap-2.5 ${badgeColor}`}
+                >
+                  <div className={`w-7 h-7 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 ${avatarBg}`}>
+                    {shortRole}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold block truncate">
+                      {user.name}
+                    </span>
+                    <span className="text-[10px] opacity-80 block truncate font-mono">
+                      NIY. {user.niy || user.nip || "-"}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           <div className="pt-2 text-center text-[11px] text-gray-400">
