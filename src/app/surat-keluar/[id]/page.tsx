@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -8,6 +8,9 @@ import { useAppData } from "@/context/AppDataContext";
 import { formatIndonesianDate, getStatusSuratKeluarBadge } from "@/lib/utils";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import { DigitalSignatureModal } from "@/components/signature/DigitalSignatureModal";
+import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { mapDbToSuratKeluar } from "@/lib/supabaseSync";
+import { SuratKeluar } from "@/lib/database.types";
 import {
   ArrowLeft,
   Printer,
@@ -40,7 +43,69 @@ export default function SuratKeluarDetailPage() {
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [waTargetPhone, setWaTargetPhone] = useState("628");
 
-  const surat = suratKeluar.find((s) => s.id === id);
+  const [surat, setSurat] = useState<SuratKeluar | null>(() => {
+    return suratKeluar.find((s) => s.id === id) || null;
+  });
+  const [isLoading, setIsLoading] = useState(!surat);
+
+  useEffect(() => {
+    const foundInContext = suratKeluar.find((s) => s.id === id);
+    if (foundInContext) {
+      setSurat(foundInContext);
+      setIsLoading(false);
+      return;
+    }
+
+    async function fetchDirect() {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase
+            .from("surat_keluar")
+            .select("*")
+            .eq("id", id)
+            .maybeSingle();
+
+          if (data && !error) {
+            setSurat(mapDbToSuratKeluar(data));
+            setIsLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.warn("Direct fetch from Supabase failed:", err);
+        }
+      }
+
+      if (typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem("sigap_smk_surat_keluar");
+          if (raw) {
+            const list: SuratKeluar[] = JSON.parse(raw);
+            const foundInStorage = list.find((s) => s.id === id);
+            if (foundInStorage) {
+              setSurat(foundInStorage);
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error("Storage fetch failed", e);
+        }
+      }
+
+      setIsLoading(false);
+    }
+
+    fetchDirect();
+  }, [id, suratKeluar]);
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-20 space-y-4">
+        <div className="w-10 h-10 border-4 border-brand-700 border-t-transparent rounded-full animate-spin mx-auto" />
+        <h3 className="text-sm font-bold text-gray-800">Memuat Dokumen Surat Keluar...</h3>
+      </div>
+    );
+  }
 
   if (!surat) {
     return (

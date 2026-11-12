@@ -1,28 +1,114 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAppData } from "@/context/AppDataContext";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import { formatIndonesianDate } from "@/lib/utils";
+import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { mapDbToSuratKeluar } from "@/lib/supabaseSync";
+import { SuratKeluar } from "@/lib/database.types";
 
 export default function SuratKeluarPrintPage() {
   const params = useParams();
   const id = String(params.id);
   const { suratKeluar, schoolSettings } = useAppData();
 
-  const surat = suratKeluar.find((s) => s.id === id);
+  const [surat, setSurat] = useState<SuratKeluar | null>(() => {
+    return suratKeluar.find((s) => s.id === id) || null;
+  });
+  const [isLoading, setIsLoading] = useState(!surat);
 
   useEffect(() => {
-    // Automatically trigger print dialog when component is mounted
+    // 1. Check if found in context
+    const foundInContext = suratKeluar.find((s) => s.id === id);
+    if (foundInContext) {
+      setSurat(foundInContext);
+      setIsLoading(false);
+      return;
+    }
+
+    // 2. Fetch directly from Supabase Cloud if not yet in state
+    async function fetchDirect() {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase
+            .from("surat_keluar")
+            .select("*")
+            .eq("id", id)
+            .maybeSingle();
+
+          if (data && !error) {
+            setSurat(mapDbToSuratKeluar(data));
+            setIsLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.warn("Direct fetch from Supabase failed:", err);
+        }
+      }
+
+      // 3. Fallback: check localStorage directly
+      if (typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem("sigap_smk_surat_keluar");
+          if (raw) {
+            const list: SuratKeluar[] = JSON.parse(raw);
+            const foundInStorage = list.find((s) => s.id === id);
+            if (foundInStorage) {
+              setSurat(foundInStorage);
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error("Storage fetch failed", e);
+        }
+      }
+
+      setIsLoading(false);
+    }
+
+    fetchDirect();
+  }, [id, suratKeluar]);
+
+  // Trigger print dialog once surat document is loaded
+  useEffect(() => {
+    if (!surat || isLoading) return;
     const timer = setTimeout(() => {
       window.print();
-    }, 600);
+    }, 700);
     return () => clearTimeout(timer);
-  }, []);
+  }, [surat, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-700 p-6 text-center font-sans">
+        <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mb-4" />
+        <h2 className="text-sm font-bold text-gray-900 tracking-wide">Menyiapkan Dokumen Resmi...</h2>
+        <p className="text-xs text-gray-500 mt-1">Mengambil arsip surat resmi dari server SMK Bayt Al-Hikmah</p>
+      </div>
+    );
+  }
 
   if (!surat) {
-    return <div className="p-8 text-center text-sm">Dokumen tidak ditemukan.</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-800 p-6 text-center font-sans">
+        <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-3 text-xl font-bold">
+          !
+        </div>
+        <h2 className="text-base font-bold text-gray-900">Dokumen Tidak Ditemukan</h2>
+        <p className="text-xs text-gray-500 mt-1 max-w-sm">
+          Surat keluar dengan ID <strong>{id}</strong> tidak ditemukan pada database sistem. Pastikan tautan yang Anda buka sudah sesuai.
+        </p>
+        <a
+          href="/"
+          className="mt-4 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold shadow"
+        >
+          Buka SIGAP-SMK
+        </a>
+      </div>
+    );
   }
 
   return (

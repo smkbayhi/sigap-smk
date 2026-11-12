@@ -162,8 +162,13 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       if (cloudData) {
         setIsCloudConnected(true);
         if (cloudData.suratKeluar && cloudData.suratKeluar.length > 0) {
-          setSuratKeluar(cloudData.suratKeluar);
-          saveToStorage(STORAGE_KEYS.SURAT_KELUAR, cloudData.suratKeluar);
+          setSuratKeluar((prev) => {
+            const cloudIds = new Set(cloudData.suratKeluar!.map((s) => s.id));
+            const localOnly = prev.filter((s) => !cloudIds.has(s.id));
+            const merged = [...cloudData.suratKeluar!, ...localOnly];
+            saveToStorage(STORAGE_KEYS.SURAT_KELUAR, merged);
+            return merged;
+          });
         }
         if (cloudData.suratMasuk && cloudData.suratMasuk.length > 0) {
           setSuratMasuk(cloudData.suratMasuk);
@@ -200,7 +205,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       try {
         const storedSK = localStorage.getItem(STORAGE_KEYS.SURAT_KELUAR);
-        if (storedSK) setSuratKeluar(JSON.parse(storedSK));
+        if (storedSK) {
+          const parsedSK = JSON.parse(storedSK);
+          setSuratKeluar(parsedSK);
+          if (isSupabaseConfigured && Array.isArray(parsedSK)) {
+            parsedSK.forEach((item: SuratKeluar) => {
+              cloudSync.saveSuratKeluar(item);
+            });
+          }
+        }
 
         const storedSM = localStorage.getItem(STORAGE_KEYS.SURAT_MASUK);
         if (storedSM) {
