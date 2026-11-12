@@ -27,7 +27,7 @@ import {
   STEMPEL_SEKOLAH_DATA_URL,
 } from "@/lib/seedData";
 import { generateNomorSurat } from "@/lib/utils";
-import { isSupabaseConfigured } from "@/lib/supabaseClient";
+import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { cloudSync } from "@/lib/supabaseSync";
 
 export interface ToastMessage {
@@ -119,15 +119,181 @@ const STORAGE_KEYS = {
   SCHOOL_SETTINGS: "sigap_smk_school_settings",
 };
 
+const DELETED_KEYS = {
+  SURAT_KELUAR: "sigap_smk_deleted_sk_ids",
+  SURAT_MASUK: "sigap_smk_deleted_sm_ids",
+  DISPOSISI: "sigap_smk_deleted_disp_ids",
+  PERSPEKTIF: "sigap_smk_deleted_perspektif_ids",
+  RKT: "sigap_smk_deleted_rkt_ids",
+  ACTION_PLANS: "sigap_smk_deleted_ap_ids",
+  ACTION_REPORTS: "sigap_smk_deleted_ar_ids",
+};
+
+function getDeletedIds(key: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function markDeletedId(key: string, id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const ids = getDeletedIds(key);
+    if (!ids.includes(id)) {
+      ids.push(id);
+      localStorage.setItem(key, JSON.stringify(ids));
+    }
+  } catch (e) {
+    console.error("Failed to mark deleted id", e);
+  }
+}
+
+function unmarkDeletedId(key: string, id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const ids = getDeletedIds(key);
+    const updated = ids.filter((item) => item !== id);
+    localStorage.setItem(key, JSON.stringify(updated));
+  } catch (e) {
+    console.error("Failed to unmark deleted id", e);
+  }
+}
+
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
-  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
-  const [suratKeluar, setSuratKeluar] = useState<SuratKeluar[]>(INITIAL_SURAT_KELUAR);
-  const [suratMasuk, setSuratMasuk] = useState<SuratMasuk[]>(INITIAL_SURAT_MASUK);
-  const [disposisi, setDisposisi] = useState<Disposisi[]>(INITIAL_DISPOSISI);
-  const [perspektif, setPerspektif] = useState<MasterPerspektif[]>(INITIAL_PERSPEKTIF);
-  const [rkt, setRkt] = useState<RKT[]>(INITIAL_RKT);
-  const [actionPlans, setActionPlans] = useState<ActionPlan[]>(INITIAL_ACTION_PLANS);
-  const [actionReports, setActionReports] = useState<ActionReport[]>(INITIAL_ACTION_REPORTS);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEYS.SCHOOL_SETTINGS);
+        if (stored) return JSON.parse(stored);
+      } catch {
+        return DEFAULT_SCHOOL_SETTINGS;
+      }
+    }
+    return DEFAULT_SCHOOL_SETTINGS;
+  });
+
+  const [suratKeluar, setSuratKeluar] = useState<SuratKeluar[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const deleted = getDeletedIds(DELETED_KEYS.SURAT_KELUAR);
+        const stored = localStorage.getItem(STORAGE_KEYS.SURAT_KELUAR);
+        if (stored) {
+          const parsed: SuratKeluar[] = JSON.parse(stored);
+          return (Array.isArray(parsed) ? parsed : []).filter((s) => !deleted.includes(s.id));
+        }
+        return INITIAL_SURAT_KELUAR.filter((s) => !deleted.includes(s.id));
+      } catch {
+        return INITIAL_SURAT_KELUAR;
+      }
+    }
+    return INITIAL_SURAT_KELUAR;
+  });
+
+  const [suratMasuk, setSuratMasuk] = useState<SuratMasuk[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const deleted = getDeletedIds(DELETED_KEYS.SURAT_MASUK);
+        const stored = localStorage.getItem(STORAGE_KEYS.SURAT_MASUK);
+        if (stored) {
+          const parsed: SuratMasuk[] = JSON.parse(stored);
+          return (Array.isArray(parsed) ? parsed : []).filter((s) => !deleted.includes(s.id));
+        }
+        return INITIAL_SURAT_MASUK.filter((s) => !deleted.includes(s.id));
+      } catch {
+        return INITIAL_SURAT_MASUK;
+      }
+    }
+    return INITIAL_SURAT_MASUK;
+  });
+
+  const [disposisi, setDisposisi] = useState<Disposisi[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const deleted = getDeletedIds(DELETED_KEYS.DISPOSISI);
+        const stored = localStorage.getItem(STORAGE_KEYS.DISPOSISI);
+        if (stored) {
+          const parsed: Disposisi[] = JSON.parse(stored);
+          return (Array.isArray(parsed) ? parsed : []).filter((d) => !deleted.includes(d.id));
+        }
+        return INITIAL_DISPOSISI.filter((d) => !deleted.includes(d.id));
+      } catch {
+        return INITIAL_DISPOSISI;
+      }
+    }
+    return INITIAL_DISPOSISI;
+  });
+
+  const [perspektif, setPerspektif] = useState<MasterPerspektif[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const deleted = getDeletedIds(DELETED_KEYS.PERSPEKTIF);
+        const stored = localStorage.getItem(STORAGE_KEYS.PERSPEKTIF);
+        if (stored) {
+          const parsed: MasterPerspektif[] = JSON.parse(stored);
+          return (Array.isArray(parsed) ? parsed : []).filter((p) => !deleted.includes(p.id));
+        }
+        return INITIAL_PERSPEKTIF.filter((p) => !deleted.includes(p.id));
+      } catch {
+        return INITIAL_PERSPEKTIF;
+      }
+    }
+    return INITIAL_PERSPEKTIF;
+  });
+
+  const [rkt, setRkt] = useState<RKT[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const deleted = getDeletedIds(DELETED_KEYS.RKT);
+        const stored = localStorage.getItem(STORAGE_KEYS.RKT);
+        if (stored) {
+          const parsed: RKT[] = JSON.parse(stored);
+          return (Array.isArray(parsed) ? parsed : []).filter((r) => !deleted.includes(r.id));
+        }
+        return INITIAL_RKT.filter((r) => !deleted.includes(r.id));
+      } catch {
+        return INITIAL_RKT;
+      }
+    }
+    return INITIAL_RKT;
+  });
+
+  const [actionPlans, setActionPlans] = useState<ActionPlan[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const deleted = getDeletedIds(DELETED_KEYS.ACTION_PLANS);
+        const stored = localStorage.getItem(STORAGE_KEYS.ACTION_PLANS);
+        if (stored) {
+          const parsed: ActionPlan[] = JSON.parse(stored);
+          return (Array.isArray(parsed) ? parsed : []).filter((a) => !deleted.includes(a.id));
+        }
+        return INITIAL_ACTION_PLANS.filter((a) => !deleted.includes(a.id));
+      } catch {
+        return INITIAL_ACTION_PLANS;
+      }
+    }
+    return INITIAL_ACTION_PLANS;
+  });
+
+  const [actionReports, setActionReports] = useState<ActionReport[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const deleted = getDeletedIds(DELETED_KEYS.ACTION_REPORTS);
+        const stored = localStorage.getItem(STORAGE_KEYS.ACTION_REPORTS);
+        if (stored) {
+          const parsed: ActionReport[] = JSON.parse(stored);
+          return (Array.isArray(parsed) ? parsed : []).filter((r) => !deleted.includes(r.id));
+        }
+        return INITIAL_ACTION_REPORTS.filter((r) => !deleted.includes(r.id));
+      } catch {
+        return INITIAL_ACTION_REPORTS;
+      }
+    }
+    return INITIAL_ACTION_REPORTS;
+  });
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(isSupabaseConfigured);
 
@@ -156,44 +322,151 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   // Sync with Supabase Cloud
   const syncWithCloud = useCallback(async () => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured || !supabase) return;
     try {
       const cloudData = await cloudSync.fetchAll();
-      if (cloudData) {
-        setIsCloudConnected(true);
-        if (cloudData.suratKeluar && cloudData.suratKeluar.length > 0) {
-          setSuratKeluar((prev) => {
-            const cloudIds = new Set(cloudData.suratKeluar!.map((s) => s.id));
-            const localOnly = prev.filter((s) => !cloudIds.has(s.id));
-            const merged = [...cloudData.suratKeluar!, ...localOnly];
-            saveToStorage(STORAGE_KEYS.SURAT_KELUAR, merged);
-            return merged;
-          });
+      if (!cloudData) return;
+
+      setIsCloudConnected(true);
+
+      // 1. Surat Keluar
+      const deletedSK = getDeletedIds(DELETED_KEYS.SURAT_KELUAR);
+      if (cloudData.suratKeluar) {
+        const lingeringSK = cloudData.suratKeluar
+          .filter((s) => deletedSK.includes(s.id))
+          .map((s) => s.id);
+        if (lingeringSK.length > 0) {
+          supabase.from("surat_keluar").delete().in("id", lingeringSK).then();
         }
-        if (cloudData.suratMasuk && cloudData.suratMasuk.length > 0) {
-          setSuratMasuk(cloudData.suratMasuk);
-          saveToStorage(STORAGE_KEYS.SURAT_MASUK, cloudData.suratMasuk);
+
+        const activeCloudSK = cloudData.suratKeluar.filter((s) => !deletedSK.includes(s.id));
+        setSuratKeluar((prev) => {
+          const cloudIds = new Set(activeCloudSK.map((s) => s.id));
+          const localOnly = prev.filter((s) => !cloudIds.has(s.id) && !deletedSK.includes(s.id));
+          const merged = [...activeCloudSK, ...localOnly];
+          saveToStorage(STORAGE_KEYS.SURAT_KELUAR, merged);
+          return merged;
+        });
+      }
+
+      // 2. Surat Masuk
+      const deletedSM = getDeletedIds(DELETED_KEYS.SURAT_MASUK);
+      if (cloudData.suratMasuk) {
+        const lingeringSM = cloudData.suratMasuk
+          .filter((s) => deletedSM.includes(s.id))
+          .map((s) => s.id);
+        if (lingeringSM.length > 0) {
+          supabase.from("surat_masuk").delete().in("id", lingeringSM).then();
         }
-        if (cloudData.disposisi && cloudData.disposisi.length > 0) {
-          setDisposisi(cloudData.disposisi);
-          saveToStorage(STORAGE_KEYS.DISPOSISI, cloudData.disposisi);
+
+        const activeCloudSM = cloudData.suratMasuk.filter((s) => !deletedSM.includes(s.id));
+        setSuratMasuk((prev) => {
+          const cloudIds = new Set(activeCloudSM.map((s) => s.id));
+          const localOnly = prev.filter((s) => !cloudIds.has(s.id) && !deletedSM.includes(s.id));
+          const merged = [...activeCloudSM, ...localOnly];
+          saveToStorage(STORAGE_KEYS.SURAT_MASUK, merged);
+          return merged;
+        });
+      }
+
+      // 3. Disposisi
+      const deletedDisp = getDeletedIds(DELETED_KEYS.DISPOSISI);
+      if (cloudData.disposisi) {
+        const lingeringDisp = cloudData.disposisi
+          .filter((d) => deletedDisp.includes(d.id))
+          .map((d) => d.id);
+        if (lingeringDisp.length > 0) {
+          supabase.from("disposisi").delete().in("id", lingeringDisp).then();
         }
-        if (cloudData.perspektif && cloudData.perspektif.length > 0) {
-          setPerspektif(cloudData.perspektif);
-          saveToStorage(STORAGE_KEYS.PERSPEKTIF, cloudData.perspektif);
+
+        const activeCloudDisp = cloudData.disposisi.filter((d) => !deletedDisp.includes(d.id));
+        setDisposisi((prev) => {
+          const cloudIds = new Set(activeCloudDisp.map((d) => d.id));
+          const localOnly = prev.filter((d) => !cloudIds.has(d.id) && !deletedDisp.includes(d.id));
+          const merged = [...activeCloudDisp, ...localOnly];
+          saveToStorage(STORAGE_KEYS.DISPOSISI, merged);
+          return merged;
+        });
+      }
+
+      // 4. Perspektif
+      const deletedPers = getDeletedIds(DELETED_KEYS.PERSPEKTIF);
+      if (cloudData.perspektif) {
+        const lingeringPers = cloudData.perspektif
+          .filter((p) => deletedPers.includes(p.id))
+          .map((p) => p.id);
+        if (lingeringPers.length > 0) {
+          supabase.from("master_perspektif").delete().in("id", lingeringPers).then();
         }
-        if (cloudData.rkt && cloudData.rkt.length > 0) {
-          setRkt(cloudData.rkt);
-          saveToStorage(STORAGE_KEYS.RKT, cloudData.rkt);
+
+        const activeCloudPers = cloudData.perspektif.filter((p) => !deletedPers.includes(p.id));
+        setPerspektif((prev) => {
+          const cloudIds = new Set(activeCloudPers.map((p) => p.id));
+          const localOnly = prev.filter((p) => !cloudIds.has(p.id) && !deletedPers.includes(p.id));
+          const merged = [...activeCloudPers, ...localOnly];
+          saveToStorage(STORAGE_KEYS.PERSPEKTIF, merged);
+          return merged;
+        });
+      }
+
+      // 5. RKT
+      const deletedRkt = getDeletedIds(DELETED_KEYS.RKT);
+      if (cloudData.rkt) {
+        const lingeringRkt = cloudData.rkt
+          .filter((r) => deletedRkt.includes(r.id))
+          .map((r) => r.id);
+        if (lingeringRkt.length > 0) {
+          supabase.from("rkt").delete().in("id", lingeringRkt).then();
         }
-        if (cloudData.actionPlans && cloudData.actionPlans.length > 0) {
-          setActionPlans(cloudData.actionPlans);
-          saveToStorage(STORAGE_KEYS.ACTION_PLANS, cloudData.actionPlans);
+
+        const activeCloudRkt = cloudData.rkt.filter((r) => !deletedRkt.includes(r.id));
+        setRkt((prev) => {
+          const cloudIds = new Set(activeCloudRkt.map((r) => r.id));
+          const localOnly = prev.filter((r) => !cloudIds.has(r.id) && !deletedRkt.includes(r.id));
+          const merged = [...activeCloudRkt, ...localOnly];
+          saveToStorage(STORAGE_KEYS.RKT, merged);
+          return merged;
+        });
+      }
+
+      // 6. Action Plans
+      const deletedAP = getDeletedIds(DELETED_KEYS.ACTION_PLANS);
+      if (cloudData.actionPlans) {
+        const lingeringAP = cloudData.actionPlans
+          .filter((a) => deletedAP.includes(a.id))
+          .map((a) => a.id);
+        if (lingeringAP.length > 0) {
+          supabase.from("action_plans").delete().in("id", lingeringAP).then();
         }
-        if (cloudData.actionReports && cloudData.actionReports.length > 0) {
-          setActionReports(cloudData.actionReports);
-          saveToStorage(STORAGE_KEYS.ACTION_REPORTS, cloudData.actionReports);
+
+        const activeCloudAP = cloudData.actionPlans.filter((a) => !deletedAP.includes(a.id));
+        setActionPlans((prev) => {
+          const cloudIds = new Set(activeCloudAP.map((a) => a.id));
+          const localOnly = prev.filter((a) => !cloudIds.has(a.id) && !deletedAP.includes(a.id));
+          const merged = [...activeCloudAP, ...localOnly];
+          saveToStorage(STORAGE_KEYS.ACTION_PLANS, merged);
+          return merged;
+        });
+      }
+
+      // 7. Action Reports
+      const deletedAR = getDeletedIds(DELETED_KEYS.ACTION_REPORTS);
+      if (cloudData.actionReports) {
+        const lingeringAR = cloudData.actionReports
+          .filter((r) => deletedAR.includes(r.id))
+          .map((r) => r.id);
+        if (lingeringAR.length > 0) {
+          supabase.from("action_reports").delete().in("id", lingeringAR).then();
         }
+
+        const activeCloudAR = cloudData.actionReports.filter((r) => !deletedAR.includes(r.id));
+        setActionReports((prev) => {
+          const cloudIds = new Set(activeCloudAR.map((r) => r.id));
+          const localOnly = prev.filter((r) => !cloudIds.has(r.id) && !deletedAR.includes(r.id));
+          const merged = [...activeCloudAR, ...localOnly];
+          saveToStorage(STORAGE_KEYS.ACTION_REPORTS, merged);
+          return merged;
+        });
       }
     } catch (e) {
       console.warn("Failed to sync with Supabase cloud:", e);
@@ -204,43 +477,65 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
+        const deletedSK = getDeletedIds(DELETED_KEYS.SURAT_KELUAR);
         const storedSK = localStorage.getItem(STORAGE_KEYS.SURAT_KELUAR);
         if (storedSK) {
           const parsedSK = JSON.parse(storedSK);
-          setSuratKeluar(parsedSK);
-          if (isSupabaseConfigured && Array.isArray(parsedSK)) {
-            parsedSK.forEach((item: SuratKeluar) => {
-              cloudSync.saveSuratKeluar(item);
-            });
-          }
+          const filteredSK = (Array.isArray(parsedSK) ? parsedSK : []).filter(
+            (s: SuratKeluar) => !deletedSK.includes(s.id)
+          );
+          setSuratKeluar(filteredSK);
         }
 
+        const deletedSM = getDeletedIds(DELETED_KEYS.SURAT_MASUK);
         const storedSM = localStorage.getItem(STORAGE_KEYS.SURAT_MASUK);
         if (storedSM) {
           const parsed = JSON.parse(storedSM);
-          const sanitized = parsed.map((item: any) => {
-            if (item.file_url && item.file_url.includes("unsplash.com")) {
-              return { ...item, file_url: "" };
-            }
-            return item;
-          });
+          const sanitized = (Array.isArray(parsed) ? parsed : [])
+            .filter((item: any) => !deletedSM.includes(item.id))
+            .map((item: any) => {
+              if (item.file_url && item.file_url.includes("unsplash.com")) {
+                return { ...item, file_url: "" };
+              }
+              return item;
+            });
           setSuratMasuk(sanitized);
         }
 
+        const deletedDisp = getDeletedIds(DELETED_KEYS.DISPOSISI);
         const storedDisp = localStorage.getItem(STORAGE_KEYS.DISPOSISI);
-        if (storedDisp) setDisposisi(JSON.parse(storedDisp));
+        if (storedDisp) {
+          const parsedDisp = JSON.parse(storedDisp);
+          setDisposisi((Array.isArray(parsedDisp) ? parsedDisp : []).filter((d: Disposisi) => !deletedDisp.includes(d.id)));
+        }
 
+        const deletedPers = getDeletedIds(DELETED_KEYS.PERSPEKTIF);
         const storedPers = localStorage.getItem(STORAGE_KEYS.PERSPEKTIF);
-        if (storedPers) setPerspektif(JSON.parse(storedPers));
+        if (storedPers) {
+          const parsedPers = JSON.parse(storedPers);
+          setPerspektif((Array.isArray(parsedPers) ? parsedPers : []).filter((p: MasterPerspektif) => !deletedPers.includes(p.id)));
+        }
 
+        const deletedRkt = getDeletedIds(DELETED_KEYS.RKT);
         const storedRkt = localStorage.getItem(STORAGE_KEYS.RKT);
-        if (storedRkt) setRkt(JSON.parse(storedRkt));
+        if (storedRkt) {
+          const parsedRkt = JSON.parse(storedRkt);
+          setRkt((Array.isArray(parsedRkt) ? parsedRkt : []).filter((r: RKT) => !deletedRkt.includes(r.id)));
+        }
 
+        const deletedAP = getDeletedIds(DELETED_KEYS.ACTION_PLANS);
         const storedAP = localStorage.getItem(STORAGE_KEYS.ACTION_PLANS);
-        if (storedAP) setActionPlans(JSON.parse(storedAP));
+        if (storedAP) {
+          const parsedAP = JSON.parse(storedAP);
+          setActionPlans((Array.isArray(parsedAP) ? parsedAP : []).filter((a: ActionPlan) => !deletedAP.includes(a.id)));
+        }
 
+        const deletedAR = getDeletedIds(DELETED_KEYS.ACTION_REPORTS);
         const storedAR = localStorage.getItem(STORAGE_KEYS.ACTION_REPORTS);
-        if (storedAR) setActionReports(JSON.parse(storedAR));
+        if (storedAR) {
+          const parsedAR = JSON.parse(storedAR);
+          setActionReports((Array.isArray(parsedAR) ? parsedAR : []).filter((r: ActionReport) => !deletedAR.includes(r.id)));
+        }
 
         const storedSettings = localStorage.getItem(STORAGE_KEYS.SCHOOL_SETTINGS);
         if (storedSettings) setSchoolSettings(JSON.parse(storedSettings));
@@ -276,6 +571,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       tahun: currentYear,
       created_at: new Date().toISOString(),
     };
+
+    unmarkDeletedId(DELETED_KEYS.SURAT_KELUAR, newItem.id);
 
     const updated = [newItem, ...suratKeluar];
     setSuratKeluar(updated);
@@ -351,6 +648,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteSuratKeluar = (id: string) => {
+    markDeletedId(DELETED_KEYS.SURAT_KELUAR, id);
     const updated = suratKeluar.filter((item) => item.id !== id);
     setSuratKeluar(updated);
     saveToStorage(STORAGE_KEYS.SURAT_KELUAR, updated);
@@ -365,6 +663,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       id: "sm-" + Date.now(),
       created_at: new Date().toISOString(),
     };
+    unmarkDeletedId(DELETED_KEYS.SURAT_MASUK, newItem.id);
     const updated = [newItem, ...suratMasuk];
     setSuratMasuk(updated);
     saveToStorage(STORAGE_KEYS.SURAT_MASUK, updated);
@@ -383,10 +682,21 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteSuratMasuk = (id: string) => {
+    markDeletedId(DELETED_KEYS.SURAT_MASUK, id);
     const updated = suratMasuk.filter((item) => item.id !== id);
     setSuratMasuk(updated);
     saveToStorage(STORAGE_KEYS.SURAT_MASUK, updated);
     cloudSync.deleteSuratMasuk(id);
+
+    // Also cascade delete related disposisi locally
+    const relatedDisp = disposisi.filter((d) => d.surat_masuk_id === id);
+    if (relatedDisp.length > 0) {
+      relatedDisp.forEach((d) => markDeletedId(DELETED_KEYS.DISPOSISI, d.id));
+      const remainingDisp = disposisi.filter((d) => d.surat_masuk_id !== id);
+      setDisposisi(remainingDisp);
+      saveToStorage(STORAGE_KEYS.DISPOSISI, remainingDisp);
+    }
+
     addToast("info", "Surat Dihapus", "Surat masuk telah dihapus dari arsip.");
   };
 
@@ -397,6 +707,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       id: "disp-" + Date.now(),
       created_at: new Date().toISOString(),
     };
+    unmarkDeletedId(DELETED_KEYS.DISPOSISI, newItem.id);
     const updated = [newItem, ...disposisi];
     setDisposisi(updated);
     saveToStorage(STORAGE_KEYS.DISPOSISI, updated);
@@ -446,6 +757,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteDisposisi = (id: string) => {
+    markDeletedId(DELETED_KEYS.DISPOSISI, id);
     const updated = disposisi.filter((d) => d.id !== id);
     setDisposisi(updated);
     saveToStorage(STORAGE_KEYS.DISPOSISI, updated);
@@ -460,6 +772,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       id: "perspektif-" + Date.now(),
       created_at: new Date().toISOString(),
     };
+    unmarkDeletedId(DELETED_KEYS.PERSPEKTIF, newItem.id);
     const updated = [...perspektif, newItem];
     setPerspektif(updated);
     saveToStorage(STORAGE_KEYS.PERSPEKTIF, updated);
@@ -477,6 +790,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deletePerspektif = (id: string) => {
+    markDeletedId(DELETED_KEYS.PERSPEKTIF, id);
     const updated = perspektif.filter((p) => p.id !== id);
     setPerspektif(updated);
     saveToStorage(STORAGE_KEYS.PERSPEKTIF, updated);
@@ -492,6 +806,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       status: "menunggu_persetujuan",
       created_at: new Date().toISOString(),
     };
+    unmarkDeletedId(DELETED_KEYS.RKT, newItem.id);
     const updated = [newItem, ...rkt];
     setRkt(updated);
     saveToStorage(STORAGE_KEYS.RKT, updated);
@@ -550,6 +865,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteRKT = (id: string) => {
+    markDeletedId(DELETED_KEYS.RKT, id);
     const updated = rkt.filter((item) => item.id !== id);
     setRkt(updated);
     saveToStorage(STORAGE_KEYS.RKT, updated);
@@ -564,9 +880,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       id: "ap-" + Date.now(),
       created_at: new Date().toISOString(),
     };
+    unmarkDeletedId(DELETED_KEYS.ACTION_PLANS, newItem.id);
     const updated = [newItem, ...actionPlans];
     setActionPlans(updated);
     saveToStorage(STORAGE_KEYS.ACTION_PLANS, updated);
+    cloudSync.deleteActionPlan(newItem.id);
     cloudSync.saveActionPlan(newItem);
     addToast("success", "Action Plan Dibuat", `Kegiatan "${data.nama_kegiatan}" berhasil ditambahkan.`);
   };
@@ -581,6 +899,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteActionPlan = (id: string) => {
+    markDeletedId(DELETED_KEYS.ACTION_PLANS, id);
     const updated = actionPlans.filter((ap) => ap.id !== id);
     setActionPlans(updated);
     saveToStorage(STORAGE_KEYS.ACTION_PLANS, updated);
@@ -679,6 +998,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const resetAllData = () => {
     if (typeof window !== "undefined") {
       Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
+      Object.values(DELETED_KEYS).forEach((k) => localStorage.removeItem(k));
     }
     setSuratKeluar(INITIAL_SURAT_KELUAR);
     setSuratMasuk(INITIAL_SURAT_MASUK);
