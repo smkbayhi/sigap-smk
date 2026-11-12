@@ -25,6 +25,7 @@ export interface SchoolSettings {
   ttdKepsekUrl: string;
   namaKepsek: string;
   niyKepsek: string;
+  password?: string;
 }
 
 export interface MasterPerspektif {

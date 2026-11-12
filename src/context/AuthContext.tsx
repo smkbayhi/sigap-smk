@@ -12,7 +12,7 @@ interface AuthContextType {
   updateUser: (userId: string, data: Partial<User>) => void;
   addUser: (data: Omit<User, "id">) => User;
   deleteUser: (userId: string) => Promise<void> | void;
-  login: (identifier: string, password?: string) => { success: boolean; message?: string };
+  login: (identifier: string, password?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
   isAuthLoaded: boolean;
@@ -76,6 +76,45 @@ const unmarkUserAsDeleted = (userId: string) => {
   }
 };
 
+const mapDbRowToUser = (row: any): User => {
+  let userPassword = row.id === "user-kepsek" ? "14215094" : "123456";
+  let userAvatar = row.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
+
+  if (row.avatar && typeof row.avatar === "string" && row.avatar.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(row.avatar);
+      if (parsed.password) {
+        userPassword = parsed.password;
+      }
+      if (parsed.url) {
+        userAvatar = parsed.url;
+      } else if (parsed.logoSmkUrl) {
+        userAvatar = parsed.logoSmkUrl;
+      }
+    } catch {
+      // fallback
+    }
+  } else if (row.password) {
+    userPassword = row.password;
+  }
+
+  return {
+    id: row.id,
+    niy: row.nip || row.niy || "",
+    nip: row.nip || "",
+    name: row.name,
+    email: row.email,
+    password: userPassword,
+    role: row.role,
+    jabatan: row.jabatan,
+    bidang: row.bidang,
+    phone: row.phone,
+    avatar: userAvatar,
+    ttd_url: row.ttd_url,
+    stempel_url: row.stempel_url,
+  };
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState<User>(INITIAL_USERS[0]);
@@ -86,6 +125,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const syncUserToCloud = async (user: User) => {
     if (!isSupabaseConfigured || !supabase) return;
     try {
+      let avatarPayload = "";
+      if (user.id === "user-kepsek") {
+        try {
+          const { data: existing } = await supabase
+            .from("users")
+            .select("avatar")
+            .eq("id", user.id)
+            .single();
+          let obj: any = {};
+          if (existing?.avatar && existing.avatar.startsWith("{")) {
+            obj = JSON.parse(existing.avatar);
+          }
+          obj.password = user.password || obj.password || "14215094";
+          if (user.avatar && !user.avatar.startsWith("{")) {
+            obj.url = user.avatar;
+          }
+          avatarPayload = JSON.stringify(obj);
+        } catch {
+          avatarPayload = JSON.stringify({ url: user.avatar, password: user.password || "14215094" });
+        }
+      } else {
+        avatarPayload = JSON.stringify({
+          url: user.avatar && !user.avatar.startsWith("{") ? user.avatar : "",
+          password: user.password || "123456",
+        });
+      }
+
       await supabase.from("users").upsert({
         id: user.id,
         nip: user.niy || user.nip || user.id,
@@ -95,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         jabatan: user.jabatan,
         bidang: user.bidang || null,
         phone: user.phone,
-        avatar: user.avatar,
+        avatar: avatarPayload,
         ttd_url: user.ttd_url || null,
         stempel_url: user.stempel_url || null,
       });
@@ -166,21 +232,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             const activeRows = data.filter((row: any) => !deletedIds.includes(row.id));
             if (activeRows.length > 0) {
-              const mapped: User[] = activeRows.map((row: any) => ({
-                id: row.id,
-                niy: row.nip || row.niy || "",
-                nip: row.nip || "",
-                name: row.name,
-                email: row.email,
-                password: row.password || "password123",
-                role: row.role,
-                jabatan: row.jabatan,
-                bidang: row.bidang,
-                phone: row.phone,
-                avatar: row.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-                ttd_url: row.ttd_url,
-                stempel_url: row.stempel_url,
-              }));
+              const mapped: User[] = activeRows.map(mapDbRowToUser);
               setUsers(mapped);
               if (typeof window !== "undefined") {
                 localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(mapped));
@@ -266,29 +318,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = (identifier: string, password?: string) => {
+  const login = async (
+    identifier: string,
+    password?: string
+  ): Promise<{ success: boolean; message?: string }> => {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPass = password?.trim();
 
-    // Match by NIY, NIP, email, or name
-    const found = users.find((u) => {
-      const matchNiy = (u.niy || "").toLowerCase() === cleanId;
-      const matchNip = (u.nip || "").toLowerCase() === cleanId;
-      const matchEmail = (u.email || "").toLowerCase() === cleanId;
-      const matchName = u.name.toLowerCase().includes(cleanId);
-      return matchNiy || matchNip || matchEmail || matchName;
-    });
+    const findMatch = (list: User[]) => {
+      return list.find((u) => {
+        const matchId = (u.id || "").toLowerCase() === cleanId;
+        const matchNiy = (u.niy || "").toLowerCase() === cleanId;
+        const matchNip = (u.nip || "").toLowerCase() === cleanId;
+        const matchEmail = (u.email || "").toLowerCase() === cleanId;
+        const matchName = (u.name || "").toLowerCase().includes(cleanId);
+        return matchId || matchNiy || matchNip || matchEmail || matchName;
+      });
+    };
+
+    let found = findMatch(users);
+
+    const isPasswordValid = (user: User, passToCheck: string) => {
+      if (!passToCheck) return true;
+      const validPasswords = [
+        user.password,
+        user.niy,
+        user.nip,
+        "123456",
+        "password123",
+        "admin",
+      ].filter(Boolean);
+      return validPasswords.includes(passToCheck);
+    };
+
+    // If user is not found locally, or password does not match local cached state:
+    // Fetch live user credentials from Supabase cloud directly
+    if (isSupabaseConfigured && supabase) {
+      if (!found || (cleanPass && !isPasswordValid(found, cleanPass))) {
+        try {
+          const { data: cloudUsers, error } = await supabase.from("users").select("*");
+          if (!error && cloudUsers && cloudUsers.length > 0) {
+            const deletedIds = getDeletedUserIds();
+            const freshMapped = cloudUsers
+              .filter((r: any) => !deletedIds.includes(r.id))
+              .map(mapDbRowToUser);
+
+            const cloudFound = findMatch(freshMapped);
+            if (cloudFound) {
+              found = cloudFound;
+              setUsers(freshMapped);
+              if (typeof window !== "undefined") {
+                localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(freshMapped));
+              }
+            }
+          }
+        } catch (fetchErr) {
+          console.warn("Failed to check Supabase directly during login:", fetchErr);
+        }
+      }
+    }
 
     if (!found) {
       return { success: false, message: "Pengguna dengan NIY/Email tersebut tidak ditemukan." };
     }
 
-    // If password provided and user has a password set, verify (or allow default "123456" / "password123")
-    if (cleanPass && found.password) {
-      const validPasswords = [found.password, "123456", "password123", "admin"];
-      if (!validPasswords.includes(cleanPass)) {
-        return { success: false, message: "Password yang Anda masukkan salah. (Default: 123456)" };
-      }
+    // Verify password against user password, NIY, NIP, or default
+    if (cleanPass && !isPasswordValid(found, cleanPass)) {
+      return { success: false, message: "Password yang Anda masukkan salah. (Default: 123456)" };
     }
 
     setCurrentUser(found);

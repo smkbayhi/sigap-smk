@@ -1098,6 +1098,22 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     // Sync to Supabase Cloud (user-kepsek row stores settings JSON and native urls)
     if (isSupabaseConfigured && supabase) {
       try {
+        let kepsekPass = partial.password;
+        if (!kepsekPass) {
+          try {
+            const { data: existingKepsek } = await supabase
+              .from("users")
+              .select("avatar")
+              .eq("id", "user-kepsek")
+              .single();
+            if (existingKepsek?.avatar && existingKepsek.avatar.startsWith("{")) {
+              const parsed = JSON.parse(existingKepsek.avatar);
+              if (parsed.password) kepsekPass = parsed.password;
+            }
+          } catch {}
+        }
+        if (!kepsekPass) kepsekPass = "14215094";
+
         await supabase.from("users").upsert({
           id: "user-kepsek",
           name: updated.namaKepsek || "Mokhamat Ekhsan, S.Kom",
@@ -1106,7 +1122,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           jabatan: "Kepala SMK Bayt Al-Hikmah",
           ttd_url: updated.ttdKepsekUrl || null,
           stempel_url: updated.stempelUrl || null,
-          avatar: JSON.stringify(updated),
+          avatar: JSON.stringify({ ...updated, password: kepsekPass, url: updated.logoSmkUrl }),
         });
       } catch (e) {
         console.warn("Failed to sync school settings to Supabase:", e);

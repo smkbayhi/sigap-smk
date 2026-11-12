@@ -35,7 +35,7 @@ export default function LoginPage() {
     }
   }, [isAuthLoaded, isAuthenticated, router]);
 
-  const handleManualLogin = (e: React.FormEvent) => {
+  const handleManualLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -45,7 +45,7 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    const result = login(identifier, password);
+    const result = await login(identifier, password);
     setIsLoading(false);
 
     if (result.success) {

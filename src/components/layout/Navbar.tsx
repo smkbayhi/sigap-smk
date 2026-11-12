@@ -98,18 +98,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
 
     setIsSaving(true);
     try {
+      const newPassword = editPassword.trim();
       updateUser(currentUser.id, {
         name: editName.trim(),
         jabatan: editJabatan.trim(),
         email: editEmail.trim(),
         phone: editPhone.trim(),
-        ...(editPassword.trim() ? { password: editPassword.trim() } : {}),
+        ...(newPassword ? { password: newPassword } : {}),
       });
 
-      // If user is kepala sekolah, sync name to schoolSettings
+      // If user is kepala sekolah, sync name and password to schoolSettings
       if (currentUser.role === "kepala_sekolah") {
         updateSchoolSettings({
           namaKepsek: editName.trim(),
+          ...(newPassword ? { password: newPassword } : {}),
         });
       }
 
