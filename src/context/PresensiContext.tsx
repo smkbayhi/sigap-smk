@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import {
   PresensiPeriodReport,
   TeacherAttendanceSummary,
@@ -10,22 +10,32 @@ import {
   generateOfficialSamplePeriod,
   parseFingerprintFile,
 } from "@/lib/presensiParser";
+import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 
 interface PresensiContextType {
   currentReport: PresensiPeriodReport;
   allReports: PresensiPeriodReport[];
   isProcessing: boolean;
-  processUpload: (file: File, options?: { bulan?: string; tahun?: number; cutOffStart?: string; cutOffEnd?: string }) => Promise<PresensiPeriodReport>;
+  isCloudSynced: boolean;
+  isSyncing: boolean;
+  lastSyncedAt: string | null;
+  processUpload: (
+    file: File,
+    options?: { bulan?: string; tahun?: number; cutOffStart?: string; cutOffEnd?: string }
+  ) => Promise<PresensiPeriodReport>;
   updateTeacherAttendance: (teacherId: string, partial: Partial<TeacherAttendanceSummary>) => void;
   updateDailyStatus: (teacherId: string, tanggal: string, status: StatusKehadiran, keterangan?: string) => void;
   selectReport: (reportId: string) => void;
+  deleteReport: (reportId: string) => void;
   resetToSample: () => void;
+  syncFromCloud: () => Promise<void>;
 }
 
 const PresensiContext = createContext<PresensiContextType | undefined>(undefined);
 
 const STORAGE_KEY_PRESENSI = "sigap_smk_presensi_reports";
 const STORAGE_KEY_CURRENT_ID = "sigap_smk_presensi_active_id";
+const PRESENSI_CLOUD_ROW_ID = "presensi-cloud-data";
 
 export function PresensiProvider({ children }: { children: React.ReactNode }) {
   const [allReports, setAllReports] = useState<PresensiPeriodReport[]>(() => {
@@ -52,23 +62,111 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isCloudSynced, setIsCloudSynced] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   const currentReport =
     allReports.find((r) => r.id === currentReportId) || allReports[0] || generateOfficialSamplePeriod();
 
-  const saveReportsState = (list: PresensiPeriodReport[], activeId?: string) => {
+  // Save to both LocalStorage and Supabase Cloud
+  const saveReportsState = async (list: PresensiPeriodReport[], activeId?: string) => {
     setAllReports(list);
+    const targetActiveId = activeId || currentReportId;
+
+    // 1. LocalStorage
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem(STORAGE_KEY_PRESENSI, JSON.stringify(list));
-        if (activeId) {
-          localStorage.setItem(STORAGE_KEY_CURRENT_ID, activeId);
+        if (targetActiveId) {
+          localStorage.setItem(STORAGE_KEY_CURRENT_ID, targetActiveId);
         }
       } catch (e) {
-        console.warn("Failed to save presensi reports to storage", e);
+        console.warn("Failed to save presensi reports to localStorage", e);
+      }
+    }
+
+    // 2. Supabase Cloud (Synchronize across all computers & browsers)
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const payload = {
+          reports: list,
+          activeId: targetActiveId,
+          updatedAt: new Date().toISOString(),
+        };
+
+        const { error } = await supabase.from("master_perspektif").upsert({
+          id: PRESENSI_CLOUD_ROW_ID,
+          kode: "PRESENSI_SYNC",
+          nama: "Cloud Sync Presensi Guru SMK",
+          deskripsi: JSON.stringify(payload),
+          is_active: false,
+        });
+
+        if (!error) {
+          setIsCloudSynced(true);
+          setLastSyncedAt(new Date().toISOString());
+        } else {
+          console.warn("Supabase presensi cloud sync error:", error);
+        }
+      } catch (cloudErr) {
+        console.warn("Exception during presensi cloud sync:", cloudErr);
       }
     }
   };
+
+  // Pull latest data from Supabase Cloud
+  const syncFromCloud = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      setIsSyncing(true);
+      const { data, error } = await supabase
+        .from("master_perspektif")
+        .select("deskripsi, updated_at")
+        .eq("id", PRESENSI_CLOUD_ROW_ID)
+        .single();
+
+      if (!error && data?.deskripsi) {
+        try {
+          const parsed = JSON.parse(data.deskripsi);
+          if (parsed && Array.isArray(parsed.reports) && parsed.reports.length > 0) {
+            setAllReports(parsed.reports);
+            if (parsed.activeId) {
+              setCurrentReportId(parsed.activeId);
+              if (typeof window !== "undefined") {
+                localStorage.setItem(STORAGE_KEY_CURRENT_ID, parsed.activeId);
+              }
+            }
+            if (typeof window !== "undefined") {
+              localStorage.setItem(STORAGE_KEY_PRESENSI, JSON.stringify(parsed.reports));
+            }
+            setIsCloudSynced(true);
+            setLastSyncedAt(data.updated_at || parsed.updatedAt || new Date().toISOString());
+          }
+        } catch (jsonErr) {
+          console.warn("Failed to parse cloud presensi JSON:", jsonErr);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to sync presensi from cloud:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
+
+  // Sync on mount and on window focus
+  useEffect(() => {
+    syncFromCloud();
+
+    const handleFocus = () => {
+      syncFromCloud();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [syncFromCloud]);
 
   const processUpload = async (
     file: File,
@@ -78,9 +176,9 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
     try {
       const buffer = await file.arrayBuffer();
       const report = await parseFingerprintFile(buffer, file.name, options);
-      
+
       const updatedList = [report, ...allReports.filter((r) => r.id !== report.id)];
-      saveReportsState(updatedList, report.id);
+      await saveReportsState(updatedList, report.id);
       setCurrentReportId(report.id);
       return report;
     } finally {
@@ -177,7 +275,19 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== "undefined") {
         localStorage.setItem(STORAGE_KEY_CURRENT_ID, found.id);
       }
+      saveReportsState(allReports, found.id);
     }
+  };
+
+  const deleteReport = (reportId: string) => {
+    if (allReports.length <= 1) {
+      resetToSample();
+      return;
+    }
+    const filtered = allReports.filter((r) => r.id !== reportId);
+    const nextActive = filtered[0]?.id || "presensi-current-period";
+    setCurrentReportId(nextActive);
+    saveReportsState(filtered, nextActive);
   };
 
   const resetToSample = () => {
@@ -192,11 +302,16 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
         currentReport,
         allReports,
         isProcessing,
+        isCloudSynced,
+        isSyncing,
+        lastSyncedAt,
         processUpload,
         updateTeacherAttendance,
         updateDailyStatus,
         selectReport,
+        deleteReport,
         resetToSample,
+        syncFromCloud,
       }}
     >
       {children}

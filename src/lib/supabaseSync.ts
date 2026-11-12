@@ -217,7 +217,11 @@ export const cloudSync = {
         suratKeluar: skRes.data ? skRes.data.map(mapDbToSuratKeluar) : null,
         suratMasuk: smRes.data ? smRes.data.map(mapDbToSuratMasuk) : null,
         disposisi: dispRes.data ? dispRes.data.map(mapDbToDisposisi) : null,
-        perspektif: persRes.data ? (persRes.data as MasterPerspektif[]) : null,
+        perspektif: persRes.data
+          ? (persRes.data as MasterPerspektif[]).filter(
+              (p) => p.id !== "presensi-cloud-data" && p.kode !== "PRESENSI_SYNC"
+            )
+          : null,
         rkt: rktRes.data ? rktRes.data.map(mapDbToRkt) : null,
         actionPlans: apRes.data ? (apRes.data as ActionPlan[]) : null,
         actionReports: arRes.data ? (arRes.data as ActionReport[]) : null,

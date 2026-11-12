@@ -26,9 +26,12 @@ import {
   Send,
   Sparkles,
   RotateCcw,
+  RefreshCw,
   Check,
   X,
   Edit3,
+  Trash2,
+  Cloud,
 } from "lucide-react";
 
 export default function PresensiPage() {
@@ -38,11 +41,16 @@ export default function PresensiPage() {
     currentReport,
     allReports,
     isProcessing,
+    isCloudSynced,
+    isSyncing,
+    lastSyncedAt,
     processUpload,
     updateTeacherAttendance,
     updateDailyStatus,
     selectReport,
+    deleteReport,
     resetToSample,
+    syncFromCloud,
   } = usePresensi();
 
   const [activeTab, setActiveTab] = useState<"rekap" | "rincian" | "evaluasi" | "upload">("rekap");
@@ -87,8 +95,8 @@ export default function PresensiPage() {
       });
       addToast(
         "success",
-        "Rekapitulasi Berhasil",
-        `Berhasil merekap ${result.totalGuru} guru. Terdapat ${result.guruTidakKkmCount} guru perlu pembinaan (Tidak KKM).`
+        "Rekapitulasi Berhasil Disimpan",
+        `Berhasil merekap ${result.totalGuru} guru & disinkronkan ke Cloud. Terdapat ${result.guruTidakKkmCount} guru perlu pembinaan (Tidak KKM).`
       );
       setActiveTab("rekap");
     } catch (err: any) {
@@ -156,18 +164,52 @@ Wassalamu’alaikum Wr. Wb.
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Period Selector */}
-          <select
-            value={currentReport.id}
-            onChange={(e) => selectReport(e.target.value)}
-            className="text-xs py-2 px-3 bg-slate-50 border border-gray-300 rounded-xl font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+          {/* Cloud Sync Status & Manual Refresh */}
+          <button
+            onClick={async () => {
+              await syncFromCloud();
+              addToast("success", "Sinkronisasi Cloud", "Data presensi terbaru berhasil dimuat dari Cloud Database.");
+            }}
+            disabled={isSyncing}
+            title={lastSyncedAt ? `Terakhir sinkron: ${new Date(lastSyncedAt).toLocaleTimeString("id-ID")}` : "Sinkronkan dengan Cloud"}
+            className="py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            {allReports.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.bulan} {r.tahun}
-              </option>
-            ))}
-          </select>
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isSyncing ? "animate-spin text-emerald-600" : ""}`} />
+            <span className="hidden sm:inline">{isSyncing ? "Sinkronisasi..." : "Sinkron Cloud"}</span>
+            {isCloudSynced && !isSyncing && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block ml-0.5" title="Tersambung Cloud" />
+            )}
+          </button>
+
+          {/* Period Selector */}
+          <div className="flex items-center gap-1">
+            <select
+              value={currentReport.id}
+              onChange={(e) => selectReport(e.target.value)}
+              className="text-xs py-2 px-3 bg-slate-50 border border-gray-300 rounded-xl font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+            >
+              {allReports.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.bulan} {r.tahun} ({r.teachers.length} Staf)
+                </option>
+              ))}
+            </select>
+
+            {allReports.length > 1 && (
+              <button
+                onClick={() => {
+                  if (confirm(`Hapus arsip periode "${currentReport.bulan} ${currentReport.tahun}"?`)) {
+                    deleteReport(currentReport.id);
+                    addToast("info", "Arsip Dihapus", "Periode presensi berhasil dihapus dari daftar.");
+                  }
+                }}
+                title="Hapus periode aktif ini"
+                className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
           <button
             onClick={() => setActiveTab("upload")}
@@ -249,7 +291,7 @@ Wassalamu’alaikum Wr. Wb.
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-rose-800">
-              Tidak KKM (Telat $\ge$ 50%)
+              Tidak KKM (Telat ≥ 50%)
             </p>
             <h3 className="text-2xl font-black mt-0.5 text-rose-700">
               {currentReport.guruTidakKkmCount}{" "}
@@ -304,7 +346,7 @@ Wassalamu’alaikum Wr. Wb.
                 </span>
               </div>
               <h4 className="text-base font-bold mt-1">
-                Terdapat {currentReport.guruTidakKkmCount} Guru dengan Keterlambatan $\ge$ 50% (TIDAK KKM)
+                Terdapat {currentReport.guruTidakKkmCount} Guru dengan Keterlambatan ≥ 50% (TIDAK KKM)
               </h4>
               <p className="text-xs text-rose-100/90 mt-0.5 max-w-2xl">
                 Guru berikut terdeteksi memiliki tingkat keterlambatan di atas batas toleransi:{" "}

@@ -457,7 +457,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           supabase.from("master_perspektif").delete().in("id", lingeringPers).then();
         }
 
-        const activeCloudPers = cloudData.perspektif.filter((p) => !deletedPers.includes(p.id));
+        const activeCloudPers = cloudData.perspektif.filter(
+          (p) => !deletedPers.includes(p.id) && p.id !== "presensi-cloud-data" && p.kode !== "PRESENSI_SYNC"
+        );
         setPerspektif((prev) => {
           const cloudIds = new Set(activeCloudPers.map((p) => p.id));
           const localOnly = prev.filter((p) => !cloudIds.has(p.id) && !deletedPers.includes(p.id));
