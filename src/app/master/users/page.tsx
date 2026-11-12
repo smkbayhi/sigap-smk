@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { User, UserRole, BidangStruktural } from "@/lib/database.types";
@@ -25,7 +26,7 @@ import {
 } from "lucide-react";
 
 export default function MasterUsersPage() {
-  const { users, currentUser, setCurrentUserById, updateUser, addUser, deleteUser } = useAuth();
+  const { users, currentUser, isKepsek, setCurrentUserById, updateUser, addUser, deleteUser } = useAuth();
   const { addToast } = useAppData();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -189,6 +190,26 @@ export default function MasterUsersPage() {
     const matchesRole = selectedRoleFilter === "all" || u.role === selectedRoleFilter;
     return matchesSearch && matchesRole;
   });
+
+  if (!isKepsek) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 bg-white rounded-2xl border border-gray-200 shadow-xs">
+        <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl font-bold mb-3">
+          !
+        </div>
+        <h2 className="text-base font-bold text-gray-900">Akses Terbatas</h2>
+        <p className="text-xs text-gray-500 mt-1 max-w-sm">
+          Menu Pengguna & Hak Akses hanya dapat dikelola oleh akun Kepala Sekolah (Administrator).
+        </p>
+        <Link
+          href="/"
+          className="mt-4 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow"
+        >
+          Kembali ke Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-16">

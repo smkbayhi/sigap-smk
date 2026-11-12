@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import {
@@ -24,6 +26,7 @@ import {
 import { compressImage } from "@/lib/imageUtils";
 
 export default function MasterKopSuratPage() {
+  const { isKepsek } = useAuth();
   const { schoolSettings, updateSchoolSettings, resetSchoolSettings, addToast } = useAppData();
 
   const [logoYayasan, setLogoYayasan] = useState(schoolSettings.logoYayasanUrl);
@@ -124,6 +127,26 @@ export default function MasterKopSuratPage() {
       setNiyKepsek("14215094");
     }
   };
+
+  if (!isKepsek) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 bg-white rounded-2xl border border-gray-200 shadow-xs">
+        <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl font-bold mb-3">
+          !
+        </div>
+        <h2 className="text-base font-bold text-gray-900">Akses Terbatas</h2>
+        <p className="text-xs text-gray-500 mt-1 max-w-sm">
+          Pengaturan Kop Surat, Logo, Stempel & TTD hanya dapat diakses oleh akun Kepala Sekolah (Administrator).
+        </p>
+        <Link
+          href="/"
+          className="mt-4 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow"
+        >
+          Kembali ke Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-16">

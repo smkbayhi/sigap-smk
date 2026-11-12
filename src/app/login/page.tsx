@@ -17,7 +17,7 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isAuthLoaded } = useAuth();
   const { addToast, schoolSettings } = useAppData();
 
   const schoolLogo = schoolSettings?.logoSmkUrl || LOGO_SMK_DATA_URL;
@@ -27,6 +27,13 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // If already authenticated, redirect to dashboard
+  React.useEffect(() => {
+    if (isAuthLoaded && isAuthenticated) {
+      router.replace("/");
+    }
+  }, [isAuthLoaded, isAuthenticated, router]);
 
   const handleManualLogin = (e: React.FormEvent) => {
     e.preventDefault();

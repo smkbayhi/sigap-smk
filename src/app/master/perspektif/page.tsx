@@ -75,6 +75,26 @@ export default function MasterPerspektifPage() {
     setShowModal(false);
   };
 
+  if (!isKepsek) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 bg-white rounded-2xl border border-gray-200 shadow-xs">
+        <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl font-bold mb-3">
+          !
+        </div>
+        <h2 className="text-base font-bold text-gray-900">Akses Terbatas</h2>
+        <p className="text-xs text-gray-500 mt-1 max-w-sm">
+          Menu Master Data hanya dapat diakses oleh akun Kepala Sekolah (Administrator).
+        </p>
+        <Link
+          href="/"
+          className="mt-4 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow"
+        >
+          Kembali ke Dashboard
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}

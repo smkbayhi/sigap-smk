@@ -15,6 +15,7 @@ interface AuthContextType {
   login: (identifier: string, password?: string) => { success: boolean; message?: string };
   logout: () => void;
   isAuthenticated: boolean;
+  isAuthLoaded: boolean;
   isKepsek: boolean;
   isTU: boolean;
   isKasubag: boolean;
@@ -78,7 +79,8 @@ const unmarkUserAsDeleted = (userId: string) => {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState<User>(INITIAL_USERS[0]);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true); // default true for seamless initial usage
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthLoaded, setIsAuthLoaded] = useState<boolean>(false);
 
   // Sync users to Supabase in background
   const syncUserToCloud = async (user: User) => {
@@ -124,11 +126,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         const storedAuthStatus = localStorage.getItem(AUTH_STATUS_KEY);
-        if (storedAuthStatus !== null) {
-          setIsAuthenticated(storedAuthStatus === "true");
-        }
-
         const savedUserId = localStorage.getItem(AUTH_USER_KEY);
+        const isAuth = storedAuthStatus === "true" && Boolean(savedUserId);
+        setIsAuthenticated(isAuth);
+
         if (savedUserId && !deletedIds.includes(savedUserId)) {
           const found = parsedUsers.find((u) => u.id === savedUserId);
           if (found) setCurrentUser(found);
@@ -137,7 +138,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (e) {
         console.error("Failed to load users from localStorage", e);
+      } finally {
+        setIsAuthLoaded(true);
       }
+    } else {
+      setIsAuthLoaded(true);
     }
 
     // Try fetching users from Supabase if configured
@@ -300,6 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(false);
     if (typeof window !== "undefined") {
       localStorage.setItem(AUTH_STATUS_KEY, "false");
+      localStorage.removeItem(AUTH_USER_KEY);
     }
   };
 
@@ -321,6 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         isAuthenticated,
+        isAuthLoaded,
         isKepsek,
         isTU,
         isKasubag,
