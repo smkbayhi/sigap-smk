@@ -13,7 +13,7 @@ import {
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 
 interface PresensiContextType {
-  currentReport: PresensiPeriodReport;
+  currentReport: PresensiPeriodReport | null;
   allReports: PresensiPeriodReport[];
   isProcessing: boolean;
   isCloudSynced: boolean;
@@ -26,7 +26,7 @@ interface PresensiContextType {
   updateTeacherAttendance: (teacherId: string, partial: Partial<TeacherAttendanceSummary>) => void;
   updateDailyStatus: (teacherId: string, tanggal: string, status: StatusKehadiran, keterangan?: string) => void;
   selectReport: (reportId: string) => void;
-  deleteReport: (reportId: string) => void;
+  deleteReport: (reportId: string) => Promise<void>;
   resetToSample: () => void;
   syncFromCloud: () => Promise<void>;
 }
@@ -42,15 +42,15 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem(STORAGE_KEY_PRESENSI);
-        if (stored) {
+        if (stored !== null) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed)) return parsed;
         }
       } catch (e) {
         console.error("Failed to parse presensi reports from storage", e);
       }
     }
-    return [generateOfficialSamplePeriod()];
+    return [];
   });
 
   const [currentReportId, setCurrentReportId] = useState<string>(() => {
@@ -58,7 +58,7 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
       const active = localStorage.getItem(STORAGE_KEY_CURRENT_ID);
       if (active) return active;
     }
-    return "presensi-current-period";
+    return "";
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -66,13 +66,14 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
   const [isCloudSynced, setIsCloudSynced] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
-  const currentReport =
-    allReports.find((r) => r.id === currentReportId) || allReports[0] || generateOfficialSamplePeriod();
+  const currentReport: PresensiPeriodReport | null =
+    allReports.find((r) => r.id === currentReportId) || allReports[0] || null;
 
   // Save to both LocalStorage and Supabase Cloud
   const saveReportsState = async (list: PresensiPeriodReport[], activeId?: string) => {
     setAllReports(list);
-    const targetActiveId = activeId || currentReportId;
+    const targetActiveId = activeId !== undefined ? activeId : (list[0]?.id || "");
+    setCurrentReportId(targetActiveId);
 
     // 1. LocalStorage
     if (typeof window !== "undefined") {
@@ -80,6 +81,8 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(STORAGE_KEY_PRESENSI, JSON.stringify(list));
         if (targetActiveId) {
           localStorage.setItem(STORAGE_KEY_CURRENT_ID, targetActiveId);
+        } else {
+          localStorage.removeItem(STORAGE_KEY_CURRENT_ID);
         }
       } catch (e) {
         console.warn("Failed to save presensi reports to localStorage", e);
@@ -129,16 +132,17 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
       if (!error && data?.deskripsi) {
         try {
           const parsed = JSON.parse(data.deskripsi);
-          if (parsed && Array.isArray(parsed.reports) && parsed.reports.length > 0) {
+          if (parsed && Array.isArray(parsed.reports)) {
             setAllReports(parsed.reports);
-            if (parsed.activeId) {
-              setCurrentReportId(parsed.activeId);
-              if (typeof window !== "undefined") {
-                localStorage.setItem(STORAGE_KEY_CURRENT_ID, parsed.activeId);
-              }
-            }
+            const active = parsed.activeId || (parsed.reports[0]?.id || "");
+            setCurrentReportId(active);
             if (typeof window !== "undefined") {
               localStorage.setItem(STORAGE_KEY_PRESENSI, JSON.stringify(parsed.reports));
+              if (active) {
+                localStorage.setItem(STORAGE_KEY_CURRENT_ID, active);
+              } else {
+                localStorage.removeItem(STORAGE_KEY_CURRENT_ID);
+              }
             }
             setIsCloudSynced(true);
             setLastSyncedAt(data.updated_at || parsed.updatedAt || new Date().toISOString());
@@ -179,7 +183,6 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
 
       const updatedList = [report, ...allReports.filter((r) => r.id !== report.id)];
       await saveReportsState(updatedList, report.id);
-      setCurrentReportId(report.id);
       return report;
     } finally {
       setIsProcessing(false);
@@ -187,6 +190,8 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateTeacherAttendance = (teacherId: string, partial: Partial<TeacherAttendanceSummary>) => {
+    if (!currentReport) return;
+
     const updatedTeachers = currentReport.teachers.map((t) => {
       if (t.id === teacherId) {
         const merged = { ...t, ...partial };
@@ -219,6 +224,7 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
     status: StatusKehadiran,
     keterangan?: string
   ) => {
+    if (!currentReport) return;
     const teacher = currentReport.teachers.find((t) => t.id === teacherId);
     if (!teacher) return;
 
@@ -279,21 +285,15 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const deleteReport = (reportId: string) => {
-    if (allReports.length <= 1) {
-      resetToSample();
-      return;
-    }
+  const deleteReport = async (reportId: string) => {
     const filtered = allReports.filter((r) => r.id !== reportId);
-    const nextActive = filtered[0]?.id || "presensi-current-period";
-    setCurrentReportId(nextActive);
-    saveReportsState(filtered, nextActive);
+    const nextActive = filtered[0]?.id || "";
+    await saveReportsState(filtered, nextActive);
   };
 
   const resetToSample = () => {
     const sample = generateOfficialSamplePeriod();
     saveReportsState([sample], sample.id);
-    setCurrentReportId(sample.id);
   };
 
   return (

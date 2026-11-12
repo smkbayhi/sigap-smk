@@ -288,9 +288,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   <Clock className="w-4 h-4 text-emerald-300" />
                   <span>Presensi & Fingerprint</span>
                 </div>
-                {currentReport.guruTidakKkmCount > 0 && (
+                {Boolean(currentReport && currentReport.guruTidakKkmCount > 0) && (
                   <span className="text-[10px] bg-rose-500 text-white font-black px-1.5 py-0.5 rounded-full shadow-xs">
-                    {currentReport.guruTidakKkmCount} Alert
+                    {currentReport?.guruTidakKkmCount} Alert
                   </span>
                 )}
               </Link>

@@ -57,7 +57,7 @@ export default function PresensiPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterKkm, setFilterKkm] = useState<"all" | "kkm" | "tidak_kkm">("all");
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(
-    currentReport.teachers[0]?.id || "g-08"
+    currentReport?.teachers[0]?.id || "g-08"
   );
 
   // Upload state
@@ -69,10 +69,10 @@ export default function PresensiPage() {
   const [dragActive, setDragActive] = useState(false);
 
   const selectedTeacher =
-    currentReport.teachers.find((t) => t.id === selectedTeacherId) || currentReport.teachers[0];
+    currentReport?.teachers.find((t) => t.id === selectedTeacherId) || currentReport?.teachers[0] || null;
 
   // Filtered teachers list
-  const filteredTeachers = currentReport.teachers.filter((t) => {
+  const filteredTeachers = (currentReport?.teachers || []).filter((t) => {
     const matchSearch =
       t.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.pin.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -106,6 +106,7 @@ export default function PresensiPage() {
   };
 
   const handleExportExcel = () => {
+    if (!currentReport) return;
     try {
       exportPresensiToExcel(currentReport);
       addToast("success", "Export Berhasil", "File Rekapitulasi Presensi (.xlsx) berhasil diunduh.");
@@ -116,6 +117,7 @@ export default function PresensiPage() {
   };
 
   const handleSendWaReminder = (teacher: TeacherAttendanceSummary) => {
+    if (!currentReport) return;
     const text = `Assalamu’alaikum Wr. Wb.
 Yth. Ust/Ustzh ${teacher.nama},
 Kami sampaikan rekapitulasi kehadiran Anda pada periode ${currentReport.rentangTanggal}:
@@ -158,7 +160,10 @@ Wassalamu’alaikum Wr. Wb.
             Rekapitulasi Presensi & Kinerja Guru
           </h1>
           <p className="text-xs text-gray-500 mt-1">
-            Periode Aktif: <strong className="text-gray-800">{currentReport.rentangTanggal}</strong>
+            Periode Aktif:{" "}
+            <strong className={currentReport ? "text-gray-800" : "text-gray-400 italic"}>
+              {currentReport ? currentReport.rentangTanggal : "Tidak Ada Periode Aktif"}
+            </strong>
           </p>
         </div>
 
@@ -181,39 +186,41 @@ Wassalamu’alaikum Wr. Wb.
             )}
           </button>
 
-          {/* Period Selector */}
-          <div className="flex items-center gap-1">
-            <select
-              value={currentReport.id}
-              onChange={(e) => selectReport(e.target.value)}
-              className="text-xs py-2 px-3 bg-slate-50 border border-gray-300 rounded-xl font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-            >
-              {allReports.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.bulan} {r.tahun} ({r.teachers.length} Staf)
-                </option>
-              ))}
-            </select>
-
-            {(isKepsek || isTU) && (
-              <button
-                onClick={() => {
-                  const confirmMsg =
-                    allReports.length > 1
-                      ? `Apakah Anda yakin ingin menghapus arsip periode "${currentReport.bulan} ${currentReport.tahun}" (${currentReport.teachers.length} guru/pegawai)?\n\nData yang dihapus akan otomatis tersinkronisasi ke Cloud.`
-                      : `Apakah Anda yakin ingin menghapus dan mereset periode "${currentReport.bulan} ${currentReport.tahun}"?`;
-                  if (confirm(confirmMsg)) {
-                    deleteReport(currentReport.id);
-                    addToast("info", "Arsip Dihapus", "Periode presensi berhasil dihapus dan disinkronkan ke Cloud.");
-                  }
-                }}
-                title="Hapus arsip periode aktif ini"
-                className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+          {/* Period Selector & Delete Button */}
+          {allReports.length > 0 && currentReport && (
+            <div className="flex items-center gap-1">
+              <select
+                value={currentReport.id}
+                onChange={(e) => selectReport(e.target.value)}
+                className="text-xs py-2 px-3 bg-slate-50 border border-gray-300 rounded-xl font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
               >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+                {allReports.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.bulan} {r.tahun} ({r.teachers.length} Staf)
+                  </option>
+                ))}
+              </select>
+
+              {(isKepsek || isTU) && (
+                <button
+                  onClick={async () => {
+                    const confirmMsg =
+                      allReports.length > 1
+                        ? `Apakah Anda yakin ingin menghapus arsip periode "${currentReport.bulan} ${currentReport.tahun}" (${currentReport.teachers.length} guru/pegawai)?\n\nData yang dihapus akan otomatis tersinkronisasi ke Cloud.`
+                        : `Apakah Anda yakin ingin menghapus seluruh data arsip periode "${currentReport.bulan} ${currentReport.tahun}" dari database?\n\nSetelah dihapus, data absensi ini akan hilang dari sistem dan Cloud.`;
+                    if (confirm(confirmMsg)) {
+                      await deleteReport(currentReport.id);
+                      addToast("info", "Arsip Dihapus", "Periode presensi berhasil dihapus dari sistem & database Cloud.");
+                    }
+                  }}
+                  title="Hapus arsip periode aktif ini"
+                  className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
 
           <button
             onClick={() => setActiveTab("upload")}
@@ -223,26 +230,65 @@ Wassalamu’alaikum Wr. Wb.
             <span>Upload Mesin</span>
           </button>
 
-          <button
-            onClick={handleExportExcel}
-            className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Unduh Excel</span>
-          </button>
+          {currentReport && (
+            <>
+              <button
+                onClick={handleExportExcel}
+                className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Unduh Excel</span>
+              </button>
 
-          <Link
-            href="/presensi/print"
-            className="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Cetak PDF</span>
-          </Link>
+              <Link
+                href="/presensi/print"
+                className="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Cetak PDF</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
-      {/* 4 Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Empty State when no reports exist in database */}
+      {!currentReport ? (
+        activeTab !== "upload" ? (
+          <div className="bg-white rounded-2xl border border-gray-200 p-8 sm:p-14 text-center shadow-xs">
+            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-500">
+              <FileSpreadsheet className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              Belum Ada Periode Presensi
+            </h3>
+            <p className="text-xs text-gray-500 max-w-md mx-auto mb-6">
+              Data absensi telah berhasil dihapus dari database. Silakan unggah file presensi baru dari mesin fingerprint atau spreadsheet untuk memulai rekapitulasi.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => setActiveTab("upload")}
+                className="py-2.5 px-5 bg-brand-800 hover:bg-brand-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span>Unggah File Presensi Sekarang</span>
+              </button>
+              <button
+                onClick={() => {
+                  resetToSample();
+                  addToast("info", "Data Contoh Dimuat", "Periode contoh telah dimuat kembali.");
+                }}
+                className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              >
+                Muat Contoh Data Uji Coba
+              </button>
+            </div>
+          </div>
+        ) : null
+      ) : (
+        <>
+          {/* 4 Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Guru */}
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
@@ -865,6 +911,8 @@ Wassalamu’alaikum Wr. Wb.
             </table>
           </div>
         </div>
+      )}
+      </>
       )}
 
       {/* TAB 4: UNGGAH DATA FINGERPRINT BARU */}

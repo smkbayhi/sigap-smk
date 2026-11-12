@@ -30,6 +30,22 @@ export default function PrintPresensiPage() {
   const ttdKepsek = schoolSettings?.ttdKepsekUrl;
   const stempel = schoolSettings?.stempelUrl;
 
+  if (!currentReport) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 text-center max-w-md">
+          <p className="text-sm font-bold text-gray-700 mb-4">Tidak ada data presensi aktif untuk dicetak.</p>
+          <Link
+            href="/presensi"
+            className="py-2.5 px-5 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold rounded-xl transition-all inline-block"
+          >
+            Kembali ke Halaman Presensi
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 py-6 px-4 print:p-0 print:bg-white text-gray-900">
       {/* Top Floating Print Bar (Hidden on print) */}
