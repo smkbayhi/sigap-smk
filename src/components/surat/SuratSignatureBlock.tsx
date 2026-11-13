@@ -60,9 +60,8 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
               />
             </div>
           ) : (
-            <div className="w-56 h-24 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[10px] bg-gray-50/50">
-              {isPrint ? "" : "[Tempat TTD Digital & Stempel Sah]"}
-            </div>
+            /* Ruang kosong putih bersih siap untuk tanda tangan & stempel basah fisik */
+            <div className="w-56 h-28" />
           )}
         </div>
 
@@ -90,11 +89,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           </p>
           <p className="font-bold text-gray-950">Wilayah Pasuruan</p>
 
-          <div className="h-28 my-1 flex items-center">
-            <span className="text-gray-400 italic text-[9.5pt]">
-              {isPrint ? "" : "[TTD & Cap Dinas Pendidikan]"}
-            </span>
-          </div>
+          <div className="h-28 my-1 flex items-center" />
 
           <p className="font-bold underline text-[11pt] text-gray-950">
             Erwan Tjahjono, S.H, M.M
@@ -128,9 +123,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
                 />
               </div>
             ) : (
-              <div className="w-48 h-20 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[10px] bg-gray-50/50">
-                {isPrint ? "" : "[TTD & Stempel Sah]"}
-              </div>
+              <div className="w-48 h-28" />
             )}
           </div>
 
@@ -155,11 +148,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           <p className="font-bold text-gray-950">Direktur Pendidikan</p>
           <p className="font-bold text-gray-950">Bayt Al-Hikmah</p>
 
-          <div className="h-28 my-1 flex items-center">
-            <span className="text-gray-400 italic text-[9.5pt]">
-              {isPrint ? "" : "[TTD Direktur Pendidikan]"}
-            </span>
-          </div>
+          <div className="h-28 my-1 flex items-center" />
 
           <p className="font-bold underline text-[11pt] text-gray-950">
             Dr. H. M. Nurul Huda, M.Pd.I
@@ -192,9 +181,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
                 />
               </div>
             ) : (
-              <div className="w-48 h-20 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[10px] bg-gray-50/50">
-                {isPrint ? "" : "[TTD & Stempel Sah]"}
-              </div>
+              <div className="w-48 h-28" />
             )}
           </div>
 
@@ -219,11 +206,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           <p className="font-bold text-gray-950 leading-tight">
             PT. BPD JATIM<br />CABANG PASURUAN
           </p>
-          <div className="h-20 flex items-center justify-center">
-            <span className="text-gray-400 italic text-[9pt]">
-              {isPrint ? "" : "[Cap & TTD Bank]"}
-            </span>
-          </div>
+          <div className="h-20 flex items-center justify-center" />
           <p className="border-t border-black font-semibold pt-0.5 text-[9.5pt]">
             ( Pimpinan Cabang )
           </p>
@@ -254,9 +237,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
                 />
               </div>
             ) : (
-              <span className="text-gray-400 italic text-[9pt] mx-auto">
-                {isPrint ? "" : "[TTD Kepsek]"}
-              </span>
+              <div className="w-full h-24" />
             )}
           </div>
           <p className="font-bold underline text-[10pt] text-gray-950">
@@ -271,11 +252,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           <p className="font-bold text-gray-950 leading-tight">
             Bendahara BOSP<br />SMKS Bayt Al-Hikmah
           </p>
-          <div className="h-20 flex items-center justify-center">
-            <span className="text-gray-400 italic text-[9pt]">
-              {isPrint ? "" : "[TTD Bendahara]"}
-            </span>
-          </div>
+          <div className="h-20 flex items-center justify-center" />
           <p className="font-bold underline text-[10pt] text-gray-950">
             Ainiyatul Fitriyah, S.S
           </p>
@@ -296,11 +273,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           <p className="font-bold text-gray-950 leading-tight">
             Penerima Surat Peringatan,
           </p>
-          <div className="h-20 flex items-center justify-center">
-            <span className="text-gray-400 italic text-[9pt]">
-              {isPrint ? "" : "[TTD Guru/Pegawai]"}
-            </span>
-          </div>
+          <div className="h-20 flex items-center justify-center" />
           <p className="font-bold underline text-[10pt] text-gray-950">
             {namaPenerima || "Yudha Prihantanto, S.Pd, M.Pd"}
           </p>
@@ -331,9 +304,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
                 />
               </div>
             ) : (
-              <span className="text-gray-400 italic text-[9pt] mx-auto">
-                {isPrint ? "" : "[TTD Kepsek]"}
-              </span>
+              <div className="w-full h-24" />
             )}
           </div>
           <p className="font-bold underline text-[10pt] text-gray-950">
@@ -348,11 +319,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           <p className="font-bold text-gray-950 leading-tight">
             Wakil Direktur Pendidikan,
           </p>
-          <div className="h-20 flex items-center justify-center">
-            <span className="text-gray-400 italic text-[9pt]">
-              {isPrint ? "" : "[TTD Wadir]"}
-            </span>
-          </div>
+          <div className="h-20 flex items-center justify-center" />
           <p className="font-bold underline text-[10pt] text-gray-950">
             Ach. Afandi, M.Pd
           </p>
