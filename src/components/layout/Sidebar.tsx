@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { usePresensi } from "@/context/PresensiContext";
 import { LOGO_SMK_DATA_URL } from "@/lib/seedData";
+import { findTeacherRecordForUser } from "@/lib/presensiParser";
 import {
   LayoutDashboard,
   Send,
@@ -46,6 +47,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     (d.status === "menunggu" || d.status === "proses") && 
     (isKepsek || isTU || d.penerima_id === currentUser.id)
   ).length;
+
+  // Presensi permissions: Kepala Sekolah & Tata Usaha can manage all presensi;
+  // teachers and kasubag only monitor their own personal presensi
+  const canManageAllPresensi = isKepsek || isTU;
+  const myTeacherRecord = !canManageAllPresensi
+    ? findTeacherRecordForUser(currentReport?.teachers, currentUser)
+    : undefined;
+  const isMyPresensiTidakKkm = myTeacherRecord?.statusKkm === "TIDAK KKM";
 
   const isActive = (path: string) => {
     if (path === "/" && pathname === "/") return true;
@@ -274,7 +283,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 </div>
               </Link>
 
-              {/* Presensi & Rekap Fingerprint */}
+              {/* Presensi & Rekap Fingerprint / Presensi Pribadi Saya */}
               <Link
                 href="/presensi"
                 onClick={onClose}
@@ -286,11 +295,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               >
                 <div className="flex items-center gap-3">
                   <Clock className="w-4 h-4 text-emerald-300" />
-                  <span>Presensi & Fingerprint</span>
+                  <span>
+                    {canManageAllPresensi ? "Presensi & Fingerprint" : "Presensi Pribadi Saya"}
+                  </span>
                 </div>
-                {Boolean(currentReport && currentReport.guruTidakKkmCount > 0) && (
+                {canManageAllPresensi && Boolean(currentReport && currentReport.guruTidakKkmCount > 0) && (
                   <span className="text-[10px] bg-rose-500 text-white font-black px-1.5 py-0.5 rounded-full shadow-xs">
                     {currentReport?.guruTidakKkmCount} Alert
+                  </span>
+                )}
+                {!canManageAllPresensi && isMyPresensiTidakKkm && (
+                  <span
+                    className="text-[10px] bg-rose-500 text-white font-bold px-1.5 py-0.5 rounded-full shadow-xs"
+                    title="Keterlambatan ≥ 50% (Perlu Evaluasi Diri)"
+                  >
+                    Perlu Evaluasi
                   </span>
                 )}
               </Link>

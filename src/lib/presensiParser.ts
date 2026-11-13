@@ -203,6 +203,54 @@ export function enrichTeacherWithMasterUser(
   };
 }
 
+/**
+ * Resolves the matching teacher attendance summary for a given User (currentUser).
+ */
+export function findTeacherRecordForUser(
+  teachers: TeacherAttendanceSummary[] | undefined,
+  currentUser: User | null | undefined
+): TeacherAttendanceSummary | undefined {
+  if (!teachers || !currentUser) return undefined;
+
+  // 1. Direct ID match
+  const byId = teachers.find((t) => t.id === currentUser.id);
+  if (byId) return byId;
+
+  // 2. Direct PIN / NIY match
+  const cNiy = (currentUser.niy || "").replace(/[^0-9a-zA-Z]/g, "").toLowerCase();
+  const cNip = (currentUser.nip || "").replace(/[^0-9a-zA-Z]/g, "").toLowerCase();
+  if (cNiy || cNip) {
+    const byPin = teachers.find((t) => {
+      const tPin = (t.pin || "").replace(/[^0-9a-zA-Z]/g, "").toLowerCase();
+      return (cNiy && tPin === cNiy) || (cNip && tPin === cNip);
+    });
+    if (byPin) return byPin;
+  }
+
+  // 3. Match using matchUserWithTeacher
+  const byMatch = teachers.find((t) => {
+    const matched = matchUserWithTeacher(t, [currentUser]);
+    return matched && matched.id === currentUser.id;
+  });
+  if (byMatch) return byMatch;
+
+  // 4. Normalized name match
+  const normUser = normalizeTeacherName(currentUser.name);
+  if (normUser && normUser.length >= 4) {
+    const byName = teachers.find((t) => {
+      const normT = normalizeTeacherName(t.nama);
+      return (
+        normT === normUser ||
+        (normUser.length >= 5 && normT.includes(normUser)) ||
+        (normT.length >= 5 && normUser.includes(normT))
+      );
+    });
+    if (byName) return byName;
+  }
+
+  return undefined;
+}
+
 // Helper: match a raw name or pin string to official teacher (prioritizing masterUsers if provided)
 export function matchTeacher(
   rawNameOrPin: string,

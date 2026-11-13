@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { usePresensi } from "@/context/PresensiContext";
 import { exportPresensiToExcel } from "@/lib/presensiExport";
-import { matchUserWithTeacher } from "@/lib/presensiParser";
+import { matchUserWithTeacher, findTeacherRecordForUser } from "@/lib/presensiParser";
 import { getBidangLabel } from "@/lib/utils";
 import { StatusKehadiran, TeacherAttendanceSummary } from "@/lib/presensi.types";
 import {
@@ -76,11 +76,24 @@ export default function PresensiPage() {
     };
   };
 
-  const [activeTab, setActiveTab] = useState<"rekap" | "rincian" | "evaluasi" | "upload">("rekap");
+  // Permissions: Kepala Sekolah & TU can manage all; Guru & Kasubag monitor personal presensi only
+  const canManageAllPresensi = isKepsek || isTU;
+  const myTeacherRecord = findTeacherRecordForUser(currentReport?.teachers, currentUser);
+
+  const [activeTab, setActiveTab] = useState<"rekap" | "rincian" | "evaluasi" | "upload">(
+    canManageAllPresensi ? "rekap" : "rincian"
+  );
+
+  React.useEffect(() => {
+    if (!canManageAllPresensi && (activeTab === "rekap" || activeTab === "upload")) {
+      setActiveTab("rincian");
+    }
+  }, [canManageAllPresensi, activeTab]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterKkm, setFilterKkm] = useState<"all" | "kkm" | "tidak_kkm">("all");
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(
-    currentReport?.teachers[0]?.id || "g-08"
+    myTeacherRecord?.id || currentReport?.teachers[0]?.id || "g-08"
   );
 
   // Upload state
@@ -91,8 +104,10 @@ export default function PresensiPage() {
   const [uploadTahun, setUploadTahun] = useState(2026);
   const [dragActive, setDragActive] = useState(false);
 
-  const selectedTeacher =
-    currentReport?.teachers.find((t) => t.id === selectedTeacherId) || currentReport?.teachers[0] || null;
+  // If regular teacher, locked strictly to their personal record; if admin, allow switching
+  const selectedTeacher = !canManageAllPresensi && myTeacherRecord
+    ? myTeacherRecord
+    : currentReport?.teachers.find((t) => t.id === selectedTeacherId) || myTeacherRecord || currentReport?.teachers[0] || null;
 
   // Filtered teachers list (searches against both raw and master synchronized biodata)
   const filteredTeachers = (currentReport?.teachers || []).filter((t) => {
@@ -178,22 +193,40 @@ Wassalamu’alaikum Wr. Wb.
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              Modul Tata Usaha & Ketenagaan
+              {canManageAllPresensi
+                ? "Modul Tata Usaha & Ketenagaan"
+                : "Portal Presensi Mandiri Pendidik & Tenaga Kependidikan"}
             </span>
             <span className="text-gray-400 text-xs">•</span>
             <span className="text-xs text-gray-500 font-medium">
-              Fingerprint Engine Terintegrasi
+              {canManageAllPresensi
+                ? "Fingerprint Engine Terintegrasi"
+                : "Monitoring Kedisiplinan & Kinerja Pribadi"}
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2.5">
             <FileSpreadsheet className="w-6 h-6 text-brand-700" />
-            Rekapitulasi Presensi & Kinerja Guru
+            {canManageAllPresensi
+              ? "Rekapitulasi Presensi & Kinerja Guru"
+              : "Monitoring Presensi & Kinerja Pribadi"}
           </h1>
           <p className="text-xs text-gray-500 mt-1">
-            Periode Aktif:{" "}
-            <strong className={currentReport ? "text-gray-800" : "text-gray-400 italic"}>
-              {currentReport ? currentReport.rentangTanggal : "Tidak Ada Periode Aktif"}
-            </strong>
+            {canManageAllPresensi ? (
+              <>
+                Periode Aktif:{" "}
+                <strong className={currentReport ? "text-gray-800" : "text-gray-400 italic"}>
+                  {currentReport ? currentReport.rentangTanggal : "Tidak Ada Periode Aktif"}
+                </strong>
+              </>
+            ) : (
+              <>
+                Evaluasi kehadiran mandiri periode:{" "}
+                <strong className={currentReport ? "text-gray-800" : "text-gray-400 italic"}>
+                  {currentReport ? currentReport.rentangTanggal : "Tidak Ada Periode Aktif"}
+                </strong>
+                {" "}untuk perbaikan ketaatan jam kerja berikutnya.
+              </>
+            )}
           </p>
         </div>
 
@@ -226,12 +259,12 @@ Wassalamu’alaikum Wr. Wb.
               >
                 {allReports.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.bulan} {r.tahun} ({r.teachers.length} Staf)
+                    {r.bulan} {r.tahun} {canManageAllPresensi ? `(${r.teachers.length} Staf)` : ""}
                   </option>
                 ))}
               </select>
 
-              {(isKepsek || isTU) && (
+              {canManageAllPresensi && (
                 <button
                   onClick={async () => {
                     const confirmMsg =
@@ -252,30 +285,34 @@ Wassalamu’alaikum Wr. Wb.
             </div>
           )}
 
-          <button
-            onClick={() => setActiveTab("upload")}
-            className="py-2 px-3.5 bg-brand-800 hover:bg-brand-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <UploadCloud className="w-4 h-4" />
-            <span>Upload Mesin</span>
-          </button>
+          {canManageAllPresensi && (
+            <button
+              onClick={() => setActiveTab("upload")}
+              className="py-2 px-3.5 bg-brand-800 hover:bg-brand-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <UploadCloud className="w-4 h-4" />
+              <span>Upload Mesin</span>
+            </button>
+          )}
 
           {currentReport && (
             <>
-              <button
-                onClick={handleExportExcel}
-                className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>Unduh Excel</span>
-              </button>
+              {canManageAllPresensi && (
+                <button
+                  onClick={handleExportExcel}
+                  className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Unduh Excel</span>
+                </button>
+              )}
 
               <Link
                 href="/presensi/print"
                 className="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                <span>Cetak PDF</span>
+                <span>{canManageAllPresensi ? "Cetak PDF" : "Cetak Slip Presensi"}</span>
               </Link>
             </>
           )}
@@ -293,212 +330,384 @@ Wassalamu’alaikum Wr. Wb.
               Belum Ada Periode Presensi
             </h3>
             <p className="text-xs text-gray-500 max-w-md mx-auto mb-6">
-              Data absensi telah berhasil dihapus dari database. Silakan unggah file presensi baru dari mesin fingerprint atau spreadsheet untuk memulai rekapitulasi.
+              {canManageAllPresensi
+                ? "Data absensi belum tersedia atau telah dihapus. Silakan unggah file presensi baru dari mesin fingerprint atau spreadsheet untuk memulai rekapitulasi."
+                : "Belum ada rekapitulasi data presensi aktif yang dipublikasikan oleh Bagian Tata Usaha untuk akun Anda."}
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <button
-                onClick={() => setActiveTab("upload")}
-                className="py-2.5 px-5 bg-brand-800 hover:bg-brand-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-              >
-                <UploadCloud className="w-4 h-4" />
-                <span>Unggah File Presensi Sekarang</span>
-              </button>
-              <button
-                onClick={() => {
-                  resetToSample();
-                  addToast("info", "Data Contoh Dimuat", "Periode contoh telah dimuat kembali.");
-                }}
-                className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
-              >
-                Muat Contoh Data Uji Coba
-              </button>
-            </div>
+            {canManageAllPresensi && (
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={() => setActiveTab("upload")}
+                  className="py-2.5 px-5 bg-brand-800 hover:bg-brand-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>Unggah File Presensi Sekarang</span>
+                </button>
+                <button
+                  onClick={() => {
+                    resetToSample();
+                    addToast("info", "Data Contoh Dimuat", "Periode contoh telah dimuat kembali.");
+                  }}
+                  className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Muat Contoh Data Uji Coba
+                </button>
+              </div>
+            )}
           </div>
         ) : null
       ) : (
         <>
-          {/* 4 Stat Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Guru */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-            <Users className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 font-medium">Total Pegawai</p>
-            <h3 className="text-2xl font-black text-gray-900 mt-0.5">
-              {currentReport.totalGuru}{" "}
-              <span className="text-xs font-normal text-gray-500">Guru/Staf</span>
-            </h3>
-            <p className="text-[11px] text-gray-400 mt-0.5">
-              {currentReport.totalHariEfektif} Hari Kerja Efektif
-            </p>
-          </div>
-        </div>
-
-        {/* Card 2: Rata-Rata Kehadiran */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 font-medium">Rata-Rata Kehadiran</p>
-            <h3 className="text-2xl font-black text-blue-900 mt-0.5">
-              {currentReport.rataRataKehadiran}%
-            </h3>
-            <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5 mt-0.5">
-              <TrendingUp className="w-3 h-3" /> Sangat Baik
-            </p>
-          </div>
-        </div>
-
-        {/* Card 3: Peringatan Tidak KKM (Terlambat >= 50%) */}
-        <div
-          className={`p-5 rounded-2xl border shadow-xs flex items-center gap-4 transition-all ${
-            currentReport.guruTidakKkmCount > 0
-              ? "bg-rose-50/80 border-rose-200 text-rose-900"
-              : "bg-white border-gray-200 text-gray-900"
-          }`}
-        >
-          <div
-            className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-              currentReport.guruTidakKkmCount > 0
-                ? "bg-rose-600 text-white animate-pulse"
-                : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-rose-800">
-              Tidak KKM (Telat ≥ 50%)
-            </p>
-            <h3 className="text-2xl font-black mt-0.5 text-rose-700">
-              {currentReport.guruTidakKkmCount}{" "}
-              <span className="text-xs font-normal">Guru Perlu Pembinaan</span>
-            </h3>
-            <p className="text-[11px] text-rose-600 mt-0.5">
-              {currentReport.guruTidakKkmCount > 0
-                ? "Wajib Evaluasi & Bimbingan TU"
-                : "Seluruh guru memenuhi KKM"}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 4: Total Menit Keterlambatan */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-            <Clock className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 font-medium">Total Akumulasi Telat</p>
-            <h3 className="text-2xl font-black text-amber-900 mt-0.5">
-              {currentReport.teachers.reduce((acc, t) => acc + t.totalMenitTerlambat, 0)}{" "}
-              <span className="text-xs font-normal text-gray-500">Menit</span>
-            </h3>
-            <p className="text-[11px] text-gray-400 mt-0.5">
-              Rerata{" "}
-              {(
-                currentReport.teachers.reduce((acc, t) => acc + t.totalMenitTerlambat, 0) /
-                (currentReport.totalGuru || 1)
-              ).toFixed(1)}{" "}
-              mnt/guru
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* High Alert Banner for >= 50% Late */}
-      {currentReport.guruTidakKkmCount > 0 && (
-        <div className="bg-gradient-to-r from-rose-900 via-rose-800 to-red-900 rounded-2xl p-5 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
-              <ShieldAlert className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] bg-rose-500/80 font-black px-2 py-0.5 rounded tracking-wider uppercase">
-                  Peringatan Kedisiplinan Kerja
-                </span>
-                <span className="text-xs text-rose-200">•</span>
-                <span className="text-xs text-rose-200">
-                  {currentReport.rentangTanggal}
-                </span>
+          {/* STAT CARDS */}
+          {canManageAllPresensi ? (
+            /* 4 Administrative School-Wide Stat Cards */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Total Guru */}
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Total Pegawai</p>
+                  <h3 className="text-2xl font-black text-gray-900 mt-0.5">
+                    {currentReport.totalGuru}{" "}
+                    <span className="text-xs font-normal text-gray-500">Guru/Staf</span>
+                  </h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    {currentReport.totalHariEfektif} Hari Kerja Efektif
+                  </p>
+                </div>
               </div>
-              <h4 className="text-base font-bold mt-1">
-                Terdapat {currentReport.guruTidakKkmCount} Guru dengan Keterlambatan ≥ 50% (TIDAK KKM)
-              </h4>
-              <p className="text-xs text-rose-100/90 mt-0.5 max-w-2xl">
-                Guru berikut terdeteksi memiliki tingkat keterlambatan di atas batas toleransi:{" "}
-                {currentReport.teachers
-                  .filter((t) => t.statusKkm === "TIDAK KKM")
-                  .map((t) => `${getTeacherBiodata(t).displayName} (${t.persentaseTerlambat}%)`)
-                  .join(", ")}
-                . Disarankan untuk segera diberikan surat pembinaan disiplin.
-              </p>
+
+              {/* Card 2: Rata-Rata Kehadiran */}
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Rata-Rata Kehadiran</p>
+                  <h3 className="text-2xl font-black text-blue-900 mt-0.5">
+                    {currentReport.rataRataKehadiran}%
+                  </h3>
+                  <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5 mt-0.5">
+                    <TrendingUp className="w-3 h-3" /> Sangat Baik
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 3: Peringatan Tidak KKM (Terlambat >= 50%) */}
+              <div
+                className={`p-5 rounded-2xl border shadow-xs flex items-center gap-4 transition-all ${
+                  currentReport.guruTidakKkmCount > 0
+                    ? "bg-rose-50/80 border-rose-200 text-rose-900"
+                    : "bg-white border-gray-200 text-gray-900"
+                }`}
+              >
+                <div
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                    currentReport.guruTidakKkmCount > 0
+                      ? "bg-rose-600 text-white animate-pulse"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-rose-800">
+                    Tidak KKM (Telat ≥ 50%)
+                  </p>
+                  <h3 className="text-2xl font-black mt-0.5 text-rose-700">
+                    {currentReport.guruTidakKkmCount}{" "}
+                    <span className="text-xs font-normal">Guru Perlu Pembinaan</span>
+                  </h3>
+                  <p className="text-[11px] text-rose-600 mt-0.5">
+                    {currentReport.guruTidakKkmCount > 0
+                      ? "Wajib Evaluasi & Bimbingan TU"
+                      : "Seluruh guru memenuhi KKM"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 4: Total Menit Keterlambatan */}
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Total Akumulasi Telat</p>
+                  <h3 className="text-2xl font-black text-amber-900 mt-0.5">
+                    {currentReport.teachers.reduce((acc, t) => acc + t.totalMenitTerlambat, 0)}{" "}
+                    <span className="text-xs font-normal text-gray-500">Menit</span>
+                  </h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    Rerata{" "}
+                    {(
+                      currentReport.teachers.reduce((acc, t) => acc + t.totalMenitTerlambat, 0) /
+                      (currentReport.totalGuru || 1)
+                    ).toFixed(1)}{" "}
+                    mnt/guru
+                  </p>
+                </div>
+              </div>
             </div>
+          ) : myTeacherRecord ? (
+            /* 4 Personal Monitoring KPI Cards for regular teachers/kasubag */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Personal Card 1: Hari Kerja Efektif */}
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Hari Kerja Efektif</p>
+                  <h3 className="text-2xl font-black text-gray-900 mt-0.5">
+                    {myTeacherRecord.totalHariKerja}{" "}
+                    <span className="text-xs font-normal text-gray-500">Hari</span>
+                  </h3>
+                  <p className="text-[11px] text-emerald-700 font-medium mt-0.5">
+                    {myTeacherRecord.totalHadir} Hari Hadir Bertugas
+                  </p>
+                </div>
+              </div>
+
+              {/* Personal Card 2: Kehadiran Saya */}
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Tingkat Kehadiran Saya</p>
+                  <h3 className="text-2xl font-black text-blue-900 mt-0.5">
+                    {Math.round((myTeacherRecord.totalHadir / (myTeacherRecord.totalHariKerja || 1)) * 100)}%
+                  </h3>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    {myTeacherRecord.totalIzin || 0} Izin • {myTeacherRecord.totalSakit || 0} Sakit • {myTeacherRecord.totalAlpha || 0} Alpha
+                  </p>
+                </div>
+              </div>
+
+              {/* Personal Card 3: Keterlambatan Saya */}
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Keterlambatan Saya</p>
+                  <h3 className="text-2xl font-black text-amber-900 mt-0.5">
+                    {myTeacherRecord.totalTerlambatHari}{" "}
+                    <span className="text-xs font-normal text-gray-500">Hari</span>
+                  </h3>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    {myTeacherRecord.totalMenitTerlambat} mnt ({myTeacherRecord.persentaseTerlambat}% dari jadwal)
+                  </p>
+                </div>
+              </div>
+
+              {/* Personal Card 4: Status KKM Disiplin */}
+              <div
+                className={`p-5 rounded-2xl border shadow-xs flex items-center gap-4 transition-all ${
+                  myTeacherRecord.statusKkm === "TIDAK KKM"
+                    ? "bg-rose-50/80 border-rose-200 text-rose-900"
+                    : "bg-emerald-50/80 border-emerald-200 text-emerald-900"
+                }`}
+              >
+                <div
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                    myTeacherRecord.statusKkm === "TIDAK KKM"
+                      ? "bg-rose-600 text-white animate-pulse"
+                      : "bg-emerald-600 text-white"
+                  }`}
+                >
+                  {myTeacherRecord.statusKkm === "TIDAK KKM" ? (
+                    <AlertTriangle className="w-6 h-6" />
+                  ) : (
+                    <CheckCircle2 className="w-6 h-6" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider">
+                    Status KKM Disiplin
+                  </p>
+                  <h3 className="text-2xl font-black mt-0.5">
+                    {myTeacherRecord.statusKkm}
+                  </h3>
+                  <p className="text-[11px] mt-0.5">
+                    {myTeacherRecord.statusKkm === "TIDAK KKM"
+                      ? "Keterlambatan ≥ 50% (Perlu Evaluasi)"
+                      : "Memenuhi Standar Kedisiplinan"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Unlinked User Notice */
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-amber-900 flex items-start gap-3.5 shadow-xs">
+              <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-sm">Data Presensi Belum Terhubung dengan Akun Anda</h4>
+                <p className="text-xs text-amber-800 mt-1">
+                  Akun Anda (<strong>{currentUser.name}</strong>, NIY: {currentUser.niy || "-"}) belum terdaftar atau belum cocok dengan PIN mesin fingerprint pada periode aktif <strong>{currentReport.rentangTanggal}</strong>.
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  Silakan hubungi Bagian Tata Usaha untuk mendaftarkan PIN mesin absensi Anda atau periksa periode bulan lainnya melalui menu di atas.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ALERTS & REFLECTION BANNERS */}
+          {canManageAllPresensi && currentReport.guruTidakKkmCount > 0 && (
+            /* School-Wide High Alert Banner (Only for Kepsek & TU) */
+            <div className="bg-gradient-to-r from-rose-900 via-rose-800 to-red-900 rounded-2xl p-5 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <ShieldAlert className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] bg-rose-500/80 font-black px-2 py-0.5 rounded tracking-wider uppercase">
+                      Peringatan Kedisiplinan Kerja
+                    </span>
+                    <span className="text-xs text-rose-200">•</span>
+                    <span className="text-xs text-rose-200">
+                      {currentReport.rentangTanggal}
+                    </span>
+                  </div>
+                  <h4 className="text-base font-bold mt-1">
+                    Terdapat {currentReport.guruTidakKkmCount} Guru dengan Keterlambatan ≥ 50% (TIDAK KKM)
+                  </h4>
+                  <p className="text-xs text-rose-100/90 mt-0.5 max-w-2xl">
+                    Guru berikut terdeteksi memiliki tingkat keterlambatan di atas batas toleransi:{" "}
+                    {currentReport.teachers
+                      .filter((t) => t.statusKkm === "TIDAK KKM")
+                      .map((t) => `${getTeacherBiodata(t).displayName} (${t.persentaseTerlambat}%)`)
+                      .join(", ")}
+                    . Disarankan untuk segera diberikan surat pembinaan disiplin.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setFilterKkm("tidak_kkm")}
+                className="py-2.5 px-4 bg-white text-rose-900 hover:bg-rose-50 font-bold text-xs rounded-xl transition-all shadow-sm shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>Lihat Daftar Prioritas</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {!canManageAllPresensi && myTeacherRecord && (
+            /* Personal Reflection Banner (Only visible to the individual teacher) */
+            myTeacherRecord.statusKkm === "TIDAK KKM" ? (
+              <div className="bg-gradient-to-r from-rose-900 via-rose-800 to-red-900 rounded-2xl p-5 text-white shadow-md flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <ShieldAlert className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] bg-rose-500/80 font-black px-2 py-0.5 rounded tracking-wider uppercase">
+                      Peringatan Evaluasi Diri Pribadi
+                    </span>
+                    <span className="text-xs text-rose-200">•</span>
+                    <span className="text-xs text-rose-200">{currentReport.rentangTanggal}</span>
+                  </div>
+                  <h4 className="text-base font-bold mt-1">
+                    Keterlambatan Kehadiran Anda Mencapai {myTeacherRecord.persentaseTerlambat}% (Status: TIDAK KKM)
+                  </h4>
+                  <p className="text-xs text-rose-100/90 mt-1 max-w-3xl leading-relaxed">
+                    Sesuai standar kedisiplinan Yayasan & Tata Usaha, ambang batas toleransi keterlambatan adalah di bawah 50%.
+                    Pada periode ini Anda tercatat terlambat sebanyak <strong>{myTeacherRecord.totalTerlambatHari} hari</strong> ({myTeacherRecord.totalMenitTerlambat} menit akumulasi).
+                    Mohon untuk memperhatikan jam kedatangan (06:50 WIB) sebagai ikhtiar perbaikan ketertiban presensi pada periode berikutnya.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 rounded-2xl p-5 text-white shadow-md flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] bg-emerald-500/80 font-black px-2 py-0.5 rounded tracking-wider uppercase">
+                      Kedisiplinan Memenuhi Standar
+                    </span>
+                    <span className="text-xs text-emerald-200">•</span>
+                    <span className="text-xs text-emerald-200">{currentReport.rentangTanggal}</span>
+                  </div>
+                  <h4 className="text-base font-bold mt-1">
+                    Alhamdulillah, Kehadiran Anda Memenuhi Standar KKM ({myTeacherRecord.persentaseTerlambat}% Keterlambatan)
+                  </h4>
+                  <p className="text-xs text-emerald-100/90 mt-1 max-w-3xl leading-relaxed">
+                    Terima kasih atas ketepatan waktu dan dedikasi Anda dalam bertugas di SMK Bayt Al-Hikmah. Terus pertahankan kedisiplinan waktu demi kenyamanan KBM dan keteladanan bagi para santri/siswa.
+                  </p>
+                </div>
+              </div>
+            )
+          )}
+
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-2 border-b border-gray-200 overflow-x-auto pb-1">
+            {canManageAllPresensi && (
+              <button
+                onClick={() => setActiveTab("rekap")}
+                className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === "rekap"
+                    ? "bg-brand-800 text-white shadow-xs"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Rekapitulasi Presensi & KKM</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => setActiveTab("rincian")}
+              className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === "rincian"
+                  ? "bg-brand-800 text-white shadow-xs"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>
+                {canManageAllPresensi
+                  ? `Log Harian Guru (${selectedTeacher ? getTeacherBiodata(selectedTeacher).displayName.split(",")[0] : ""})`
+                  : "Log Harian Presensi Saya"}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("evaluasi")}
+              className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === "evaluasi"
+                  ? "bg-brand-800 text-white shadow-xs"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <FileCheck className="w-4 h-4" />
+              <span>
+                {canManageAllPresensi
+                  ? "Dimensi Kinerja (Bobot 0.40)"
+                  : "Evaluasi Dimensi Kinerja Saya"}
+              </span>
+            </button>
+
+            {canManageAllPresensi && (
+              <button
+                onClick={() => setActiveTab("upload")}
+                className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === "upload"
+                    ? "bg-brand-800 text-white shadow-xs"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span>Unggah File Fingerprint Baru</span>
+              </button>
+            )}
           </div>
-
-          <button
-            onClick={() => setFilterKkm("tidak_kkm")}
-            className="py-2.5 px-4 bg-white text-rose-900 hover:bg-rose-50 font-bold text-xs rounded-xl transition-all shadow-sm shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span>Lihat Daftar Prioritas</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-gray-200 overflow-x-auto pb-1">
-        <button
-          onClick={() => setActiveTab("rekap")}
-          className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === "rekap"
-              ? "bg-brand-800 text-white shadow-xs"
-              : "text-gray-600 hover:bg-gray-100"
-          }`}
-        >
-          <FileSpreadsheet className="w-4 h-4" />
-          <span>Rekapitulasi Presensi & KKM</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("rincian")}
-          className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === "rincian"
-              ? "bg-brand-800 text-white shadow-xs"
-              : "text-gray-600 hover:bg-gray-100"
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          <span>Log Harian Guru ({selectedTeacher ? getTeacherBiodata(selectedTeacher).displayName.split(",")[0] : ""})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("evaluasi")}
-          className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === "evaluasi"
-              ? "bg-brand-800 text-white shadow-xs"
-              : "text-gray-600 hover:bg-gray-100"
-          }`}
-        >
-          <FileCheck className="w-4 h-4" />
-          <span>Dimensi Kinerja (Bobot 0.40)</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("upload")}
-          className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === "upload"
-              ? "bg-brand-800 text-white shadow-xs"
-              : "text-gray-600 hover:bg-gray-100"
-          }`}
-        >
-          <UploadCloud className="w-4 h-4" />
-          <span>Unggah File Fingerprint Baru</span>
-        </button>
-      </div>
 
       {/* TAB 1: REKAPITULASI PRESENSI & KKM */}
       {activeTab === "rekap" && (
@@ -779,29 +988,37 @@ Wassalamu’alaikum Wr. Wb.
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <label className="text-xs font-bold text-gray-600">Pilih Guru:</label>
-                  <select
-                    value={selectedTeacher.id}
-                    onChange={(e) => setSelectedTeacherId(e.target.value)}
-                    className="text-xs py-2 px-3 bg-slate-50 border border-gray-300 rounded-xl font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                  >
-                    {currentReport.teachers.map((t) => {
-                      const b = getTeacherBiodata(t);
-                      return (
-                        <option key={t.id} value={t.id}>
-                          {b.displayName} ({t.statusKkm})
-                        </option>
-                      );
-                    })}
-                  </select>
+                  {canManageAllPresensi ? (
+                    <>
+                      <label className="text-xs font-bold text-gray-600">Pilih Guru:</label>
+                      <select
+                        value={selectedTeacher.id}
+                        onChange={(e) => setSelectedTeacherId(e.target.value)}
+                        className="text-xs py-2 px-3 bg-slate-50 border border-gray-300 rounded-xl font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                      >
+                        {currentReport.teachers.map((t) => {
+                          const b = getTeacherBiodata(t);
+                          return (
+                            <option key={t.id} value={t.id}>
+                              {b.displayName} ({t.statusKkm})
+                            </option>
+                          );
+                        })}
+                      </select>
 
-                  <button
-                    onClick={() => handleSendWaReminder(selectedTeacher)}
-                    className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Kirim WA</span>
-                  </button>
+                      <button
+                        onClick={() => handleSendWaReminder(selectedTeacher)}
+                        className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Kirim WA</span>
+                      </button>
+                    </>
+                  ) : (
+                    <div className="text-xs font-bold text-emerald-800 bg-emerald-50 py-1.5 px-3 rounded-xl border border-emerald-200">
+                      Rekam Presensi Mandiri
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -831,7 +1048,9 @@ Wassalamu’alaikum Wr. Wb.
                     <th className="py-2.5 px-3 text-center">Terlambat</th>
                     <th className="py-2.5 px-3 text-center">Status</th>
                     <th className="py-2.5 px-4">Keterangan / Alasan</th>
-                    <th className="py-2.5 px-3 text-center">Ubah Status</th>
+                    {canManageAllPresensi && (
+                      <th className="py-2.5 px-3 text-center">Ubah Status</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-medium">
@@ -892,25 +1111,27 @@ Wassalamu’alaikum Wr. Wb.
                         <td className="py-2.5 px-4 text-gray-600 text-[11px]">
                           {day.keterangan || "-"}
                         </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <select
-                            value={day.status}
-                            onChange={(e) =>
-                              updateDailyStatus(
-                                selectedTeacher.id,
-                                day.tanggal,
-                                e.target.value as StatusKehadiran
-                              )
-                            }
-                            className="text-[11px] py-1 px-1.5 bg-slate-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                          >
-                            <option value="hadir">Hadir</option>
-                            <option value="terlambat">Terlambat</option>
-                            <option value="izin">Izin</option>
-                            <option value="sakit">Sakit</option>
-                            <option value="alpha">Alpha</option>
-                          </select>
-                        </td>
+                        {canManageAllPresensi && (
+                          <td className="py-2.5 px-3 text-center">
+                            <select
+                              value={day.status}
+                              onChange={(e) =>
+                                updateDailyStatus(
+                                  selectedTeacher.id,
+                                  day.tanggal,
+                                  e.target.value as StatusKehadiran
+                                )
+                              }
+                              className="text-[11px] py-1 px-1.5 bg-slate-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                            >
+                              <option value="hadir">Hadir</option>
+                              <option value="terlambat">Terlambat</option>
+                              <option value="izin">Izin</option>
+                              <option value="sakit">Sakit</option>
+                              <option value="alpha">Alpha</option>
+                            </select>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -927,7 +1148,9 @@ Wassalamu’alaikum Wr. Wb.
           <div className="p-4 sm:p-5 border-b border-gray-100">
             <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
               <FileCheck className="w-5 h-5 text-emerald-600" />
-              Format Penilaian Dimensi Kinerja Guru & Karyawan (Dokumen Resmi Sekolah)
+              {canManageAllPresensi
+                ? "Format Penilaian Dimensi Kinerja Guru & Karyawan (Dokumen Resmi Sekolah)"
+                : "Evaluasi Dimensi Kinerja Presensi & Ketaatan Pribadi"}
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
               Dimensi Kebiasaan Kerja (Bobot 0.40), Hubungan Kerja (0.15), Kinerja (0.15), Pelanggaran (0.30)
@@ -955,7 +1178,12 @@ Wassalamu’alaikum Wr. Wb.
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
-                {currentReport.teachers.map((t, idx) => (
+                {(canManageAllPresensi
+                  ? currentReport.teachers
+                  : myTeacherRecord
+                  ? [myTeacherRecord]
+                  : []
+                ).map((t, idx) => (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-3 px-3 text-center text-gray-400 font-bold">{idx + 1}</td>
                     <td className="py-3 px-4 font-bold text-gray-900">
@@ -1004,6 +1232,23 @@ Wassalamu’alaikum Wr. Wb.
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="p-4 bg-slate-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-2">
+            <p>
+              {canManageAllPresensi ? (
+                <>
+                  Menampilkan <strong>{currentReport.teachers.length}</strong> guru & pegawai SMK Bayt Al-Hikmah.
+                </>
+              ) : (
+                <>
+                  Menampilkan evaluasi dimensi kinerja pribadi untuk <strong>{currentUser.name}</strong>.
+                </>
+              )}
+            </p>
+            <p className="text-[11px] text-gray-400">
+              *Bobot Dimensi: Kebiasaan Kerja (40%), Hubungan Kerja (15%), Hasil Kerja (15%), Pelanggaran (30%).
+            </p>
           </div>
         </div>
       )}
