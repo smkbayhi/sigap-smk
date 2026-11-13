@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { BidangStruktural, TingkatUrgensi, StatusSuratKeluar, StatusDisposisi, StatusRKT, StatusKetercapaian } from "./database.types";
+import { BidangStruktural, TingkatUrgensi, StatusSuratKeluar, StatusDisposisi, StatusRKT, StatusKetercapaian, JenisSuratKeluar } from "./database.types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -110,6 +110,21 @@ export function getUrgensiBadge(urgensi: TingkatUrgensi) {
     case "biasa":
     default:
       return { label: "Biasa", color: "bg-slate-100 text-slate-700 border-slate-200" };
+  }
+}
+
+export function getJenisSuratKeluarLabel(jenis: JenisSuratKeluar | string): string {
+  switch (jenis) {
+    case "surat_tugas": return "Surat Tugas";
+    case "surat_undangan": return "Surat Undangan";
+    case "surat_keterangan": return "Surat Keterangan";
+    case "surat_edaran": return "Surat Edaran";
+    case "surat_rekomendasi": return "Surat Rekomendasi";
+    case "surat_pengantar": return "Surat Pengantar";
+    case "surat_permohonan": return "Surat Permohonan";
+    case "surat_kuasa": return "Surat Kuasa";
+    case "surat_peringatan": return "Surat Peringatan";
+    default: return "Surat Keluar";
   }
 }
 

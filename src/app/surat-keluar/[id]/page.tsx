@@ -8,6 +8,8 @@ import { useAppData } from "@/context/AppDataContext";
 import { formatIndonesianDate, getStatusSuratKeluarBadge } from "@/lib/utils";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import { DigitalSignatureModal } from "@/components/signature/DigitalSignatureModal";
+import { SuratSignatureBlock } from "@/components/surat/SuratSignatureBlock";
+import { parseLetterMeta } from "@/lib/letterTemplates";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { mapDbToSuratKeluar } from "@/lib/supabaseSync";
 import { SuratKeluar } from "@/lib/database.types";
@@ -288,48 +290,14 @@ export default function SuratKeluarDetailPage() {
           logoSmkOverride={surat.logo_smk_url || schoolSettings?.logoSmkUrl || LOGO_SMK_CIRCULAR_DATA_URL}
         />
 
-        {/* Letter Meta: Nomor, Lampiran, Perihal with aligned colons */}
-        <div className="mb-6 font-serif text-xs sm:text-[13px]">
-          <table className="border-collapse">
-            <tbody>
-              <tr>
-                <td className="w-24 py-0.5 text-gray-700">Nomor</td>
-                <td className="w-4 py-0.5">:</td>
-                <td className="py-0.5 font-semibold text-gray-950">{surat.nomor_surat}</td>
-              </tr>
-              <tr>
-                <td className="py-0.5 text-gray-700">Lampiran</td>
-                <td className="py-0.5">:</td>
-                <td className="py-0.5">{surat.lampiran || "-"}</td>
-              </tr>
-              <tr>
-                <td className="py-0.5 text-gray-700 align-top">Perihal</td>
-                <td className="py-0.5 align-top">:</td>
-                <td className="py-0.5 font-bold text-gray-950">{surat.perihal}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Destination */}
-        <div className="mb-6 font-serif text-xs sm:text-[13px] leading-snug">
-          <p>Kepada Yth.</p>
-          <p className="font-bold text-gray-950">{surat.tujuan}</p>
-          <p>Di tempat</p>
-        </div>
-
-        {/* Letter Body */}
-        <div
-          className="prose prose-sm max-w-none text-gray-900 mb-10 leading-relaxed font-serif text-xs sm:text-[13px]"
-          dangerouslySetInnerHTML={{ __html: surat.isi_surat }}
-        />
-
-        {/* Signature & Official Seal Block (Bottom Right) */}
         {(() => {
+          const { cleanHtml, meta } = parseLetterMeta(surat.isi_surat);
+          const isJudulTengah = meta.layout === "judul_tengah";
+
           const isApproved = surat.status === "disetujui";
           const isApprovedOrHasTtd = surat.has_ttd || isApproved;
           const isApprovedOrHasStempel = (surat.has_stempel || isApproved) && surat.has_stempel !== false;
-          // Prefer active schoolSettings if letter still uses seeder defaults
+
           const displayStamp =
             surat.stempel_image_url && surat.stempel_image_url !== STEMPEL_SEKOLAH_DATA_URL
               ? surat.stempel_image_url
@@ -348,56 +316,71 @@ export default function SuratKeluarDetailPage() {
           const displayNiy = schoolSettings?.niyKepsek || "14215094";
 
           return (
-            <div className="flex justify-end font-serif text-xs sm:text-[13px] mt-8">
-              <div className="text-left w-72">
-                <p>Pasuruan, {formatIndonesianDate(surat.tanggal_surat)}</p>
-                <p className="font-bold text-gray-900 mt-0.5">
-                  Kepala SMK Bayt Al-Hikmah
-                </p>
-
-                {/* Signature & Stamp Area (Sesuai Standar Format Resmi Gambar 2) */}
-                <div className="relative h-24 my-1 flex items-center justify-start">
-                  {isApprovedOrHasStempel && displayStamp && (
-                    <div className="absolute -left-10 -top-9 pointer-events-none opacity-90 z-0">
-                      <img
-                        src={displayStamp}
-                        alt="Stempel Resmi"
-                        className="w-44 h-44 object-contain mix-blend-multiply"
-                      />
-                    </div>
-                  )}
-
-                  {isApprovedOrHasTtd && displayTtd ? (
-                    <div className="relative z-10 left-11 -top-2">
-                      <img
-                        src={displayTtd}
-                        alt={`Tanda Tangan Digital ${displayKepsek}`}
-                        className="h-28 object-contain mix-blend-multiply drop-shadow-sm"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-48 h-20 border border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-400 italic text-[11px] bg-gray-50/50">
-                      {surat.status === "menunggu_persetujuan"
-                        ? "Menunggu TTD & Pengesahan"
-                        : "Draf Dokumen"}
-                    </div>
-                  )}
+            <>
+              {/* FORMAT B: JUDUL TENGAH (Surat Tugas, Surat Rekomendasi, Surat Kuasa, dll.) */}
+              {isJudulTengah ? (
+                <div className="text-center my-4 font-serif">
+                  <h2 className="text-base sm:text-lg font-bold uppercase underline tracking-wider text-gray-950">
+                    {meta.judul || surat.perihal}
+                  </h2>
+                  <p className="text-xs sm:text-[13px] font-semibold text-gray-950 mt-1">
+                    Nomor: {surat.nomor_surat}
+                  </p>
                 </div>
+              ) : (
+                /* FORMAT A: KORESPONDENSI DINAS (Nomor/Lampiran/Perihal di kiri, Kepada Yth.) */
+                <>
+                  <div className="mb-6 font-serif text-xs sm:text-[13px]">
+                    <table className="border-collapse">
+                      <tbody>
+                        <tr>
+                          <td className="w-24 py-0.5 text-gray-700">Nomor</td>
+                          <td className="w-4 py-0.5">:</td>
+                          <td className="py-0.5 font-semibold text-gray-950">{surat.nomor_surat}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-0.5 text-gray-700">Lampiran</td>
+                          <td className="py-0.5">:</td>
+                          <td className="py-0.5">{surat.lampiran || "-"}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-0.5 text-gray-700 align-top">Perihal</td>
+                          <td className="py-0.5 align-top">:</td>
+                          <td className="py-0.5 font-bold text-gray-950">{surat.perihal}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
 
-                <p className="font-bold text-gray-950 underline text-sm tracking-wide relative z-20">
-                  {displayKepsek}
-                </p>
-                <p className="text-gray-700 text-xs font-medium relative z-20">
-                  NIY. {displayNiy}
-                </p>
+                  <div className="mb-6 font-serif text-xs sm:text-[13px] leading-snug">
+                    <p>Kepada Yth.</p>
+                    <p className="font-bold text-gray-950">{surat.tujuan}</p>
+                    <p>Di tempat</p>
+                  </div>
+                </>
+              )}
 
-                {isApprovedOrHasTtd && (
-                  <span className="inline-block mt-2 text-[9px] bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded font-mono font-semibold">
-                    ✓ TERVERIFIKASI SISTEM SIGAP-SMK
-                  </span>
-                )}
-              </div>
-            </div>
+              {/* Letter Body (Clean HTML without metadata comment) */}
+              <div
+                className="prose prose-sm max-w-none text-gray-900 mb-8 leading-relaxed font-serif text-xs sm:text-[13px] text-justify space-y-2.5"
+                dangerouslySetInnerHTML={{ __html: cleanHtml }}
+              />
+
+              {/* Signature & Official Seal Block (1 Pihak, 2 Pihak Cabdin/Yayasan, 3 Pihak Bank Jatim/SP) */}
+              <SuratSignatureBlock
+                modelTtd={meta.modelTtd}
+                tanggalSurat={surat.tanggal_surat}
+                namaKepsek={displayKepsek}
+                niyKepsek={displayNiy}
+                displayStamp={displayStamp}
+                displayTtd={displayTtd}
+                isApprovedOrHasTtd={isApprovedOrHasTtd}
+                isApprovedOrHasStempel={isApprovedOrHasStempel}
+                namaPenerima={surat.tujuan}
+                tembusan={meta.tembusan}
+                isPrint={false}
+              />
+            </>
           );
         })()}
       </div>

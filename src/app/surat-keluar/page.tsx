@@ -7,6 +7,7 @@ import { useAppData } from "@/context/AppDataContext";
 import {
   formatIndonesianDate,
   getStatusSuratKeluarBadge,
+  getJenisSuratKeluarLabel,
 } from "@/lib/utils";
 import {
   Send,
@@ -149,7 +150,7 @@ export default function SuratKeluarPage() {
                           {surat.nomor_surat}
                         </div>
                         <div className="text-[11px] text-gray-500 mt-1 capitalize font-medium">
-                          {surat.jenis_surat.replace("_", " ")}
+                          {getJenisSuratKeluarLabel(surat.jenis_surat)}
                         </div>
                         <div className="text-[10px] text-gray-400">
                           Oleh: {surat.creator_name || "Tata Usaha"}
