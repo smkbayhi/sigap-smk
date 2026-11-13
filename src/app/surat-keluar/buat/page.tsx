@@ -45,12 +45,143 @@ import {
   PenTool,
   Bookmark,
   Layers,
+  FileText,
+  Search,
 } from "lucide-react";
+
+interface CatalogCardItem {
+  id: string;
+  badge: string;
+  title: string;
+  description: string;
+  fields: string;
+  category: "undangan" | "tugas_sppd" | "permohonan" | "kesiswaan" | "pengantar_kuasa" | "peringatan" | "all";
+}
+
+const CATALOG_TEMPLATES: CatalogCardItem[] = [
+  {
+    id: "undangan-pembekalan-pkl",
+    badge: "UNDANGAN",
+    title: "Surat Undangan Rapat / Pembekalan",
+    description: "Template surat undangan rapat resmi pembekalan santri PKL dengan tabel jadwal pelaksanaan.",
+    fields: "9 field",
+    category: "undangan",
+  },
+  {
+    id: "surat-tugas-guru",
+    badge: "SURAT TUGAS",
+    title: "Surat Tugas Pegawai & Guru",
+    description: "Template surat penugasan dinas resmi guru mengikuti workshop atau pelatihan dinas luar sekolah.",
+    fields: "9 field",
+    category: "tugas_sppd",
+  },
+  {
+    id: "surat-tugas-sppd-resmi",
+    badge: "SPPD RESMI",
+    title: "Surat Perintah Tugas & SPPD Resmi",
+    description: "Surat penugasan kedinasan disertai formulir SPPD 8 butir standar Cabang Dinas & Kemdikbud.",
+    fields: "12 field",
+    category: "tugas_sppd",
+  },
+  {
+    id: "permohonan-ruang-laptop-blk",
+    badge: "PERMOHONAN",
+    title: "Permohonan Izin Ruang & Laptop BLK",
+    description: "Template surat permohonan izin pemakaian ruangan praktik dan fasilitas laptop ke BLK Komunitas.",
+    fields: "8 field",
+    category: "permohonan",
+  },
+  {
+    id: "permohonan-outing-class",
+    badge: "PERMOHONAN",
+    title: "Permohonan Izin Outing Class Siswa",
+    description: "Template surat permohonan izin kegiatan outing class santri ke jajaran pimpinan pesantren.",
+    fields: "7 field",
+    category: "permohonan",
+  },
+  {
+    id: "permohonan-biaya-catering-pkl",
+    badge: "ANGGARAN",
+    title: "Permohonan Biaya Catering Santri PKL",
+    description: "Template pengajuan pengambilan biaya catering santri PKL yang ditujukan ke Bendahara Yayasan.",
+    fields: "8 field",
+    category: "permohonan",
+  },
+  {
+    id: "rekomendasi-siswa-kolektif",
+    badge: "KESISWAAN",
+    title: "Surat Rekomendasi Siswa Kolektif",
+    description: "Template rekomendasi delegasi siswa berprestasi untuk seleksi PTN / Golden Ticket ITS Surabaya.",
+    fields: "8 field",
+    category: "kesiswaan",
+  },
+  {
+    id: "keterangan-siswa-eligible",
+    badge: "KESISWAAN",
+    title: "Surat Keterangan Siswa Eligible SNBP",
+    description: "Surat keterangan resmi status santri eligible pada kuota pendaftaran SNBP di perguruan tinggi.",
+    fields: "6 field",
+    category: "kesiswaan",
+  },
+  {
+    id: "keterangan-beasiswa-spp",
+    badge: "BEASISWA",
+    title: "Surat Keterangan Siswa Penerima Beasiswa",
+    description: "Surat keterangan penetapan santri terbaik kompetensi keahlian penerima beasiswa bebas SPP yayasan.",
+    fields: "6 field",
+    category: "kesiswaan",
+  },
+  {
+    id: "surat-pengantar-cabdin",
+    badge: "PENGANTAR",
+    title: "Surat Pengantar Berkas ke Cabdin",
+    description: "Surat pengantar pengiriman berkas nominasi peserta ujian ke Cabang Dinas Pendidikan Wilayah Pasuruan.",
+    fields: "7 field",
+    category: "pengantar_kuasa",
+  },
+  {
+    id: "surat-kuasa-bank-jatim",
+    badge: "SURAT KUASA",
+    title: "Surat Kuasa Rekening BOS Bank Jatim",
+    description: "Surat kuasa pemindahbukuan rekening giro dana BOS Bank Jatim Cabang Pasuruan (3 Penandatangan).",
+    fields: "7 field",
+    category: "pengantar_kuasa",
+  },
+  {
+    id: "keterangan-mutasi-keluar-cabdin",
+    badge: "MUTASI",
+    title: "Surat Keterangan Mutasi Keluar Siswa",
+    description: "Surat keterangan pindah sekolah santri dengan tanda tangan ganda mengetahui Cabdin Pasuruan.",
+    fields: "7 field",
+    category: "kesiswaan",
+  },
+  {
+    id: "surat-peringatan-presensi-guru",
+    badge: "PERINGATAN",
+    title: "Surat Peringatan (SP) Kedisiplinan",
+    description: "Surat evaluasi kedisiplinan dan teguran resmi atas presensi fingerprint serta kepatuhan jam kerja.",
+    fields: "6 field",
+    category: "peringatan",
+  },
+  {
+    id: "surat-kosong",
+    badge: "KUSTOM",
+    title: "Mulai dari Surat Kosong (Bebas)",
+    description: "Buat draf surat keluar mandiri dari awal dengan format bebas sesuai keperluan spesifik Anda.",
+    fields: "Bebas",
+    category: "all",
+  },
+];
 
 export default function BuatSuratKeluarPage() {
   const router = useRouter();
   const { currentUser } = useAuth();
   const { suratKeluar, addSuratKeluar, schoolSettings } = useAppData();
+
+  // Step state: "catalog" (Layar Katalog Kartu seperti di gambar) vs "editor" (Form & Preview A4)
+  const [currentStep, setCurrentStep] = useState<"catalog" | "editor">("catalog");
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogCategory, setCatalogCategory] = useState("all");
 
   // Auto Number: [No_Urut]/SMK-BAYHI/[Bulan_Romawi]/[Tahun]
   const currentYear = new Date().getFullYear();
@@ -337,85 +468,231 @@ export default function BuatSuratKeluarPage() {
     }, 400);
   };
 
+  const handleSelectCatalogCard = (cardId: string) => {
+    if (cardId === "surat-kosong") {
+      setSelectedTemplateId("");
+      setJenisSurat("surat_undangan");
+      setLayoutFormat("korespondensi");
+      setJudulSurat("");
+      setPerihal("");
+      setTujuan("");
+      setIntiSurat("");
+      setTipeTabel("none");
+      setModelTtd("1_kepsek");
+      setJenisPenutup("undangan");
+      setLampiran("-");
+    } else {
+      const tmpl = REAL_2026_LETTER_TEMPLATES.find((t) => t.id === cardId);
+      if (tmpl) handleApplyTemplate(tmpl);
+    }
+    setCurrentStep("editor");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const filteredCatalogCards = CATALOG_TEMPLATES.filter((card) => {
+    const matchesCategory =
+      catalogCategory === "all" || card.category === catalogCategory || card.category === "all";
+    const matchesSearch =
+      card.title.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+      card.description.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+      card.badge.toLowerCase().includes(catalogSearch.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
   return (
     <div className="space-y-6 pb-16">
-      {/* Top Navigation & Status */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <Link
-          href="/surat-keluar"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-brand-800 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Kembali ke Daftar Surat Keluar
-        </Link>
-        <div className="text-xs text-gray-600 bg-white border border-gray-200 px-3 py-1.5 rounded-xl shadow-xs">
-          Format Nomor Baku 2026:{" "}
-          <strong className="text-brand-900 font-mono font-bold">{previewNomorSurat}</strong>
-        </div>
-      </div>
-
-      {/* Main Grid: Form Editor (Left) & Real-time A4 Simulation (Right) */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* ================= LEFT COLUMN: FORM CONTROLS ================= */}
-        <div className="w-full lg:w-7/12 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
-          {/* Header */}
-          <div className="pb-3 border-b border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-brand-100 text-brand-800 flex items-center justify-center font-bold">
-                <FileCheck className="w-5 h-5" />
+      {currentStep === "catalog" ? (
+        // =========================================================
+        // 🗂️ STEP 1: KATALOG / GALERI TEMPLATE SURAT RESMI
+        // (Sesuai persis dengan gambar referensi dari pengguna)
+        // =========================================================
+        <div className="space-y-6 animate-in fade-in-50 duration-200">
+          {/* Header Banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-stone-200 p-6 rounded-2xl shadow-xs">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200/80 px-3 py-1 rounded-full">
+                <Bookmark className="w-3.5 h-3.5 text-amber-800" />
+                Katalog Template Surat Resmi
               </div>
-              <div>
-                <h2 className="text-base font-bold text-gray-900">
-                  Pembuat Draf Surat Keluar Resmi
-                </h2>
-                <p className="text-xs text-gray-500">
-                  Format baku disesuaikan dengan Arsip Surat SMK Bayt Al-Hikmah Tahun 2026.
-                </p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Pilih Format Surat Keluar
+              </h1>
+              <p className="text-xs text-gray-500 max-w-2xl">
+                Pilih salah satu template surat resmi di bawah ini untuk memulai draf secara otomatis, atau mulai dari draf surat kosong.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Link
+                href="/surat-keluar"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-stone-100 hover:bg-stone-200/70 border border-stone-200 px-3.5 py-2 rounded-xl transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Daftar Surat
+              </Link>
+              <div className="text-xs text-gray-600 bg-stone-50 border border-stone-200 px-3 py-2 rounded-xl hidden md:block">
+                Nomor Surat Baku: <strong className="font-mono text-brand-900">{previewNomorSurat}</strong>
               </div>
             </div>
-            <span className="text-[11px] font-mono font-bold bg-brand-50 text-brand-900 border border-brand-200 px-2.5 py-1 rounded-md hidden sm:inline-block">
-              {previewNomorSurat}
-            </span>
           </div>
 
-          {/* TEMPLATE PICKER (Real 2026 Archive) */}
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-gray-800 uppercase tracking-wide flex items-center gap-1.5">
-                <Bookmark className="w-3.5 h-3.5 text-brand-700" />
-                Pilihan Contoh Cepat / Template Resmi 2026:
-              </label>
-              <span className="text-[10px] font-bold text-brand-800 bg-brand-100 px-2 py-0.5 rounded-full">
-                {REAL_2026_LETTER_TEMPLATES.length} Template Siap Pakai
-              </span>
+          {/* Filter Bar & Search */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-stone-200 shadow-xs">
+            {/* Category Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 text-xs">
+              {[
+                { id: "all", label: "Semua Template" },
+                { id: "undangan", label: "Undangan" },
+                { id: "tugas_sppd", label: "Surat Tugas & SPPD" },
+                { id: "permohonan", label: "Permohonan" },
+                { id: "kesiswaan", label: "Kesiswaan" },
+                { id: "pengantar_kuasa", label: "Pengantar & Kuasa" },
+                { id: "peringatan", label: "Peringatan" },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCatalogCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition-colors ${
+                    catalogCategory === cat.id
+                      ? "bg-[#78350F] text-white shadow-xs"
+                      : "bg-stone-50 hover:bg-stone-100 text-stone-600 border border-stone-200/70"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-              {REAL_2026_LETTER_TEMPLATES.map((tmpl) => {
-                const isSelected = selectedTemplateId === tmpl.id;
-                return (
-                  <button
-                    key={tmpl.id}
-                    type="button"
-                    onClick={() => handleApplyTemplate(tmpl)}
-                    className={`p-2.5 text-left rounded-xl border text-xs transition-all flex flex-col justify-between ${
-                      isSelected
-                        ? "border-brand-600 bg-brand-50/80 text-brand-950 font-bold ring-2 ring-brand-500/20 shadow-xs"
-                        : "border-gray-200 bg-white hover:border-brand-400 hover:bg-slate-50 text-gray-700"
-                    }`}
-                  >
-                    <span className="font-bold text-[11.5px] line-clamp-1">{tmpl.label}</span>
-                    <span className="text-[10px] text-gray-500 mt-1 line-clamp-1 font-normal">
-                      {tmpl.layout === "judul_tengah" ? `[Tengah] ${tmpl.judulSurat}` : `[Dinas] ${tmpl.perihal}`}
+            {/* Search Box */}
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={catalogSearch}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+                placeholder="Cari jenis surat..."
+                className="w-full text-xs pl-9 pr-3 py-1.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+          </div>
+
+          {/* CATALOG GRID OF CARDS (PERSIS SEPERTI GAMBAR DARI USER) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredCatalogCards.map((card) => (
+              <div
+                key={card.id}
+                className="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-xs hover:shadow-md hover:border-amber-700/40 transition-all flex flex-col justify-between group"
+              >
+                <div>
+                  {/* Top row: Badge and Green dot */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] font-extrabold px-3 py-1 rounded-full bg-[#78350F] text-white tracking-wider uppercase">
+                      {card.badge}
                     </span>
-                  </button>
-                );
-              })}
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-50" />
+                  </div>
+
+                  {/* Document Icon in rounded brown box */}
+                  <div className="w-12 h-12 rounded-2xl bg-[#78350F] text-white flex items-center justify-center shadow-xs mb-3 group-hover:scale-105 transition-transform">
+                    <FileText className="w-6 h-6 stroke-[1.8]" />
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="font-bold text-gray-900 text-sm sm:text-base leading-snug line-clamp-1 group-hover:text-amber-900 transition-colors">
+                    {card.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed min-h-[34px]">
+                    {card.description}
+                  </p>
+
+                  {/* Metadata Row: Field count & Tersedia */}
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-stone-100">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-stone-600 bg-stone-50 border border-stone-200/80 px-2.5 py-1 rounded-lg">
+                      <FileText className="w-3 h-3 text-stone-400" />
+                      {card.fields}
+                    </span>
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-lg">
+                      Tersedia
+                    </span>
+                  </div>
+                </div>
+
+                {/* Button Generate Surat */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectCatalogCard(card.id)}
+                  className="w-full mt-4 py-2.5 px-4 rounded-xl bg-[#78350F] hover:bg-[#5C270A] text-white text-xs font-bold shadow-xs hover:shadow transition-all flex items-center justify-center gap-2 group-hover:ring-2 group-hover:ring-amber-500/30 cursor-pointer"
+                >
+                  <span>Generate Surat</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        // =========================================================
+        // ✍️ STEP 2: FORM EDITOR LENGKAP & PRATINJAU LEMBAR A4
+        // =========================================================
+        <div className="space-y-6 animate-in fade-in-50 duration-200">
+          {/* Top Control Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-stone-200 p-4 rounded-2xl shadow-xs">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentStep("catalog");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#78350F] hover:text-[#5C270A] bg-amber-50 hover:bg-amber-100/80 border border-amber-200/80 px-3.5 py-2 rounded-xl transition-all shadow-2xs"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Pilih Template Lain
+              </button>
+              <div className="border-l border-stone-200 pl-3">
+                <span className="text-[11px] text-stone-500 block leading-tight">Template Surat Aktif:</span>
+                <span className="text-xs font-bold text-stone-900">
+                  {REAL_2026_LETTER_TEMPLATES.find((t) => t.id === selectedTemplateId)?.label || "Surat Kosong (Kustom Sendiri)"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 hidden sm:inline-block">Format Nomor Baku:</span>
+              <div className="text-xs text-brand-900 font-mono font-bold bg-brand-50 border border-brand-200 px-3 py-1.5 rounded-xl">
+                {previewNomorSurat}
+              </div>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Section 1: Format Layout & Identitas Dokumen */}
+          {/* Main Grid: Form Editor (Left) & Real-time A4 Simulation (Right) */}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* ================= LEFT COLUMN: FORM CONTROLS ================= */}
+            <div className="w-full lg:w-7/12 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+              {/* Header */}
+              <div className="pb-3 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-brand-100 text-brand-800 flex items-center justify-center font-bold">
+                    <FileCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-gray-900">
+                      Editor Draf Surat Keluar
+                    </h2>
+                    <p className="text-xs text-gray-500">
+                      Format baku disesuaikan dengan Arsip Surat SMK Bayt Al-Hikmah Tahun 2026.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[11px] font-mono font-bold bg-brand-50 text-brand-900 border border-brand-200 px-2.5 py-1 rounded-md hidden sm:inline-block">
+                  {previewNomorSurat}
+                </span>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Section 1: Format Layout & Identitas Dokumen */}
             <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-4">
               <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5 pb-2 border-b border-gray-100">
                 <Layers className="w-3.5 h-3.5 text-brand-600" />
@@ -1376,5 +1653,7 @@ export default function BuatSuratKeluarPage() {
         </div>
       </div>
     </div>
-  );
+  )}
+</div>
+);
 }
