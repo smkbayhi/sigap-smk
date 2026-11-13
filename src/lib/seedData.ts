@@ -12,20 +12,20 @@ export const LOGO_SMK_DATA_URL = LOGO_SMK_CIRCULAR_DATA_URL;
 
 // Authentic Signature of Mokhamat Ekhsan, S.Kom.
 export const TTD_KEPSEK_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120" width="220" height="120">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="32 15 172 88" width="220" height="120">
   <!-- Pen signature stroke matching sample -->
   <path d="M40,75 C45,45 60,20 70,45 C80,70 75,95 85,60 C95,25 110,35 115,70 C120,50 128,45 135,65 C142,50 150,55 158,70 L185,55" 
-        fill="none" stroke="#0f172a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        fill="none" stroke="#0f172a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
   <!-- Underline swirl & flourish -->
   <path d="M60,65 Q110,85 175,70 C190,65 195,50 185,45 C175,40 165,55 170,80 Q175,100 195,95" 
-        fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/>
-  <circle cx="198" cy="95" r="2" fill="#0f172a"/>
+        fill="none" stroke="#0f172a" stroke-width="2.8" stroke-linecap="round"/>
+  <circle cx="198" cy="95" r="2.5" fill="#0f172a"/>
 </svg>
 `)}`;
 
-// Official Stamp SMK Bayt Al-Hikmah Pasuruan (Matching Image: Double ring, SEKOLAH MENENGAH KEJURUAN, PASURUAN, BAYT AL-HIKMAH, TERAKREDITASI)
+// Official Stamp SMK Bayt Al-Hikmah Pasuruan (Matching Image: Double ring, SEKOLAH MENENGAH KEJURUAN, KOTA PASURUAN, BAYT AL-HIKMAH, TERAKREDITASI)
 export const STEMPEL_SEKOLAH_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" opacity="0.85">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" opacity="0.9">
   <defs>
     <!-- Top Arc Path -->
     <path id="stampTopArc" d="M 28, 100 A 72, 72 0 0, 1 172, 100" fill="none"/>
@@ -43,10 +43,10 @@ export const STEMPEL_SEKOLAH_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComp
     </textPath>
   </text>
 
-  <!-- Bottom Arc: PASURUAN -->
-  <text font-family="'Arial Black', Arial, sans-serif" font-size="10" font-weight="900" fill="#3730a3" letter-spacing="3.5">
+  <!-- Bottom Arc: KOTA PASURUAN -->
+  <text font-family="'Arial Black', Arial, sans-serif" font-size="9.5" font-weight="900" fill="#3730a3" letter-spacing="2">
     <textPath href="#stampBottomArc" startOffset="50%" text-anchor="middle">
-      PASURUAN
+      ★ KOTA PASURUAN ★
     </textPath>
   </text>
 

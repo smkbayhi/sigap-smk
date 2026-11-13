@@ -10,6 +10,7 @@ import { generateNomorSurat, formatIndonesianDate, getBulanRomawi } from "@/lib/
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import { OfficialFooterSurat } from "@/components/kop-surat/OfficialFooterSurat";
 import { SuratSignatureBlock } from "@/components/surat/SuratSignatureBlock";
+import { STEMPEL_SEKOLAH_DATA_URL, TTD_KEPSEK_DATA_URL } from "@/lib/seedData";
 import {
   REAL_2026_LETTER_TEMPLATES,
   LetterTemplateItem,
@@ -1642,6 +1643,10 @@ export default function BuatSuratKeluarPage() {
               tanggalSurat={tanggalSurat}
               namaKepsek={schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom"}
               niyKepsek={schoolSettings?.niyKepsek || "14215094"}
+              displayStamp={schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL}
+              displayTtd={schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL}
+              isApprovedOrHasTtd={true}
+              isApprovedOrHasStempel={true}
               namaPenerima={tujuan}
               tembusan={tembusanList.filter(Boolean)}
               isPrint={false}

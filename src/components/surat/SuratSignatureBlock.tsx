@@ -39,28 +39,28 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
         <p>Pasuruan, {formattedDate}</p>
         <p className="font-bold text-gray-950">Kepala SMK Bayt Al-Hikmah</p>
 
-        {/* Stempel & Signature overlay */}
-        <div className="relative h-24 my-1 flex items-center justify-start">
+        {/* Stempel & Signature overlay (Ukuran proporsional & stempel diperbesar) */}
+        <div className="relative h-28 my-1 flex items-center justify-start">
           {isApprovedOrHasStempel && displayStamp && (
-            <div className="absolute -left-10 -top-9 pointer-events-none opacity-90 z-0">
+            <div className="absolute -left-11 -top-10 pointer-events-none opacity-90 z-0">
               <img
                 src={displayStamp}
                 alt="Stempel Resmi"
-                className="w-44 h-44 object-contain mix-blend-multiply"
+                className="w-[196px] h-[196px] object-contain mix-blend-multiply"
               />
             </div>
           )}
 
           {isApprovedOrHasTtd && displayTtd ? (
-            <div className="relative z-10 left-11 -top-2">
+            <div className="relative z-10 left-9 -top-2">
               <img
                 src={displayTtd}
                 alt={`Tanda Tangan ${namaKepsek}`}
-                className="h-28 object-contain mix-blend-multiply"
+                className="h-36 sm:h-[148px] max-w-[240px] w-auto object-contain mix-blend-multiply"
               />
             </div>
           ) : (
-            <div className="w-48 h-20 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[10px] bg-gray-50/50">
+            <div className="w-56 h-24 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[10px] bg-gray-50/50">
               {isPrint ? "" : "[Tempat TTD Digital & Stempel Sah]"}
             </div>
           )}
@@ -90,7 +90,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           </p>
           <p className="font-bold text-gray-950">Wilayah Pasuruan</p>
 
-          <div className="h-24 my-1 flex items-center">
+          <div className="h-28 my-1 flex items-center">
             <span className="text-gray-400 italic text-[9.5pt]">
               {isPrint ? "" : "[TTD & Cap Dinas Pendidikan]"}
             </span>
@@ -109,26 +109,26 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           <p className="font-bold text-gray-950">Kepala SMKS Bayt Al-Hikmah</p>
           <p className="font-medium">&nbsp;</p>
 
-          <div className="relative h-24 my-1 flex items-center justify-start">
+          <div className="relative h-28 my-1 flex items-center justify-start">
             {isApprovedOrHasStempel && displayStamp && (
-              <div className="absolute -left-10 -top-9 pointer-events-none opacity-90 z-0">
+              <div className="absolute -left-10 -top-10 pointer-events-none opacity-90 z-0">
                 <img
                   src={displayStamp}
                   alt="Stempel Resmi"
-                  className="w-44 h-44 object-contain mix-blend-multiply"
+                  className="w-[188px] h-[188px] object-contain mix-blend-multiply"
                 />
               </div>
             )}
             {isApprovedOrHasTtd && displayTtd ? (
-              <div className="relative z-10 left-11 -top-2">
+              <div className="relative z-10 left-9 -top-2">
                 <img
                   src={displayTtd}
                   alt={`Tanda Tangan ${namaKepsek}`}
-                  className="h-28 object-contain mix-blend-multiply"
+                  className="h-36 sm:h-[142px] max-w-[220px] w-auto object-contain mix-blend-multiply"
                 />
               </div>
             ) : (
-              <div className="w-44 h-20 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[10px] bg-gray-50/50">
+              <div className="w-48 h-20 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[10px] bg-gray-50/50">
                 {isPrint ? "" : "[TTD & Stempel Sah]"}
               </div>
             )}
@@ -155,7 +155,7 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           <p className="font-bold text-gray-950">Direktur Pendidikan</p>
           <p className="font-bold text-gray-950">Bayt Al-Hikmah</p>
 
-          <div className="h-24 my-1 flex items-center">
+          <div className="h-28 my-1 flex items-center">
             <span className="text-gray-400 italic text-[9.5pt]">
               {isPrint ? "" : "[TTD Direktur Pendidikan]"}
             </span>
@@ -173,26 +173,26 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           <p className="font-bold text-gray-950">Kepala SMK Bayt Al-Hikmah</p>
           <p className="font-medium">&nbsp;</p>
 
-          <div className="relative h-24 my-1 flex items-center justify-start">
+          <div className="relative h-28 my-1 flex items-center justify-start">
             {isApprovedOrHasStempel && displayStamp && (
-              <div className="absolute -left-10 -top-9 pointer-events-none opacity-90 z-0">
+              <div className="absolute -left-10 -top-10 pointer-events-none opacity-90 z-0">
                 <img
                   src={displayStamp}
                   alt="Stempel Resmi"
-                  className="w-44 h-44 object-contain mix-blend-multiply"
+                  className="w-[188px] h-[188px] object-contain mix-blend-multiply"
                 />
               </div>
             )}
             {isApprovedOrHasTtd && displayTtd ? (
-              <div className="relative z-10 left-11 -top-2">
+              <div className="relative z-10 left-9 -top-2">
                 <img
                   src={displayTtd}
                   alt={`Tanda Tangan ${namaKepsek}`}
-                  className="h-28 object-contain mix-blend-multiply"
+                  className="h-36 sm:h-[142px] max-w-[220px] w-auto object-contain mix-blend-multiply"
                 />
               </div>
             ) : (
-              <div className="w-44 h-20 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[10px] bg-gray-50/50">
+              <div className="w-48 h-20 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 italic text-[10px] bg-gray-50/50">
                 {isPrint ? "" : "[TTD & Stempel Sah]"}
               </div>
             )}
@@ -235,22 +235,22 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           <p className="font-bold text-gray-950 leading-tight">
             Kepala SMKS<br />Bayt Al-Hikmah
           </p>
-          <div className="relative h-20 my-1 flex items-center justify-start">
+          <div className="relative h-24 my-1 flex items-center justify-start">
             {isApprovedOrHasStempel && displayStamp && (
-              <div className="absolute -left-6 -top-6 pointer-events-none opacity-85 z-0">
+              <div className="absolute -left-7 -top-7 pointer-events-none opacity-85 z-0">
                 <img
                   src={displayStamp}
                   alt="Stempel"
-                  className="w-32 h-32 object-contain mix-blend-multiply"
+                  className="w-[145px] h-[145px] object-contain mix-blend-multiply"
                 />
               </div>
             )}
             {isApprovedOrHasTtd && displayTtd ? (
-              <div className="relative z-10 left-6">
+              <div className="relative z-10 left-7">
                 <img
                   src={displayTtd}
                   alt={`TTD ${namaKepsek}`}
-                  className="h-20 object-contain mix-blend-multiply"
+                  className="h-28 max-w-[170px] w-auto object-contain mix-blend-multiply"
                 />
               </div>
             ) : (
@@ -312,22 +312,22 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
           <p className="font-bold text-gray-950 leading-tight">
             Kepala SMK Bayt Al-Hikmah,
           </p>
-          <div className="relative h-20 my-1 flex items-center justify-start">
+          <div className="relative h-24 my-1 flex items-center justify-start">
             {isApprovedOrHasStempel && displayStamp && (
-              <div className="absolute -left-6 -top-6 pointer-events-none opacity-85 z-0">
+              <div className="absolute -left-7 -top-7 pointer-events-none opacity-85 z-0">
                 <img
                   src={displayStamp}
                   alt="Stempel"
-                  className="w-32 h-32 object-contain mix-blend-multiply"
+                  className="w-[145px] h-[145px] object-contain mix-blend-multiply"
                 />
               </div>
             )}
             {isApprovedOrHasTtd && displayTtd ? (
-              <div className="relative z-10 left-6">
+              <div className="relative z-10 left-7">
                 <img
                   src={displayTtd}
                   alt={`TTD ${namaKepsek}`}
-                  className="h-20 object-contain mix-blend-multiply"
+                  className="h-28 max-w-[170px] w-auto object-contain mix-blend-multiply"
                 />
               </div>
             ) : (
