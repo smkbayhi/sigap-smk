@@ -271,7 +271,7 @@ export const REAL_2026_LETTER_TEMPLATES: LetterTemplateItem[] = [
     jenis: "surat_tugas",
     layout: "judul_tengah",
     judulSurat: "SURAT PERINTAH PERJALANAN DINAS (SPPD)",
-    inti: "Pejabat yang berwenang dengan ini menerbitkan Surat Perintah Perjalanan Dinas (SPPD) kepada pegawai yang bersangkutan sebagaimana rincian berikut:",
+    inti: "",
     tipeTabel: "sppd_resmi",
     modelTtd: "1_kepsek",
     penutupJenis: "tugas",

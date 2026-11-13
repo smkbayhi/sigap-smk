@@ -84,7 +84,7 @@ export default function PrintPresensiPage() {
   return (
     <div className="min-h-screen bg-slate-100 py-6 px-4 print:p-0 print:bg-white text-gray-900">
       {/* Top Floating Print Bar (Hidden on print) */}
-      <div className="max-w-[210mm] mx-auto mb-4 flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-sm print:hidden">
+      <div className="max-w-[215mm] mx-auto mb-4 flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-sm print:hidden">
         <Link
           href="/presensi"
           className="flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-emerald-700"
@@ -102,8 +102,8 @@ export default function PrintPresensiPage() {
         </button>
       </div>
 
-      {/* A4 Paper Document Container */}
-      <div className="max-w-[210mm] mx-auto bg-white p-8 sm:p-12 shadow-lg print:shadow-none print:p-0 rounded-xl print:rounded-none">
+      {/* F4 / Folio Paper Document Container */}
+      <div className="max-w-[215mm] mx-auto bg-white p-8 sm:p-12 shadow-lg print:shadow-none print:p-0 rounded-xl print:rounded-none">
         {/* Official Kop Surat */}
         <OfficialKopSurat />
 

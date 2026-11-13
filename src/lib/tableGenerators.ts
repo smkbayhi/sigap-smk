@@ -144,34 +144,14 @@ export function generateSppdHtml(data: {
   let html = `
 <div style="font-family: 'Times New Roman', Times, serif; color: #000; font-size: 9.5pt; line-height: 1.4;">
   <!-- ================= LEMBAR DEPAN (MUKA) SPPD ================= -->
-  <!-- Top Right Header: Lembar ke, Kode No, Nomor -->
-  <div style="display: flex; justify-content: flex-end; margin-bottom: 6px;">
-    <table style="border-collapse: collapse; font-size: 9pt; width: 250px;">
-      <tbody>
-        <tr>
-          <td style="width: 75px; padding: 1px 0;">Lembar ke</td>
-          <td style="width: 10px; padding: 1px 0;">:</td>
-          <td style="padding: 1px 0;">....................................</td>
-        </tr>
-        <tr>
-          <td style="padding: 1px 0;">Kode No.</td>
-          <td style="padding: 1px 0;">:</td>
-          <td style="padding: 1px 0;">....................................</td>
-        </tr>
-        <tr>
-          <td style="padding: 1px 0;">Nomor</td>
-          <td style="padding: 1px 0;">:</td>
-          <td style="padding: 1px 0; font-weight: bold;">${nomorSurat}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Judul SPPD -->
-  <div style="text-align: center; margin: 4px 0 10px 0;">
-    <h2 style="font-size: 12pt; font-weight: bold; text-decoration: underline; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+  <!-- Judul SPPD & Nomor Surat -->
+  <div style="text-align: center; margin: 8px 0 14px 0;">
+    <h2 style="font-size: 13pt; font-weight: bold; text-decoration: underline; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
       SURAT PERINTAH PERJALANAN DINAS (SPPD)
     </h2>
+    <p style="font-size: 10pt; font-weight: 600; margin: 4px 0 0 0;">
+      Nomor : ${nomorSurat}
+    </p>
   </div>
 
   <!-- Tabel 10 Butir Standar SPPD -->
@@ -306,9 +286,8 @@ export function generateSppdHtml(data: {
   </div>
 
   <!-- ================= LEMBAR BELAKANG (VISUM SPPD) ================= -->
-  <div style="page-break-before: always; break-before: page; margin-top: 28px; padding-top: 16px; border-top: 2px dashed #999;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 8.5pt;">
-      <span style="font-style: italic; color: #555;">(Halaman 2 / Lembar Belakang)</span>
+  <div style="page-break-before: always; break-before: page; margin-top: 24px; padding-top: 8px;">
+    <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px; font-size: 8.5pt;">
       <span style="font-weight: bold;">SPPD No: ${nomorSurat}</span>
     </div>
     

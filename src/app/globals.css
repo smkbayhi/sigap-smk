@@ -60,7 +60,7 @@
   }
 
   @page {
-    size: A4 portrait;
+    size: 215mm 330mm; /* Standar Ukuran Kertas Resmi F4 / Folio (Indonesia) */
     margin: 1.5cm 2cm;
   }
 }

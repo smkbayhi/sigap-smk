@@ -370,6 +370,11 @@ export default function BuatSuratKeluarPage() {
 
   // Build the complete combined letter body (with SIGAP_META comment header)
   const assembleFullBodyHtml = () => {
+    // Untuk SPPD resmi: langsung render formulir 10 butir + visum tanpa teks pembuka/penutup tambahan
+    if (tipeTabel === "sppd_resmi") {
+      return assembleTableHtml();
+    }
+
     let html = "";
 
     // 1. If layout is korespondensi, prepend Islamic opening
@@ -446,7 +451,7 @@ export default function BuatSuratKeluarPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!perihal.trim() || !intiSurat.trim()) {
+    if (!perihal.trim() || (!intiSurat.trim() && tipeTabel !== "sppd_resmi")) {
       alert("Harap lengkapi Perihal dan Inti Surat.");
       return;
     }
@@ -1698,8 +1703,8 @@ export default function BuatSuratKeluarPage() {
               <Eye className="w-4 h-4 text-gold-600" />
               <span>Pratinjau Hasil Akhir Dokumen</span>
             </div>
-            <span className="text-[10px] bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded">
-              Ukuran Kertas: A4 (Standar Pasuruan)
+            <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold px-2 py-0.5 rounded">
+              Ukuran Kertas: F4 / Folio (215 x 330 mm)
             </span>
           </div>
 

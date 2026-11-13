@@ -158,7 +158,7 @@ export default function SuratKeluarPrintPage() {
     <>
       <style jsx global>{`
         @page {
-          size: A4 portrait;
+          size: 215mm 330mm; /* Standar Ukuran Kertas Resmi F4 / Folio (Indonesia) */
           margin: 10mm 15mm 10mm 15mm !important;
         }
         @media print {
