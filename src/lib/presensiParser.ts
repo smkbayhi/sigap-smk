@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { User } from "./database.types";
 import {
   DailyAttendanceRecord,
   TeacherAttendanceSummary,
@@ -16,74 +17,74 @@ export interface KnownTeacherMaster {
 
 export const KNOWN_TEACHERS: KnownTeacherMaster[] = [
   {
-    id: "g-01",
-    pin: "142908",
-    nama: "MOKHAMAT EKHSAN, S.Kom",
-    aliases: ["ekhsan", "mokhamat ekhsan", "142980", "142908", "14215094"],
+    id: "user-kepsek",
+    pin: "14215094",
+    nama: "Mokhamat Ekhsan, S.Kom",
+    aliases: ["ekhsan", "mokhamat ekhsan", "142980", "142908", "14215094", "g-01"],
     jabatan: "Kepala SMK Bayt Al-Hikmah",
   },
   {
-    id: "g-02",
+    id: "user-1794529404389",
     pin: "11556022",
-    nama: "NUR FAIZAH, S.Kom",
-    aliases: ["nurfaizah", "nur faizah", "faizah", "11550622", "11556022", "16"],
-    jabatan: "Guru Produktif RPL & Informatika",
+    nama: "Nur Faizah, S.Kom",
+    aliases: ["nurfaizah", "nur faizah", "faizah", "11550622", "11556022", "16", "g-02"],
+    jabatan: "Guru Informatika",
   },
   {
-    id: "g-03",
+    id: "user-luluk-wakasek",
     pin: "12616042",
-    nama: "LULUK MAMLUATUS SHOLIHAH, S.S",
-    aliases: ["lulukms", "luluk", "luluk mamluatus", "21610624", "12616042"],
-    jabatan: "Guru Bahasa Inggris / Waka",
+    nama: "Luluk Mamlu'atus S.,S.S",
+    aliases: ["lulukms", "luluk", "luluk mamluatus", "21610624", "12616042", "luluk mamluatus sholihah", "g-03"],
+    jabatan: "Guru Bahasa Inggris",
   },
   {
-    id: "g-04",
+    id: "user-1794529320093",
     pin: "13559090",
-    nama: "YUDHA PRIHANTANTO, S.Pd, M.Pd",
-    aliases: ["yudha", "yudha prihantanto", "1355099", "13559090"],
-    jabatan: "Guru Olahraga & PJOK",
+    nama: "Yudha Prihantanto, S.Pd, M.Pd",
+    aliases: ["yudha", "yudha prihantanto", "1355099", "13559090", "g-04"],
+    jabatan: "Guru Produktif & Koord. Kejuruhan",
   },
   {
-    id: "g-05",
+    id: "user-1794529520784",
     pin: "16402178",
-    nama: "NUR AFANDI, S.Pd",
-    aliases: ["nurafandi", "nur afandi", "afandi", "16041287", "16402178"],
-    jabatan: "Guru Bimbingan Konseling (BK)",
+    nama: "Nur Afandi, S.Pd",
+    aliases: ["nurafandi", "nur afandi", "afandi", "16041287", "16402178", "g-05"],
+    jabatan: "Guru PJOK & Wali Kelas",
   },
   {
-    id: "g-06",
+    id: "user-1794529612527",
     pin: "18076236",
-    nama: "AKHMAD KHOIRON, Lc",
-    aliases: ["khoiron", "akhmad khoiron", "8170263", "18076236"],
-    jabatan: "Guru Pendidikan Agama Islam (PAI)",
+    nama: "Akhmad Khoiron, Lc",
+    aliases: ["khoiron", "akhmad khoiron", "8170263", "18076236", "g-06"],
+    jabatan: "Guru PAI",
   },
   {
-    id: "g-07",
-    pin: "2563",
-    nama: "ACHMAD JABBAR, S.Sn",
-    aliases: ["achmadjabbar", "achmad jabbar", "jabbar", "5236", "2563"],
-    jabatan: "Guru Seni Budaya & Multimedia",
+    id: "user-1794531757439",
+    pin: "19070265",
+    nama: "Achmad Jabbar, S. Sn",
+    aliases: ["achmadjabbar", "achmad jabbar", "jabbar", "5236", "2563", "19070265", "g-07"],
+    jabatan: "Guru Produktif",
   },
   {
-    id: "g-08",
-    pin: "5399",
-    nama: "MUHAMMAD FAJARUL AFTHON, S.Pd",
-    aliases: ["fajar", "fajarul", "muhammad fajarul afthon", "5939", "5399"],
-    jabatan: "Guru Kejuruan SMK",
+    id: "user-1794531842979",
+    pin: "22060315",
+    nama: "Muhammad Fajarul Afthon, S.Pd",
+    aliases: ["fajar", "fajarul", "muhammad fajarul afthon", "5939", "5399", "22060315", "g-08"],
+    jabatan: "Guru Bahasa Indonesia",
   },
   {
-    id: "g-09",
-    pin: "3",
-    nama: "MOH. NASIH AMINULLOH, S.Mat, M.Si",
-    aliases: ["mohnasih", "nasih", "moh. nasih", "3239", "3"],
-    jabatan: "Guru Matematika & Logika",
+    id: "user-1794531941264",
+    pin: "23060333",
+    nama: "Moh. Nasih Aminulloh, S.Mat, M.Si",
+    aliases: ["mohnasih", "nasih", "moh. nasih", "3239", "3", "23060333", "g-09"],
+    jabatan: "Guru Matematika",
   },
   {
-    id: "g-10",
+    id: "user-1794453469307",
     pin: "11861027",
     nama: "AINIYATUL FITRIYAH, S.S",
-    aliases: ["ainiyatulfitriyah", "ainiyatul fitriyah", "aini", "ainfi", "11861027"],
-    jabatan: "Kepala Tata Usaha & Bendahara",
+    aliases: ["ainiyatulfitriyah", "ainiyatul fitriyah", "aini", "ainfi", "11861027", "g-10"],
+    jabatan: "Kepala TU & Bendahara",
   },
   {
     id: "g-11",
@@ -94,12 +95,143 @@ export const KNOWN_TEACHERS: KnownTeacherMaster[] = [
   },
 ];
 
-// Helper: match a raw name or pin string to official teacher
-export function matchTeacher(rawNameOrPin: string): KnownTeacherMaster | null {
+/**
+ * Normalizes a person's name for robust matching:
+ * - strips academic titles (S.Kom, S.Pd, M.Pd, S.S, Lc, S.Sn, S.Mat, M.Si, etc.)
+ * - removes dots, commas, apostrophes, dashes, whitespace
+ * - converts to lowercase
+ */
+export function normalizeTeacherName(name: string): string {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .replace(
+      /\b(s\.?kom|s\.?pd|m\.?pd|s\.?s|lc|s\.?sn|s\.?mat|m\.?si|dr|dra|drs|h|hj|m\.?ti|m\.?kom|s\.?t|m\.?t|s\.?ag|m\.?ag|s\.?sos|m\.?sos|gr)\b/gi,
+      ""
+    )
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Matches an attendance teacher record against the master User database from Pengguna & Hak Akses.
+ */
+export function matchUserWithTeacher(
+  teacher: { id?: string; pin?: string; nama: string; jabatan?: string },
+  users?: User[]
+): User | null {
+  if (!users || users.length === 0) return null;
+
+  // 0. Match by ID
+  if (teacher.id) {
+    const byId = users.find((u) => u.id === teacher.id);
+    if (byId) return byId;
+  }
+
+  const rawPin = (teacher.pin || "").replace(/[^0-9a-zA-Z]/g, "").toLowerCase();
+
+  // 1. Direct match by NIY / NIP
+  if (rawPin && rawPin !== "-" && rawPin !== "0") {
+    const byPin = users.find((u) => {
+      const uNiy = (u.niy || "").replace(/[^0-9a-zA-Z]/g, "").toLowerCase();
+      const uNip = (u.nip || "").replace(/[^0-9a-zA-Z]/g, "").toLowerCase();
+      return (uNiy && uNiy === rawPin) || (uNip && uNip === rawPin);
+    });
+    if (byPin) return byPin;
+  }
+
+  // 2. Known Teachers mapping (machine PINs & aliases to master user)
+  const normTeacherName = normalizeTeacherName(teacher.nama);
+  const known = KNOWN_TEACHERS.find((k) => {
+    const kPin = k.pin.replace(/[^0-9a-zA-Z]/g, "").toLowerCase();
+    if (rawPin && kPin === rawPin) return true;
+    if (rawPin && k.aliases.some((a) => a.toLowerCase().replace(/[^0-9a-zA-Z]/g, "") === rawPin)) return true;
+    if (normTeacherName && normalizeTeacherName(k.nama) === normTeacherName) return true;
+    if (teacher.id && (k.id === teacher.id || k.aliases.includes(teacher.id))) return true;
+    return false;
+  });
+
+  if (known) {
+    // Check if any alias of known teacher matches user's NIY/NIP or ID
+    const byKnownAlias = users.find((u) => {
+      if (u.id === known.id) return true;
+      const uNiy = (u.niy || "").replace(/[^0-9a-zA-Z]/g, "").toLowerCase();
+      const uNip = (u.nip || "").replace(/[^0-9a-zA-Z]/g, "").toLowerCase();
+      return (uNiy && known.aliases.includes(uNiy)) || (uNip && known.aliases.includes(uNip));
+    });
+    if (byKnownAlias) return byKnownAlias;
+
+    // Check if known teacher name matches user name
+    const byKnownName = users.find((u) => {
+      const nK = normalizeTeacherName(known.nama);
+      const nU = normalizeTeacherName(u.name);
+      return nK === nU || (nK.length > 5 && nU.includes(nK)) || (nU.length > 5 && nK.includes(nU));
+    });
+    if (byKnownName) return byKnownName;
+  }
+
+  // 3. Direct normalized name match against master users
+  if (normTeacherName && normTeacherName.length >= 4) {
+    const byName = users.find((u) => {
+      const uNorm = normalizeTeacherName(u.name);
+      if (uNorm === normTeacherName) return true;
+      if (normTeacherName.length >= 5 && uNorm.includes(normTeacherName)) return true;
+      if (uNorm.length >= 5 && normTeacherName.includes(uNorm)) return true;
+      return false;
+    });
+    if (byName) return byName;
+  }
+
+  return null;
+}
+
+/**
+ * Enriches a teacher record with official data from Master Pengguna (name, jabatan, niy)
+ */
+export function enrichTeacherWithMasterUser(
+  teacher: TeacherAttendanceSummary,
+  users?: User[]
+): TeacherAttendanceSummary {
+  if (!users || users.length === 0) return teacher;
+  const matched = matchUserWithTeacher(teacher, users);
+  if (!matched) return teacher;
+
+  return {
+    ...teacher,
+    nama: matched.name,
+    jabatan: matched.jabatan,
+    pin: matched.niy || matched.nip || teacher.pin,
+  };
+}
+
+// Helper: match a raw name or pin string to official teacher (prioritizing masterUsers if provided)
+export function matchTeacher(
+  rawNameOrPin: string,
+  masterUsers?: User[]
+): KnownTeacherMaster | null {
   if (!rawNameOrPin) return null;
   const clean = rawNameOrPin.toString().toLowerCase().trim().replace(/[^a-z0-9]/g, "");
   if (!clean) return null;
 
+  // 1. If masterUsers provided, prioritize matching against active master user list
+  if (masterUsers && masterUsers.length > 0) {
+    const matchedUser = matchUserWithTeacher({ nama: rawNameOrPin, pin: rawNameOrPin }, masterUsers);
+    if (matchedUser) {
+      return {
+        id: matchedUser.id,
+        pin: matchedUser.niy || matchedUser.nip || clean,
+        nama: matchedUser.name,
+        aliases: [
+          matchedUser.name.toLowerCase(),
+          (matchedUser.niy || "").toLowerCase(),
+          (matchedUser.nip || "").toLowerCase(),
+          clean,
+        ].filter(Boolean),
+        jabatan: matchedUser.jabatan,
+      };
+    }
+  }
+
+  // 2. Fallback to KNOWN_TEACHERS constants
   for (const t of KNOWN_TEACHERS) {
     const cleanPin = t.pin.toLowerCase().replace(/[^a-z0-9]/g, "");
     if (cleanPin && (clean === cleanPin || clean.includes(cleanPin))) return t;
@@ -176,6 +308,7 @@ export async function parseFingerprintFile(
     tahun?: number;
     cutOffStart?: string;
     cutOffEnd?: string;
+    masterUsers?: User[];
   }
 ): Promise<PresensiPeriodReport> {
   const workbook = XLSX.read(fileData, { type: typeof fileData === "string" ? "string" : "array" });
@@ -262,8 +395,8 @@ export async function parseFingerprintFile(
 
     if (!rawName && !rawPin) continue;
 
-    // Match teacher or create dynamic entry
-    let matched = matchTeacher(rawName) || matchTeacher(rawPin);
+    // Match teacher prioritizing active master users or create dynamic entry
+    let matched = matchTeacher(rawName, options?.masterUsers) || matchTeacher(rawPin, options?.masterUsers);
     const teacherMaster: KnownTeacherMaster = matched || {
       id: `guru-${(rawPin || rawName).toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
       pin: rawPin || "-",
@@ -422,6 +555,7 @@ function parseMultiSheetWorkbook(
     tahun?: number;
     cutOffStart?: string;
     cutOffEnd?: string;
+    masterUsers?: User[];
   }
 ): PresensiPeriodReport {
   const targetSheetName = rekapSheetName || khidmahSheetName || workbook.SheetNames[0];
@@ -507,7 +641,7 @@ function parseMultiSheetWorkbook(
     if (!nameCol || nameCol === "TOTAL" || nameCol.includes("YAYASAN") || nameCol.includes("SMK")) continue;
 
     // Check if nameCol is a known teacher
-    const matched = matchTeacher(nameCol);
+    const matched = matchTeacher(nameCol, options?.masterUsers);
     const teacherMaster: KnownTeacherMaster = matched || {
       id: `guru-${nameCol.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
       pin: "-",
@@ -663,7 +797,214 @@ function getDayName(dateStr: string): string {
 /**
  * Authentic Pre-loaded Monthly Dataset matching user's exact uploaded document!
  */
-export function generateOfficialSamplePeriod(): PresensiPeriodReport {
+export function generateOfficialSamplePeriod(masterUsers?: User[]): PresensiPeriodReport {
+  const baseTeachers: TeacherAttendanceSummary[] = [
+    {
+      id: "user-1794531842979",
+      pin: "22060315",
+      nama: "Muhammad Fajarul Afthon, S.Pd",
+      jabatan: "Guru Bahasa Indonesia",
+      totalHariKerja: 26,
+      totalHadir: 26,
+      totalTerlambatHari: 13,
+      totalMenitTerlambat: 72,
+      persentaseTerlambat: 50.0,
+      statusKkm: "TIDAK KKM",
+      totalIzin: 0,
+      totalSakit: 0,
+      totalAlpha: 0,
+      skorKetaatan: 3.0,
+      skorAcara: 4.0,
+      nilaiKebiasaanKerja: 3.6,
+      totalNilaiKinerja: 4.22,
+      dailyDetails: generateSampleDays(13, 0, 0),
+    },
+    {
+      id: "user-1794529320093",
+      pin: "13559090",
+      nama: "Yudha Prihantanto, S.Pd, M.Pd",
+      jabatan: "Guru Produktif & Koord. Kejuruhan",
+      totalHariKerja: 26,
+      totalHadir: 23,
+      totalTerlambatHari: 8,
+      totalMenitTerlambat: 53,
+      persentaseTerlambat: 53.3,
+      statusKkm: "TIDAK KKM",
+      totalIzin: 3,
+      totalSakit: 0,
+      totalAlpha: 0,
+      skorKetaatan: 2.0,
+      skorAcara: 4.0,
+      nilaiKebiasaanKerja: 3.6,
+      totalNilaiKinerja: 4.22,
+      dailyDetails: generateSampleDays(8, 3, 0),
+    },
+    {
+      id: "user-kepsek",
+      pin: "14215094",
+      nama: "Mokhamat Ekhsan, S.Kom",
+      jabatan: "Kepala SMK Bayt Al-Hikmah",
+      totalHariKerja: 26,
+      totalHadir: 26,
+      totalTerlambatHari: 9,
+      totalMenitTerlambat: 50,
+      persentaseTerlambat: 34.6,
+      statusKkm: "KKM",
+      totalIzin: 0,
+      totalSakit: 0,
+      totalAlpha: 0,
+      skorKetaatan: 4.2,
+      skorAcara: 4.0,
+      nilaiKebiasaanKerja: 4.1,
+      totalNilaiKinerja: 4.34,
+      dailyDetails: generateSampleDays(9, 0, 0),
+    },
+    {
+      id: "user-1794529520784",
+      pin: "16402178",
+      nama: "Nur Afandi, S.Pd",
+      jabatan: "Guru PJOK & Wali Kelas",
+      totalHariKerja: 26,
+      totalHadir: 24,
+      totalTerlambatHari: 3,
+      totalMenitTerlambat: 19,
+      persentaseTerlambat: 11.5,
+      statusKkm: "KKM",
+      totalIzin: 1,
+      totalSakit: 1,
+      totalAlpha: 0,
+      skorKetaatan: 4.6,
+      skorAcara: 4.0,
+      nilaiKebiasaanKerja: 4.3,
+      totalNilaiKinerja: 4.42,
+      dailyDetails: generateSampleDays(3, 1, 1),
+    },
+    {
+      id: "user-1794529404389",
+      pin: "11556022",
+      nama: "Nur Faizah, S.Kom",
+      jabatan: "Guru Informatika",
+      totalHariKerja: 26,
+      totalHadir: 24,
+      totalTerlambatHari: 2,
+      totalMenitTerlambat: 12,
+      persentaseTerlambat: 7.7,
+      statusKkm: "KKM",
+      totalIzin: 0,
+      totalSakit: 2,
+      totalAlpha: 0,
+      skorKetaatan: 5.0,
+      skorAcara: 4.0,
+      nilaiKebiasaanKerja: 4.5,
+      totalNilaiKinerja: 4.5,
+      dailyDetails: generateSampleDays(2, 0, 2),
+    },
+    {
+      id: "user-luluk-wakasek",
+      pin: "12616042",
+      nama: "Luluk Mamlu'atus S.,S.S",
+      jabatan: "Guru Bahasa Inggris",
+      totalHariKerja: 26,
+      totalHadir: 24,
+      totalTerlambatHari: 2,
+      totalMenitTerlambat: 12,
+      persentaseTerlambat: 7.7,
+      statusKkm: "KKM",
+      totalIzin: 1,
+      totalSakit: 1,
+      totalAlpha: 0,
+      skorKetaatan: 4.8,
+      skorAcara: 4.0,
+      nilaiKebiasaanKerja: 4.4,
+      totalNilaiKinerja: 4.31,
+      dailyDetails: generateSampleDays(2, 1, 1),
+    },
+    {
+      id: "user-1794453469307",
+      pin: "11861027",
+      nama: "AINIYATUL FITRIYAH, S.S",
+      jabatan: "Kepala TU & Bendahara",
+      totalHariKerja: 26,
+      totalHadir: 25,
+      totalTerlambatHari: 2,
+      totalMenitTerlambat: 12,
+      persentaseTerlambat: 7.7,
+      statusKkm: "KKM",
+      totalIzin: 1,
+      totalSakit: 0,
+      totalAlpha: 0,
+      skorKetaatan: 4.8,
+      skorAcara: 4.0,
+      nilaiKebiasaanKerja: 4.4,
+      totalNilaiKinerja: 4.46,
+      dailyDetails: generateSampleDays(2, 1, 0),
+    },
+    {
+      id: "user-1794529612527",
+      pin: "18076236",
+      nama: "Akhmad Khoiron, Lc",
+      jabatan: "Guru PAI",
+      totalHariKerja: 26,
+      totalHadir: 26,
+      totalTerlambatHari: 1,
+      totalMenitTerlambat: 6,
+      persentaseTerlambat: 3.8,
+      statusKkm: "KKM",
+      totalIzin: 0,
+      totalSakit: 0,
+      totalAlpha: 0,
+      skorKetaatan: 5.0,
+      skorAcara: 4.0,
+      nilaiKebiasaanKerja: 4.5,
+      totalNilaiKinerja: 4.5,
+      dailyDetails: generateSampleDays(1, 0, 0),
+    },
+    {
+      id: "user-1794531757439",
+      pin: "19070265",
+      nama: "Achmad Jabbar, S. Sn",
+      jabatan: "Guru Produktif",
+      totalHariKerja: 26,
+      totalHadir: 26,
+      totalTerlambatHari: 1,
+      totalMenitTerlambat: 6,
+      persentaseTerlambat: 3.8,
+      statusKkm: "KKM",
+      totalIzin: 0,
+      totalSakit: 0,
+      totalAlpha: 0,
+      skorKetaatan: 5.0,
+      skorAcara: 4.0,
+      nilaiKebiasaanKerja: 4.5,
+      totalNilaiKinerja: 4.5,
+      dailyDetails: generateSampleDays(1, 0, 0),
+    },
+    {
+      id: "user-1794531941264",
+      pin: "23060333",
+      nama: "Moh. Nasih Aminulloh, S.Mat, M.Si",
+      jabatan: "Guru Matematika",
+      totalHariKerja: 26,
+      totalHadir: 26,
+      totalTerlambatHari: 1,
+      totalMenitTerlambat: 6,
+      persentaseTerlambat: 3.8,
+      statusKkm: "KKM",
+      totalIzin: 0,
+      totalSakit: 0,
+      totalAlpha: 0,
+      skorKetaatan: 5.0,
+      skorAcara: 4.0,
+      nilaiKebiasaanKerja: 4.5,
+      totalNilaiKinerja: 4.5,
+      dailyDetails: generateSampleDays(1, 0, 0),
+    },
+  ];
+
+  const enrichedTeachers = masterUsers && masterUsers.length > 0
+    ? baseTeachers.map((t) => enrichTeacherWithMasterUser(t, masterUsers))
+    : baseTeachers;
+
   return {
     id: "presensi-current-period",
     judul: "Rekapitulasi Presensi Guru & Karyawan",
@@ -673,214 +1014,13 @@ export function generateOfficialSamplePeriod(): PresensiPeriodReport {
     cutOffStart: "2026-10-26",
     cutOffEnd: "2026-11-25",
     totalHariEfektif: 26,
-    totalGuru: 10,
+    totalGuru: enrichedTeachers.length,
     guruTidakKkmCount: 2, // Muhammad Fajarul Afthon (50.0%) & Yudha Prihantanto (53.3%)
     rataRataKehadiran: 96.2,
     uploadedAt: "2026-11-12T05:00:00Z",
     uploadedBy: "Ainiyatul Fitriyah, S.S (Kepala TU)",
     catatan: "Rekapitulasi resmi presensi fingerprint untuk evaluasi kedisiplinan dan pelaporan bulanan Yayasan.",
-    teachers: [
-      {
-        id: "g-08",
-        pin: "5399",
-        nama: "MUHAMMAD FAJARUL AFTHON, S.Pd",
-        jabatan: "Guru Kejuruan SMK",
-        totalHariKerja: 26,
-        totalHadir: 26,
-        totalTerlambatHari: 13,
-        totalMenitTerlambat: 72,
-        persentaseTerlambat: 50.0,
-        statusKkm: "TIDAK KKM",
-        totalIzin: 0,
-        totalSakit: 0,
-        totalAlpha: 0,
-        skorKetaatan: 3.0,
-        skorAcara: 4.0,
-        nilaiKebiasaanKerja: 3.6,
-        totalNilaiKinerja: 4.22,
-        dailyDetails: generateSampleDays(13, 0, 0),
-      },
-      {
-        id: "g-04",
-        pin: "13559090",
-        nama: "YUDHA PRIHANTANTO, S.Pd, M.Pd",
-        jabatan: "Guru Olahraga & PJOK",
-        totalHariKerja: 26,
-        totalHadir: 23,
-        totalTerlambatHari: 8,
-        totalMenitTerlambat: 53,
-        persentaseTerlambat: 53.3,
-        statusKkm: "TIDAK KKM",
-        totalIzin: 3,
-        totalSakit: 0,
-        totalAlpha: 0,
-        skorKetaatan: 2.0,
-        skorAcara: 4.0,
-        nilaiKebiasaanKerja: 3.6,
-        totalNilaiKinerja: 4.22,
-        dailyDetails: generateSampleDays(8, 3, 0),
-      },
-      {
-        id: "g-01",
-        pin: "142908",
-        nama: "MOKHAMAT EKHSAN, S.Kom",
-        jabatan: "Kepala SMK Bayt Al-Hikmah",
-        totalHariKerja: 26,
-        totalHadir: 26,
-        totalTerlambatHari: 9,
-        totalMenitTerlambat: 50,
-        persentaseTerlambat: 34.6,
-        statusKkm: "KKM",
-        totalIzin: 0,
-        totalSakit: 0,
-        totalAlpha: 0,
-        skorKetaatan: 4.2,
-        skorAcara: 4.0,
-        nilaiKebiasaanKerja: 4.1,
-        totalNilaiKinerja: 4.34,
-        dailyDetails: generateSampleDays(9, 0, 0),
-      },
-      {
-        id: "g-05",
-        pin: "16402178",
-        nama: "NUR AFANDI, S.Pd",
-        jabatan: "Guru Bimbingan Konseling (BK)",
-        totalHariKerja: 26,
-        totalHadir: 24,
-        totalTerlambatHari: 3,
-        totalMenitTerlambat: 19,
-        persentaseTerlambat: 11.5,
-        statusKkm: "KKM",
-        totalIzin: 1,
-        totalSakit: 1,
-        totalAlpha: 0,
-        skorKetaatan: 4.6,
-        skorAcara: 4.0,
-        nilaiKebiasaanKerja: 4.3,
-        totalNilaiKinerja: 4.42,
-        dailyDetails: generateSampleDays(3, 1, 1),
-      },
-      {
-        id: "g-02",
-        pin: "11556022",
-        nama: "NUR FAIZAH, S.Kom",
-        jabatan: "Guru Produktif RPL & Informatika",
-        totalHariKerja: 26,
-        totalHadir: 24,
-        totalTerlambatHari: 2,
-        totalMenitTerlambat: 12,
-        persentaseTerlambat: 7.7,
-        statusKkm: "KKM",
-        totalIzin: 0,
-        totalSakit: 2,
-        totalAlpha: 0,
-        skorKetaatan: 5.0,
-        skorAcara: 4.0,
-        nilaiKebiasaanKerja: 4.5,
-        totalNilaiKinerja: 4.5,
-        dailyDetails: generateSampleDays(2, 0, 2),
-      },
-      {
-        id: "g-03",
-        pin: "12616042",
-        nama: "LULUK MAMLUATUS SHOLIHAH, S.S",
-        jabatan: "Guru Bahasa Inggris / Waka",
-        totalHariKerja: 26,
-        totalHadir: 24,
-        totalTerlambatHari: 2,
-        totalMenitTerlambat: 12,
-        persentaseTerlambat: 7.7,
-        statusKkm: "KKM",
-        totalIzin: 1,
-        totalSakit: 1,
-        totalAlpha: 0,
-        skorKetaatan: 4.8,
-        skorAcara: 4.0,
-        nilaiKebiasaanKerja: 4.4,
-        totalNilaiKinerja: 4.31,
-        dailyDetails: generateSampleDays(2, 1, 1),
-      },
-      {
-        id: "g-10",
-        pin: "11861027",
-        nama: "AINIYATUL FITRIYAH, S.S",
-        jabatan: "Kepala Tata Usaha & Bendahara",
-        totalHariKerja: 26,
-        totalHadir: 25,
-        totalTerlambatHari: 2,
-        totalMenitTerlambat: 12,
-        persentaseTerlambat: 7.7,
-        statusKkm: "KKM",
-        totalIzin: 1,
-        totalSakit: 0,
-        totalAlpha: 0,
-        skorKetaatan: 4.8,
-        skorAcara: 4.0,
-        nilaiKebiasaanKerja: 4.4,
-        totalNilaiKinerja: 4.46,
-        dailyDetails: generateSampleDays(2, 1, 0),
-      },
-      {
-        id: "g-06",
-        pin: "18076236",
-        nama: "AKHMAD KHOIRON, Lc",
-        jabatan: "Guru Pendidikan Agama Islam (PAI)",
-        totalHariKerja: 26,
-        totalHadir: 26,
-        totalTerlambatHari: 1,
-        totalMenitTerlambat: 6,
-        persentaseTerlambat: 3.8,
-        statusKkm: "KKM",
-        totalIzin: 0,
-        totalSakit: 0,
-        totalAlpha: 0,
-        skorKetaatan: 5.0,
-        skorAcara: 4.0,
-        nilaiKebiasaanKerja: 4.5,
-        totalNilaiKinerja: 4.5,
-        dailyDetails: generateSampleDays(1, 0, 0),
-      },
-      {
-        id: "g-07",
-        pin: "2563",
-        nama: "ACHMAD JABBAR, S.Sn",
-        jabatan: "Guru Seni Budaya & Multimedia",
-        totalHariKerja: 26,
-        totalHadir: 26,
-        totalTerlambatHari: 1,
-        totalMenitTerlambat: 6,
-        persentaseTerlambat: 3.8,
-        statusKkm: "KKM",
-        totalIzin: 0,
-        totalSakit: 0,
-        totalAlpha: 0,
-        skorKetaatan: 5.0,
-        skorAcara: 4.0,
-        nilaiKebiasaanKerja: 4.5,
-        totalNilaiKinerja: 4.5,
-        dailyDetails: generateSampleDays(1, 0, 0),
-      },
-      {
-        id: "g-09",
-        pin: "3",
-        nama: "MOH. NASIH AMINULLOH, S.Mat, M.Si",
-        jabatan: "Guru Matematika & Logika",
-        totalHariKerja: 26,
-        totalHadir: 26,
-        totalTerlambatHari: 1,
-        totalMenitTerlambat: 6,
-        persentaseTerlambat: 3.8,
-        statusKkm: "KKM",
-        totalIzin: 0,
-        totalSakit: 0,
-        totalAlpha: 0,
-        skorKetaatan: 5.0,
-        skorAcara: 4.0,
-        nilaiKebiasaanKerja: 4.5,
-        totalNilaiKinerja: 4.5,
-        dailyDetails: generateSampleDays(1, 0, 0),
-      },
-    ],
+    teachers: enrichedTeachers,
   };
 }
 

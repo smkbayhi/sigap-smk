@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
 import {
   PresensiPeriodReport,
   TeacherAttendanceSummary,
@@ -9,6 +10,8 @@ import {
 import {
   generateOfficialSamplePeriod,
   parseFingerprintFile,
+  matchUserWithTeacher,
+  enrichTeacherWithMasterUser,
 } from "@/lib/presensiParser";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 
@@ -38,6 +41,7 @@ const STORAGE_KEY_CURRENT_ID = "sigap_smk_presensi_active_id";
 const PRESENSI_CLOUD_ROW_ID = "presensi-cloud-data";
 
 export function PresensiProvider({ children }: { children: React.ReactNode }) {
+  const { users } = useAuth();
   const [allReports, setAllReports] = useState<PresensiPeriodReport[]>(() => {
     if (typeof window !== "undefined") {
       try {
@@ -172,6 +176,46 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
     };
   }, [syncFromCloud]);
 
+  // Auto-synchronize teacher names, PINs, and jabatan across all stored reports with Master Pengguna
+  useEffect(() => {
+    if (!users || users.length === 0 || allReports.length === 0) return;
+
+    let hasChange = false;
+    const synchronizedReports = allReports.map((report) => {
+      let reportChanged = false;
+      const updatedTeachers = report.teachers.map((t) => {
+        const matched = matchUserWithTeacher(t, users);
+        if (!matched) return t;
+
+        const officialName = matched.name;
+        const officialPin = matched.niy || matched.nip || t.pin;
+        const officialJabatan = matched.jabatan;
+
+        if (t.nama !== officialName || t.pin !== officialPin || t.jabatan !== officialJabatan) {
+          reportChanged = true;
+          return {
+            ...t,
+            nama: officialName,
+            pin: officialPin,
+            jabatan: officialJabatan,
+          };
+        }
+        return t;
+      });
+
+      if (!reportChanged) return report;
+      hasChange = true;
+      return {
+        ...report,
+        teachers: updatedTeachers,
+      };
+    });
+
+    if (hasChange) {
+      saveReportsState(synchronizedReports, currentReportId || synchronizedReports[0]?.id);
+    }
+  }, [users, allReports, currentReportId]);
+
   const processUpload = async (
     file: File,
     options?: { bulan?: string; tahun?: number; cutOffStart?: string; cutOffEnd?: string }
@@ -179,7 +223,10 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
     setIsProcessing(true);
     try {
       const buffer = await file.arrayBuffer();
-      const report = await parseFingerprintFile(buffer, file.name, options);
+      const report = await parseFingerprintFile(buffer, file.name, {
+        ...options,
+        masterUsers: users,
+      });
 
       const updatedList = [report, ...allReports.filter((r) => r.id !== report.id)];
       await saveReportsState(updatedList, report.id);
@@ -292,7 +339,7 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetToSample = () => {
-    const sample = generateOfficialSamplePeriod();
+    const sample = generateOfficialSamplePeriod(users);
     saveReportsState([sample], sample.id);
   };
 

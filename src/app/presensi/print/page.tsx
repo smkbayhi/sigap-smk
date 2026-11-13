@@ -3,12 +3,15 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePresensi } from "@/context/PresensiContext";
+import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
+import { matchUserWithTeacher } from "@/lib/presensiParser";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import { Printer, ArrowLeft, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export default function PrintPresensiPage() {
   const { currentReport } = usePresensi();
+  const { users } = useAuth();
   const { schoolSettings } = useAppData();
 
   useEffect(() => {
@@ -102,6 +105,8 @@ export default function PrintPresensiPage() {
             </thead>
             <tbody>
               {currentReport.teachers.map((t, idx) => {
+                const matched = matchUserWithTeacher(t, users);
+                const displayName = matched ? matched.name : t.nama;
                 const isTidakKkm = t.statusKkm === "TIDAK KKM";
                 return (
                   <tr
@@ -111,7 +116,7 @@ export default function PrintPresensiPage() {
                     }`}
                   >
                     <td className="border border-black p-1 text-center">{idx + 1}</td>
-                    <td className="border border-black p-1 font-semibold">{t.nama}</td>
+                    <td className="border border-black p-1 font-semibold">{displayName}</td>
                     <td className="border border-black p-1 text-center">{t.totalHariKerja}</td>
                     <td className="border border-black p-1 text-center font-bold">{t.totalHadir}</td>
                     <td className="border border-black p-1 text-center">{t.totalTerlambatHari}</td>
@@ -191,8 +196,12 @@ export default function PrintPresensiPage() {
               {/* Space for manual or digital signature */}
             </div>
 
-            <p className="font-bold underline text-xs">Ainiyatul Fitriyah, S.S</p>
-            <p className="text-[10px] text-gray-600">NIY. 11861027</p>
+            <p className="font-bold underline text-xs">
+              {users.find((u) => u.role === "tata_usaha")?.name || "Ainiyatul Fitriyah, S.S"}
+            </p>
+            <p className="text-[10px] text-gray-600">
+              NIY. {users.find((u) => u.role === "tata_usaha")?.niy || "11861027"}
+            </p>
           </div>
         </div>
       </div>

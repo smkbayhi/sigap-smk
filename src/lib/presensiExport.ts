@@ -1,7 +1,10 @@
 import * as XLSX from "xlsx";
+import { User } from "./database.types";
 import { PresensiPeriodReport } from "./presensi.types";
+import { matchUserWithTeacher } from "./presensiParser";
+import { getBidangLabel } from "./utils";
 
-export function exportPresensiToExcel(report: PresensiPeriodReport) {
+export function exportPresensiToExcel(report: PresensiPeriodReport, users?: User[]) {
   const wb = XLSX.utils.book_new();
 
   // Sheet 1: Rekapitulasi Utama
@@ -12,7 +15,7 @@ export function exportPresensiToExcel(report: PresensiPeriodReport) {
     [],
     [
       "NO",
-      "PIN / NIP",
+      "PIN / NIY",
       "NAMA GURU & KARYAWAN",
       "JABATAN",
       "HARI KERJA",
@@ -29,23 +32,32 @@ export function exportPresensiToExcel(report: PresensiPeriodReport) {
     ],
   ];
 
-  const summaryData = report.teachers.map((t, idx) => [
-    idx + 1,
-    t.pin,
-    t.nama,
-    t.jabatan,
-    t.totalHariKerja,
-    t.totalHadir,
-    t.totalTerlambatHari,
-    t.totalMenitTerlambat,
-    `${t.persentaseTerlambat}%`,
-    t.statusKkm,
-    t.totalIzin,
-    t.totalSakit,
-    t.totalAlpha,
-    t.skorKetaatan || "-",
-    t.totalNilaiKinerja || "-",
-  ]);
+  const summaryData = report.teachers.map((t, idx) => {
+    const matched = matchUserWithTeacher(t, users);
+    const displayName = matched ? matched.name : t.nama;
+    const displayPin = matched ? (matched.niy || matched.nip || t.pin) : t.pin;
+    const displayJabatan = matched
+      ? `${matched.jabatan}${matched.bidang ? ` (${getBidangLabel(matched.bidang)})` : ""}`
+      : t.jabatan;
+
+    return [
+      idx + 1,
+      displayPin,
+      displayName,
+      displayJabatan,
+      t.totalHariKerja,
+      t.totalHadir,
+      t.totalTerlambatHari,
+      t.totalMenitTerlambat,
+      `${t.persentaseTerlambat}%`,
+      t.statusKkm,
+      t.totalIzin,
+      t.totalSakit,
+      t.totalAlpha,
+      t.skorKetaatan || "-",
+      t.totalNilaiKinerja || "-",
+    ];
+  });
 
   const wsSummary = XLSX.utils.aoa_to_sheet([...summaryHeaders, ...summaryData]);
   XLSX.utils.book_append_sheet(wb, wsSummary, "Rekap Bulanan");
@@ -69,16 +81,24 @@ export function exportPresensiToExcel(report: PresensiPeriodReport) {
     ],
   ];
 
-  const alertData = tidakKkmTeachers.map((t, idx) => [
-    idx + 1,
-    t.nama,
-    t.jabatan,
-    t.totalTerlambatHari,
-    t.totalMenitTerlambat,
-    `${t.persentaseTerlambat}%`,
-    "TIDAK KKM",
-    "Teguran / Pembinaan Disiplin",
-  ]);
+  const alertData = tidakKkmTeachers.map((t, idx) => {
+    const matched = matchUserWithTeacher(t, users);
+    const displayName = matched ? matched.name : t.nama;
+    const displayJabatan = matched
+      ? `${matched.jabatan}${matched.bidang ? ` (${getBidangLabel(matched.bidang)})` : ""}`
+      : t.jabatan;
+
+    return [
+      idx + 1,
+      displayName,
+      displayJabatan,
+      t.totalTerlambatHari,
+      t.totalMenitTerlambat,
+      `${t.persentaseTerlambat}%`,
+      "TIDAK KKM",
+      "Teguran / Pembinaan Disiplin",
+    ];
+  });
 
   const wsAlert = XLSX.utils.aoa_to_sheet([...alertHeaders, ...alertData]);
   XLSX.utils.book_append_sheet(wb, wsAlert, "Peringatan TIDAK KKM");

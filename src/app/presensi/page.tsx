@@ -6,6 +6,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { usePresensi } from "@/context/PresensiContext";
 import { exportPresensiToExcel } from "@/lib/presensiExport";
+import { matchUserWithTeacher } from "@/lib/presensiParser";
+import { getBidangLabel } from "@/lib/utils";
 import { StatusKehadiran, TeacherAttendanceSummary } from "@/lib/presensi.types";
 import {
   UploadCloud,
@@ -35,7 +37,7 @@ import {
 } from "lucide-react";
 
 export default function PresensiPage() {
-  const { isKepsek, isTU, currentUser } = useAuth();
+  const { isKepsek, isTU, currentUser, users } = useAuth();
   const { addToast } = useAppData();
   const {
     currentReport,
@@ -52,6 +54,27 @@ export default function PresensiPage() {
     resetToSample,
     syncFromCloud,
   } = usePresensi();
+
+  // Helper to dynamically resolve official teacher biodata from Master Pengguna & Hak Akses
+  const getTeacherBiodata = (t: TeacherAttendanceSummary) => {
+    const matched = matchUserWithTeacher(t, users);
+    const displayName = matched ? matched.name : t.nama;
+    const displayPin = matched ? (matched.niy || matched.nip || t.pin) : t.pin;
+    const displayJabatan = matched ? matched.jabatan : t.jabatan;
+    const displayBidang = matched?.bidang ? getBidangLabel(matched.bidang) : undefined;
+    const displayAvatar = matched?.avatar;
+    const isMasterSynced = Boolean(matched);
+
+    return {
+      displayName,
+      displayPin,
+      displayJabatan,
+      displayBidang,
+      displayAvatar,
+      isMasterSynced,
+      matchedUser: matched,
+    };
+  };
 
   const [activeTab, setActiveTab] = useState<"rekap" | "rincian" | "evaluasi" | "upload">("rekap");
   const [searchTerm, setSearchTerm] = useState("");
@@ -71,12 +94,18 @@ export default function PresensiPage() {
   const selectedTeacher =
     currentReport?.teachers.find((t) => t.id === selectedTeacherId) || currentReport?.teachers[0] || null;
 
-  // Filtered teachers list
+  // Filtered teachers list (searches against both raw and master synchronized biodata)
   const filteredTeachers = (currentReport?.teachers || []).filter((t) => {
+    const bio = getTeacherBiodata(t);
+    const q = searchTerm.toLowerCase();
     const matchSearch =
-      t.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.pin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.jabatan.toLowerCase().includes(searchTerm.toLowerCase());
+      bio.displayName.toLowerCase().includes(q) ||
+      t.nama.toLowerCase().includes(q) ||
+      bio.displayPin.toLowerCase().includes(q) ||
+      t.pin.toLowerCase().includes(q) ||
+      bio.displayJabatan.toLowerCase().includes(q) ||
+      t.jabatan.toLowerCase().includes(q) ||
+      (bio.displayBidang && bio.displayBidang.toLowerCase().includes(q));
 
     if (filterKkm === "kkm") return matchSearch && t.statusKkm === "KKM";
     if (filterKkm === "tidak_kkm") return matchSearch && t.statusKkm === "TIDAK KKM";
@@ -108,7 +137,7 @@ export default function PresensiPage() {
   const handleExportExcel = () => {
     if (!currentReport) return;
     try {
-      exportPresensiToExcel(currentReport);
+      exportPresensiToExcel(currentReport, users);
       addToast("success", "Export Berhasil", "File Rekapitulasi Presensi (.xlsx) berhasil diunduh.");
     } catch (err) {
       console.error("Gagal export excel:", err);
@@ -118,8 +147,9 @@ export default function PresensiPage() {
 
   const handleSendWaReminder = (teacher: TeacherAttendanceSummary) => {
     if (!currentReport) return;
+    const bio = getTeacherBiodata(teacher);
     const text = `Assalamu’alaikum Wr. Wb.
-Yth. Ust/Ustzh ${teacher.nama},
+Yth. Ust/Ustzh ${bio.displayName},
 Kami sampaikan rekapitulasi kehadiran Anda pada periode ${currentReport.rentangTanggal}:
 • Total Hari Kerja: ${teacher.totalHariKerja} Hari
 • Total Hadir: ${teacher.totalHadir} Hari
@@ -402,7 +432,7 @@ Wassalamu’alaikum Wr. Wb.
                 Guru berikut terdeteksi memiliki tingkat keterlambatan di atas batas toleransi:{" "}
                 {currentReport.teachers
                   .filter((t) => t.statusKkm === "TIDAK KKM")
-                  .map((t) => `${t.nama} (${t.persentaseTerlambat}%)`)
+                  .map((t) => `${getTeacherBiodata(t).displayName} (${t.persentaseTerlambat}%)`)
                   .join(", ")}
                 . Disarankan untuk segera diberikan surat pembinaan disiplin.
               </p>
@@ -442,7 +472,7 @@ Wassalamu’alaikum Wr. Wb.
           }`}
         >
           <Clock className="w-4 h-4" />
-          <span>Log Harian Guru ({selectedTeacher?.nama.split(",")[0]})</span>
+          <span>Log Harian Guru ({selectedTeacher ? getTeacherBiodata(selectedTeacher).displayName.split(",")[0] : ""})</span>
         </button>
 
         <button
@@ -559,10 +589,39 @@ Wassalamu’alaikum Wr. Wb.
                         {idx + 1}
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-gray-900">{t.nama}</div>
-                        <div className="text-[11px] text-gray-500">
-                          PIN: {t.pin} • {t.jabatan}
-                        </div>
+                        {(() => {
+                          const bio = getTeacherBiodata(t);
+                          return (
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-800 font-bold flex items-center justify-center text-xs overflow-hidden shrink-0 border border-emerald-200">
+                                {bio.displayAvatar && !bio.displayAvatar.startsWith("{") ? (
+                                  <img src={bio.displayAvatar} alt={bio.displayName} className="w-full h-full object-cover" />
+                                ) : (
+                                  bio.displayName.charAt(0)
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                                  <span className="truncate">{bio.displayName}</span>
+                                  {bio.isMasterSynced && (
+                                    <span
+                                      className="inline-flex items-center px-1.5 py-0.2 text-[9px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded shrink-0"
+                                      title="Tersinkron dengan Master Pengguna & Hak Akses"
+                                    >
+                                      Sinkron
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-gray-500 truncate">
+                                  PIN: <span className="font-mono">{bio.displayPin}</span> • {bio.displayJabatan}
+                                  {bio.displayBidang && (
+                                    <span className="text-blue-600 font-medium"> ({bio.displayBidang})</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="py-3.5 px-3 text-center font-semibold">{t.totalHariKerja}</td>
                       <td className="py-3.5 px-3 text-center font-bold text-emerald-700">
@@ -677,53 +736,76 @@ Wassalamu’alaikum Wr. Wb.
       {activeTab === "rincian" && selectedTeacher && (
         <div className="space-y-4">
           {/* Teacher Selector Card */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-800 font-black flex items-center justify-center text-lg">
-                {selectedTeacher.nama.charAt(0)}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-extrabold text-base text-gray-900">{selectedTeacher.nama}</h3>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      selectedTeacher.statusKkm === "TIDAK KKM"
-                        ? "bg-rose-100 text-rose-800"
-                        : "bg-emerald-100 text-emerald-800"
-                    }`}
-                  >
-                    {selectedTeacher.statusKkm}
-                  </span>
+          {(() => {
+            const bio = getTeacherBiodata(selectedTeacher);
+            return (
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-800 font-black flex items-center justify-center text-lg overflow-hidden shrink-0 border border-brand-200">
+                    {bio.displayAvatar && !bio.displayAvatar.startsWith("{") ? (
+                      <img src={bio.displayAvatar} alt={bio.displayName} className="w-full h-full object-cover" />
+                    ) : (
+                      bio.displayName.charAt(0)
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-extrabold text-base text-gray-900">{bio.displayName}</h3>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          selectedTeacher.statusKkm === "TIDAK KKM"
+                            ? "bg-rose-100 text-rose-800"
+                            : "bg-emerald-100 text-emerald-800"
+                        }`}
+                      >
+                        {selectedTeacher.statusKkm}
+                      </span>
+                      {bio.isMasterSynced && (
+                        <span
+                          className="inline-flex items-center px-1.5 py-0.2 text-[9px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded"
+                          title="Tersinkron dengan Master Pengguna & Hak Akses"
+                        >
+                          Master Pengguna
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      PIN / NIY: <span className="font-mono font-medium">{bio.displayPin}</span> • {bio.displayJabatan}
+                      {bio.displayBidang && (
+                        <span className="text-blue-600 font-semibold"> ({bio.displayBidang})</span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500">
-                  PIN: {selectedTeacher.pin} • {selectedTeacher.jabatan}
-                </p>
+
+                <div className="flex items-center gap-3">
+                  <label className="text-xs font-bold text-gray-600">Pilih Guru:</label>
+                  <select
+                    value={selectedTeacher.id}
+                    onChange={(e) => setSelectedTeacherId(e.target.value)}
+                    className="text-xs py-2 px-3 bg-slate-50 border border-gray-300 rounded-xl font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                  >
+                    {currentReport.teachers.map((t) => {
+                      const b = getTeacherBiodata(t);
+                      return (
+                        <option key={t.id} value={t.id}>
+                          {b.displayName} ({t.statusKkm})
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  <button
+                    onClick={() => handleSendWaReminder(selectedTeacher)}
+                    className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Kirim WA</span>
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <label className="text-xs font-bold text-gray-600">Pilih Guru:</label>
-              <select
-                value={selectedTeacher.id}
-                onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="text-xs py-2 px-3 bg-slate-50 border border-gray-300 rounded-xl font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-              >
-                {currentReport.teachers.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nama} ({t.statusKkm})
-                  </option>
-                ))}
-              </select>
-
-              <button
-                onClick={() => handleSendWaReminder(selectedTeacher)}
-                className="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>Kirim WA</span>
-              </button>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Daily Table */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
@@ -876,7 +958,20 @@ Wassalamu’alaikum Wr. Wb.
                 {currentReport.teachers.map((t, idx) => (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-3 px-3 text-center text-gray-400 font-bold">{idx + 1}</td>
-                    <td className="py-3 px-4 font-bold text-gray-900">{t.nama}</td>
+                    <td className="py-3 px-4 font-bold text-gray-900">
+                      {(() => {
+                        const bio = getTeacherBiodata(t);
+                        return (
+                          <div>
+                            <div>{bio.displayName}</div>
+                            <div className="text-[10.5px] font-normal text-gray-500">
+                              PIN: <span className="font-mono">{bio.displayPin}</span> • {bio.displayJabatan}
+                              {bio.displayBidang ? ` • ${bio.displayBidang}` : ""}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="py-3 px-3 text-center bg-emerald-50/20">{t.totalTerlambatHari}</td>
                     <td className="py-3 px-3 text-center bg-emerald-50/20 font-bold">
                       {t.persentaseTerlambat}%
