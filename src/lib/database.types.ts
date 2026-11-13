@@ -1,6 +1,6 @@
 export type UserRole = 'kepala_sekolah' | 'tata_usaha' | 'kasubag' | 'guru';
 
-export type BidangStruktural = 'kurikulum' | 'kesiswaan' | 'sarpras' | 'humas_bkk';
+export type BidangStruktural = 'wakasek' | 'kurikulum' | 'kesiswaan' | 'sarpras' | 'humas_bkk' | 'wakil_kepala_sekolah';
 
 export interface User {
   id: string;

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { User, UserRole, BidangStruktural } from "@/lib/database.types";
+import { getBidangLabel } from "@/lib/utils";
 import {
   Users,
   Shield,
@@ -337,8 +338,8 @@ export default function MasterUsersPage() {
                   {user.bidang && (
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400 text-[10.5px]">Bidang:</span>
-                      <span className="font-medium text-gray-800 capitalize text-[10.5px]">
-                        {user.bidang.replace("_", " ")}
+                      <span className="font-medium text-gray-800 text-[10.5px]">
+                        {getBidangLabel(user.bidang)}
                       </span>
                     </div>
                   )}
@@ -510,7 +511,7 @@ export default function MasterUsersPage() {
               {formRole === "kasubag" && (
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
                   <label className="block text-xs font-bold text-blue-900 mb-1">
-                    Bidang Struktural Kasubag:
+                    Bidang Struktural:
                   </label>
                   <select
                     value={formBidang}
@@ -518,6 +519,7 @@ export default function MasterUsersPage() {
                     className="w-full text-xs font-semibold rounded-xl border border-blue-300 px-3 py-2 bg-white focus:ring-2 focus:ring-brand-500 text-blue-950"
                   >
                     <option value="">Pilih Bidang...</option>
+                    <option value="wakasek">Wakil Kepala Sekolah</option>
                     <option value="kurikulum">Kurikulum & Akademik</option>
                     <option value="kesiswaan">Kesiswaan & Karakter</option>
                     <option value="sarpras">Sarana, Prasarana & TI</option>

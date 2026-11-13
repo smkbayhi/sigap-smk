@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { LOGO_SMK_DATA_URL } from "@/lib/seedData";
+import { getBidangLabel } from "@/lib/utils";
 import {
   ChevronDown,
   RotateCcw,
@@ -308,8 +309,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                         {currentUser.bidang && (
                           <div className="flex items-center justify-between py-1">
                             <span className="text-gray-500">Bidang Struktural:</span>
-                            <span className="font-semibold text-emerald-800 capitalize">
-                              {currentUser.bidang}
+                            <span className="font-semibold text-emerald-800">
+                              {getBidangLabel(currentUser.bidang)}
                             </span>
                           </div>
                         )}

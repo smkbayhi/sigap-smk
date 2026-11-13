@@ -354,6 +354,7 @@ export default function RKTPage() {
                   disabled={Boolean(userBidang && !isKepsek && !isTU)}
                   className="w-full text-xs rounded-xl border border-gray-300 p-2.5 bg-white focus:ring-2 focus:ring-brand-500 font-medium disabled:bg-gray-100"
                 >
+                  <option value="wakasek">Wakil Kepala Sekolah</option>
                   <option value="kurikulum">Kurikulum & Akademik</option>
                   <option value="kesiswaan">Kesiswaan & Karakter</option>
                   <option value="sarpras">Sarana, Prasarana & TI</option>
@@ -499,6 +500,7 @@ export default function RKTPage() {
               className="text-xs py-2 px-3 rounded-xl border border-gray-200 bg-white font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="semua">Semua Bidang Kasubag</option>
+              <option value="wakasek">Wakil Kepala Sekolah</option>
               <option value="kurikulum">Kurikulum & Akademik</option>
               <option value="kesiswaan">Kesiswaan & Kedisiplinan</option>
               <option value="sarpras">Sarana & Prasarana</option>
@@ -1005,7 +1007,8 @@ export default function RKTPage() {
                     onChange={(e) => setEditBidang(e.target.value as BidangStruktural)}
                     className="w-full text-xs rounded-xl border border-gray-300 p-2.5 focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value="kurikulum">Kurikulum & Akademik</option>
+                    <option value="wakasek">Wakil Kepala Sekolah</option>
+                  <option value="kurikulum">Kurikulum & Akademik</option>
                     <option value="kesiswaan">Kesiswaan & Kedisiplinan</option>
                     <option value="sarpras">Sarana & Prasarana</option>
                     <option value="humas_bkk">Humas, Industri & BKK</option>

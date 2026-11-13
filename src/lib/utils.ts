@@ -65,6 +65,9 @@ export function generateNomorSurat(noUrut: number, date: Date = new Date()): str
 
 export function getBidangLabel(bidang?: BidangStruktural | string): string {
   switch (bidang) {
+    case "wakasek":
+    case "wakil_kepala_sekolah":
+      return "Wakil Kepala Sekolah";
     case "kurikulum":
       return "Kurikulum & Akademik";
     case "kesiswaan":
@@ -80,6 +83,9 @@ export function getBidangLabel(bidang?: BidangStruktural | string): string {
 
 export function getBidangBadgeColor(bidang?: BidangStruktural | string): string {
   switch (bidang) {
+    case "wakasek":
+    case "wakil_kepala_sekolah":
+      return "bg-indigo-100 text-indigo-800 border-indigo-200";
     case "kurikulum":
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "kesiswaan":
