@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Sparkles, Scan, FileText, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 import { TingkatUrgensi, BidangStruktural } from "@/lib/database.types";
+import { useAuth } from "@/context/AuthContext";
 
 interface ExtractedData {
   nomor_surat: string;
@@ -23,92 +24,97 @@ interface AiExtractionModalProps {
   onApplyData: (data: ExtractedData) => void;
 }
 
-const SAMPLE_SCAN_PRESETS: {
-  title: string;
-  sender: string;
-  data: ExtractedData;
-}[] = [
-  {
-    title: "Surat Undangan Dindik Jatim - Rapat SMK Pusat Keunggulan",
-    sender: "Dinas Pendidikan Provinsi Jawa Timur",
-    data: {
-      nomor_surat: "421.5/9012/101.4/2026",
-      pengirim: "Dinas Pendidikan Provinsi Jawa Timur - Bidang Pembinaan SMK",
-      tanggal_surat: "2026-11-10",
-      perihal: "Undangan Sinkronisasi Bantuan Penguatan Pembelajaran Berbasis Industri (SMK-PK)",
-      ringkasan:
-        "Dinas Pendidikan Provinsi Jawa Timur mengundang Tim Manajemen SMK Bayt Al-Hikmah untuk memaparkan kurikulum berbasis industri dan laporan penyerapan anggaran program vokasi tahun berjalan.",
-      tingkat_urgensi: "segera",
-      saran_bidang: "kurikulum",
-      saran_penerima: "M. Ridwan, S.T., M.Kom. (Kasubag Kurikulum)",
-      confidence_score: 98,
-      key_points: [
-        "Membawa dokumen Kurikulum Operasional Satuan Pendidikan (KOSP)",
-        "Konfirmasi kehadiran paling lambat 16 November 2026",
-        "Disertai draf kerjasama mitra DUDI aktif",
-      ],
-    },
-  },
-  {
-    title: "Surat Penawaran Kemitraan PT Astra Honda Motor",
-    sender: "PT Astra Honda Motor (AHM) Regional Jatim",
-    data: {
-      nomor_surat: "AHM/CSR-VOK/11/2026-088",
-      pengirim: "PT Astra Honda Motor (AHM) - Divisi Vokasi & Kemitraan",
-      tanggal_surat: "2026-11-09",
-      perihal: "Penawaran Donasi Unit Praktik Engine Injection & Seleksi Magang Guru",
-      ringkasan:
-        "Pemberitahuan program hibah fasilitas teaching factory berupa 2 unit mesin motor injeksi dan program upskilling magang industri guru vokasi selama 1 bulan di pabrik AHM.",
-      tingkat_urgensi: "penting",
-      saran_bidang: "humas_bkk",
-      saran_penerima: "Nabila Zahra, M.Si. (Kasubag Humas & BKK)",
-      confidence_score: 96,
-      key_points: [
-        "Hibah 2 unit modul transmisi & injeksi",
-        "Kuato magang 2 guru kejuruan",
-        "Tindak lanjut penandatanganan addendum MoU",
-      ],
-    },
-  },
-  {
-    title: "Surat Pengajuan Sarana Laboratorium TIK dari Kemenkomdigi",
-    sender: "Kementerian Komunikasi dan Digital RI",
-    data: {
-      nomor_surat: "KOMDIGI/BPSDM/PK/2441/2026",
-      pengirim: "Badan Pengembangan SDM Kementerian Komunikasi dan Digital RI",
-      tanggal_surat: "2026-11-08",
-      perihal: "Sosialisasi Program Bantuan Fiber Optic Network & Cloud Academy Santri",
-      ringkasan:
-        "Penetapan kuota bantuan server mini cloud dan modem fiber optik terintegrasi bagi laboratorium komputer SMK berbasis pondok pesantren di Kota Pasuruan.",
-      tingkat_urgensi: "penting",
-      saran_bidang: "sarpras",
-      saran_penerima: "Bambang Haryanto, S.T. (Kasubag Sarpras)",
-      confidence_score: 95,
-      key_points: [
-        "Bantuan 1 Rack Server Mini & Bandwidth Dedicated",
-        "Diperuntukkan mendukung Lab Kejuruan TJKT & RPL",
-        "Perlu persiapan ruang server steril",
-      ],
-    },
-  },
-];
-
 export const AiExtractionModal: React.FC<AiExtractionModalProps> = ({
   isOpen,
   onClose,
   onApplyData,
 }) => {
+  const { users } = useAuth();
+
+  const getOfficerName = (bidang: string, fallback: string) => {
+    const u = users.find((user) => user.bidang === bidang);
+    return u ? `${u.name} (${u.jabatan || "Kasubag " + bidang})` : fallback;
+  };
+
+  const dynamicPresets = useMemo(() => {
+    return [
+      {
+        title: "Surat Undangan Dindik Jatim - Rapat SMK Pusat Keunggulan",
+        sender: "Dinas Pendidikan Provinsi Jawa Timur",
+        data: {
+          nomor_surat: "421.5/9012/101.4/2026",
+          pengirim: "Dinas Pendidikan Provinsi Jawa Timur - Bidang Pembinaan SMK",
+          tanggal_surat: "2026-11-10",
+          perihal: "Undangan Sinkronisasi Bantuan Penguatan Pembelajaran Berbasis Industri (SMK-PK)",
+          ringkasan:
+            "Dinas Pendidikan Provinsi Jawa Timur mengundang Tim Manajemen SMK Bayt Al-Hikmah untuk memaparkan kurikulum berbasis industri dan laporan penyerapan anggaran program vokasi tahun berjalan.",
+          tingkat_urgensi: "segera" as TingkatUrgensi,
+          saran_bidang: "kurikulum" as BidangStruktural,
+          saran_penerima: getOfficerName("kurikulum", "Moh. Nasih Aminulloh, S.Mat, M.Si (Kasubag Kurikulum)"),
+          confidence_score: 98,
+          key_points: [
+            "Membawa dokumen Kurikulum Operasional Satuan Pendidikan (KOSP)",
+            "Konfirmasi kehadiran paling lambat 16 November 2026",
+            "Disertai draf kerjasama mitra DUDI aktif",
+          ],
+        },
+      },
+      {
+        title: "Surat Penawaran Kemitraan PT Astra Honda Motor",
+        sender: "PT Astra Honda Motor (AHM) Regional Jatim",
+        data: {
+          nomor_surat: "AHM/CSR-VOK/11/2026-088",
+          pengirim: "PT Astra Honda Motor (AHM) - Divisi Vokasi & Kemitraan",
+          tanggal_surat: "2026-11-09",
+          perihal: "Penawaran Donasi Unit Praktik Engine Injection & Seleksi Magang Guru",
+          ringkasan:
+            "Pemberitahuan program hibah fasilitas teaching factory berupa 2 unit mesin motor injeksi dan program upskilling magang industri guru vokasi selama 1 bulan di pabrik AHM.",
+          tingkat_urgensi: "penting" as TingkatUrgensi,
+          saran_bidang: "humas_bkk" as BidangStruktural,
+          saran_penerima: getOfficerName("humas_bkk", "Muhammad Fajarul Afthon, S.Pd (Kasubag Humas & BKK)"),
+          confidence_score: 96,
+          key_points: [
+            "Hibah 2 unit modul transmisi & injeksi",
+            "Kuato magang 2 guru kejuruan",
+            "Tindak lanjut penandatanganan addendum MoU",
+          ],
+        },
+      },
+      {
+        title: "Surat Pengajuan Sarana Laboratorium TIK dari Kemenkomdigi",
+        sender: "Kementerian Komunikasi dan Digital RI",
+        data: {
+          nomor_surat: "KOMDIGI/BPSDM/PK/2441/2026",
+          pengirim: "Badan Pengembangan SDM Kementerian Komunikasi dan Digital RI",
+          tanggal_surat: "2026-11-08",
+          perihal: "Sosialisasi Program Bantuan Fiber Optic Network & Cloud Academy Santri",
+          ringkasan:
+            "Penetapan kuota bantuan server mini cloud dan modem fiber optik terintegrasi bagi laboratorium komputer SMK berbasis pondok pesantren di Kota Pasuruan.",
+          tingkat_urgensi: "penting" as TingkatUrgensi,
+          saran_bidang: "sarpras" as BidangStruktural,
+          saran_penerima: getOfficerName("sarpras", "Akhmad Khoiron, Lc (Kasubag Sarpras)"),
+          confidence_score: 95,
+          key_points: [
+            "Bantuan 1 Rack Server Mini & Bandwidth Dedicated",
+            "Diperuntukkan mendukung Lab Kejuruan TJKT & RPL",
+            "Perlu persiapan ruang server steril",
+          ],
+        },
+      },
+    ];
+  }, [users]);
+
   const [selectedPresetIndex, setSelectedPresetIndex] = useState(0);
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanCompleted, setScanCompleted] = useState(false);
-  const [activeData, setActiveData] = useState<ExtractedData>(SAMPLE_SCAN_PRESETS[0].data);
+  const [activeData, setActiveData] = useState<ExtractedData>(dynamicPresets[0].data);
 
   if (!isOpen) return null;
 
   const handleStartScan = (presetIdx: number) => {
     setSelectedPresetIndex(presetIdx);
-    setActiveData(SAMPLE_SCAN_PRESETS[presetIdx].data);
+    setActiveData(dynamicPresets[presetIdx].data);
     setIsScanning(true);
     setScanProgress(10);
     setScanCompleted(false);
@@ -165,7 +171,7 @@ export const AiExtractionModal: React.FC<AiExtractionModalProps> = ({
               Pilih Contoh Berkas Masuk untuk Disimulasikan:
             </label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              {SAMPLE_SCAN_PRESETS.map((preset, idx) => (
+              {dynamicPresets.map((preset, idx) => (
                 <button
                   key={idx}
                   type="button"

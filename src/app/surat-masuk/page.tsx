@@ -29,11 +29,15 @@ export default function SuratMasukPage() {
   const [filterUrgensi, setFilterUrgensi] = useState<string>("semua");
   const [filterStatus, setFilterStatus] = useState<string>("semua");
 
-  const filteredSurat = suratMasuk.filter((item) => {
+  const filteredSurat = (suratMasuk || []).filter((item) => {
+    const nomor = item.nomor_surat || "";
+    const pengirim = item.pengirim || "";
+    const perihal = item.perihal || "";
+
     const matchSearch =
-      item.nomor_surat.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.pengirim.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.perihal.toLowerCase().includes(searchTerm.toLowerCase());
+      nomor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pengirim.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      perihal.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchUrgensi =
       filterUrgensi === "semua" ? true : item.tingkat_urgensi === filterUrgensi;
@@ -133,7 +137,16 @@ export default function SuratMasukPage() {
         ) : (
           filteredSurat.map((surat) => {
             const badgeUrgensi = getUrgensiBadge(surat.tingkat_urgensi);
-            const activeDisp = disposisi.filter((d) => d.surat_masuk_id === surat.id);
+            const activeDisp = (disposisi || []).filter((d) => d.surat_masuk_id === surat.id);
+            const myDisp = activeDisp.find(
+              (d) =>
+                d.penerima_id === currentUser.id ||
+                (d.penerima_nama && currentUser.name && d.penerima_nama.toLowerCase().includes(currentUser.name.toLowerCase())) ||
+                (currentUser.name && currentUser.name.toLowerCase().includes("nasih") && d.catatan && d.catatan.toLowerCase().includes("nasih"))
+            );
+            const ai = typeof surat.ai_analysis === "string"
+              ? (() => { try { return JSON.parse(surat.ai_analysis); } catch { return null; } })()
+              : surat.ai_analysis;
 
             return (
               <div
@@ -148,28 +161,35 @@ export default function SuratMasukPage() {
                     >
                       {badgeUrgensi.label}
                     </span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        surat.status_disposisi === "sudah_disposisi"
-                          ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                          : "bg-amber-100 text-amber-800 border border-amber-200"
-                      }`}
-                    >
-                      {surat.status_disposisi === "sudah_disposisi"
-                        ? "Sudah Didisposisi"
-                        : "Belum Didisposisi"}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {myDisp && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          🎯 Disposisi Anda
+                        </span>
+                      )}
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          surat.status_disposisi === "sudah_disposisi"
+                            ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                            : "bg-amber-100 text-amber-800 border border-amber-200"
+                        }`}
+                      >
+                        {surat.status_disposisi === "sudah_disposisi"
+                          ? "Sudah Didisposisi"
+                          : "Belum Didisposisi"}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Pengirim & No Surat */}
                   <div className="font-mono text-[11px] font-bold text-brand-900 bg-brand-50/80 px-2 py-0.5 rounded border border-brand-200 inline-block mb-1.5">
-                    {surat.nomor_surat}
+                    {surat.nomor_surat || "No. Surat -"}
                   </div>
                   <h3 className="text-xs font-extrabold text-gray-900 line-clamp-2 leading-snug">
-                    {surat.perihal}
+                    {surat.perihal || "Tanpa Perihal"}
                   </h3>
                   <p className="text-[11px] text-gray-600 font-medium mt-1">
-                    Dari: <strong className="text-gray-900">{surat.pengirim}</strong>
+                    Dari: <strong className="text-gray-900">{surat.pengirim || "-"}</strong>
                   </p>
 
                   {/* AI Summary snippet */}
@@ -178,14 +198,14 @@ export default function SuratMasukPage() {
                       <Sparkles className="w-3 h-3 text-gold-600" />
                       Ringkasan AI:
                     </span>
-                    {surat.ringkasan}
+                    {surat.ringkasan || "Tidak ada ringkasan teks."}
                   </div>
 
                   {/* Recommendation pill */}
-                  {surat.ai_analysis && (
+                  {ai && (
                     <div className="mt-2.5 flex items-center gap-1.5 text-[10px] text-gray-500">
                       <span className="bg-amber-100 text-amber-900 font-semibold px-1.5 py-0.2 rounded">
-                        Saran Disposisi: Bidang {surat.ai_analysis.saran_bidang}
+                        Saran Disposisi: Bidang {(ai.saran_bidang || "").toUpperCase()}
                       </span>
                     </div>
                   )}

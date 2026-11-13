@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from "./supabaseClient";
+import { INITIAL_USERS } from "./seedData";
 import {
   SuratKeluar,
   SuratMasuk,
@@ -122,38 +123,42 @@ export function mapDisposisiToDb(item: Disposisi) {
   return {
     id: item.id,
     surat_masuk_id: item.surat_masuk_id,
-    pemberi_disposisi_id: item.pemberi_disposisi_id === "user-kepsek" ? "user-kepsek" : null,
-    penerima_id: item.penerima_id === "user-kepsek" ? "user-kepsek" : null,
+    pemberi_disposisi_id: item.pemberi_disposisi_id || "user-kepsek",
+    penerima_id: item.penerima_id || null,
     sifat: item.sifat || "biasa",
-    instruksi: item.instruksi,
+    instruksi: item.instruksi || "Tindak lanjuti segera dan laporkan perkembangannya.",
     catatan: item.catatan || null,
-    deadline: item.deadline,
-    status: item.status,
+    deadline: item.deadline || new Date().toISOString().split("T")[0],
+    status: item.status || "menunggu",
     tanggapan: item.tanggapan || null,
     tanggal_selesai: item.tanggal_selesai || null,
+    whatsapp_sent: Boolean(item.whatsapp_sent),
     created_at: item.created_at || new Date().toISOString(),
   };
 }
 
 export function mapDbToDisposisi(row: any): Disposisi {
+  const targetUser = INITIAL_USERS.find((u) => u.id === row.penerima_id);
+  const senderUser = INITIAL_USERS.find((u) => u.id === row.pemberi_disposisi_id || u.id === row.pemberi_id);
+
   return {
     id: row.id,
     surat_masuk_id: row.surat_masuk_id,
-    pemberi_disposisi_id: row.pemberi_id || row.pemberi_disposisi_id || "",
-    pemberi_nama: row.pemberi_nama || "",
-    penerima_id: row.penerima_id,
-    penerima_nama: row.penerima_nama,
-    penerima_role: row.penerima_role || "guru",
-    penerima_bidang: row.penerima_bidang,
+    pemberi_disposisi_id: row.pemberi_id || row.pemberi_disposisi_id || "user-kepsek",
+    pemberi_nama: row.pemberi_nama || (senderUser ? `${senderUser.name} (${senderUser.jabatan})` : "Mokhamat Ekhsan, S.Kom (Kepala Sekolah)"),
+    penerima_id: row.penerima_id || "",
+    penerima_nama: row.penerima_nama || (targetUser ? targetUser.name : "Staf / Guru"),
+    penerima_role: row.penerima_role || (targetUser ? targetUser.role : "guru"),
+    penerima_bidang: row.penerima_bidang || (targetUser ? targetUser.bidang : undefined),
     sifat: row.sifat || "biasa",
-    instruksi: row.instruksi,
-    catatan: row.catatan,
-    deadline: row.deadline,
+    instruksi: row.instruksi || "Tindak lanjuti segera dan laporkan perkembangannya.",
+    catatan: row.catatan || "",
+    deadline: row.deadline || new Date().toISOString().split("T")[0],
     status: row.status || "menunggu",
-    tanggapan: row.tanggapan,
+    tanggapan: row.tanggapan || "",
     tanggal_selesai: row.tanggal_selesai,
     whatsapp_sent: Boolean(row.whatsapp_sent),
-    created_at: row.created_at,
+    created_at: row.created_at || new Date().toISOString(),
   };
 }
 

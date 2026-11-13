@@ -84,9 +84,15 @@ export default function UploadSuratMasukPage() {
         setRingkasan(data.ringkasan || "");
         setTingkatUrgensi(data.tingkat_urgensi || "penting");
 
+        const detectedBidang = data.saran_bidang || "kurikulum";
+        const matchedOfficer = users.find((u) => u.bidang === detectedBidang);
+        const resolvedPenerima = matchedOfficer
+          ? `${matchedOfficer.name} (${matchedOfficer.jabatan || "Kasubag " + detectedBidang})`
+          : data.saran_penerima;
+
         setAiAnalysis({
-          saran_bidang: data.saran_bidang,
-          saran_penerima: data.saran_penerima,
+          saran_bidang: detectedBidang,
+          saran_penerima: resolvedPenerima,
           confidence_score: data.confidence_score,
           key_points: data.key_points || [],
           action_deadline_suggestion: data.action_deadline_suggestion || "",
@@ -107,6 +113,11 @@ export default function UploadSuratMasukPage() {
         detectedSender = "Balai Besar Penjaminan Mutu Pendidikan Vokasi (BBPPMPV) Jawa Timur";
       }
 
+      const matchedKurikulum = users.find((u) => u.bidang === "kurikulum");
+      const kurikulumOfficer = matchedKurikulum
+        ? `${matchedKurikulum.name} (${matchedKurikulum.jabatan || "Kasubag Kurikulum"})`
+        : "Moh. Nasih Aminulloh, S.Mat, M.Si (Kasubag Kurikulum)";
+
       setNomorSurat("005/4821/101.3/2026");
       setPengirim(detectedSender);
       setPerihal(detectedPerihal);
@@ -116,7 +127,7 @@ export default function UploadSuratMasukPage() {
       setTingkatUrgensi("segera");
       setAiAnalysis({
         saran_bidang: "kurikulum",
-        saran_penerima: "M. Ridwan, S.T., M.Kom. (Kasubag Kurikulum & Akademik)",
+        saran_penerima: kurikulumOfficer,
         confidence_score: 94,
         key_points: [
           `Agenda: ${detectedPerihal}`,

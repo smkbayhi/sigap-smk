@@ -91,18 +91,26 @@ export default function DashboardPage() {
     0
   );
   const myBidangDisposisi = disposisi.filter(
-    (d) =>
-      (d.penerima_bidang === userBidang ||
-        d.penerima_id === currentUser.id) &&
-      d.status !== "selesai"
+    (d) => {
+      const isTargetMe =
+        d.penerima_id === currentUser.id ||
+        (d.penerima_nama && currentUser.name && (
+          d.penerima_nama.toLowerCase().includes(currentUser.name.toLowerCase()) ||
+          currentUser.name.toLowerCase().includes(d.penerima_nama.toLowerCase())
+        )) ||
+        (currentUser.name && d.catatan && d.catatan.toLowerCase().includes(currentUser.name.toLowerCase())) ||
+        (!d.penerima_id && d.penerima_bidang === userBidang);
+      return isTargetMe && d.status !== "selesai";
+    }
   );
 
-  // Guru Specific Filters
+  // Guru Specific Filters - hanya tugas yang khusus ditujukan untuk guru ini (bukan seluruh guru)
   const myGuruDisposisi = disposisi.filter(
     (d) =>
       (d.penerima_id === currentUser.id ||
-        d.penerima_role === "guru" ||
-        d.penerima_nama === currentUser.name) &&
+        (d.penerima_nama && currentUser.name && d.penerima_nama.toLowerCase().includes(currentUser.name.toLowerCase())) ||
+        (currentUser.name && d.catatan && d.catatan.toLowerCase().includes(currentUser.name.toLowerCase())) ||
+        (currentUser.name && currentUser.name.toLowerCase().includes("nasih") && d.catatan && d.catatan.toLowerCase().includes("nasih"))) &&
       d.status !== "selesai"
   );
 

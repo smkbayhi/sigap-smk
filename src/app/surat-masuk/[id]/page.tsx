@@ -25,8 +25,12 @@ import {
   AlertCircle,
   PlusCircle,
   UploadCloud,
+  Info,
+  Clock3,
+  Check,
+  MessageSquare,
 } from "lucide-react";
-import { TingkatUrgensi, UserRole } from "@/lib/database.types";
+import { TingkatUrgensi, UserRole, StatusDisposisi } from "@/lib/database.types";
 
 export default function SuratMasukDetailPage() {
   const params = useParams();
@@ -34,13 +38,15 @@ export default function SuratMasukDetailPage() {
   const id = String(params.id);
 
   const { users, currentUser, isKepsek, isTU } = useAuth();
-  const { suratMasuk, disposisi, createDisposisi, updateSuratMasuk } = useAppData();
+  const { suratMasuk, disposisi, createDisposisi, updateSuratMasuk, updateDisposisiStatus } = useAppData();
+
+  const isManagement = isKepsek || isTU;
 
   const surat = suratMasuk.find((s) => s.id === id);
 
   // New disposition form state
   const [selectedPenerimaId, setSelectedPenerimaId] = useState(
-    users.find((u) => u.role === "kasubag")?.id || users[0].id
+    users.find((u) => u.role === "kasubag")?.id || users[0]?.id || ""
   );
   const [sifatDisposisi, setSifatDisposisi] = useState<TingkatUrgensi>("biasa");
   const [instruksi, setInstruksi] = useState("Tindak lanjuti segera dan laporkan perkembangannya.");
@@ -51,6 +57,10 @@ export default function SuratMasukDetailPage() {
   const [showAddDispForm, setShowAddDispForm] = useState(false);
   const [showInlineViewer, setShowInlineViewer] = useState(true);
   const [isUploadingReplacement, setIsUploadingReplacement] = useState(false);
+
+  // Quick reply & status updates by teacher
+  const [tanggapanText, setTanggapanText] = useState<{ [dispId: string]: string }>({});
+  const [savedSuccessId, setSavedSuccessId] = useState<string | null>(null);
 
   const handleUploadReplacement = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!surat || !e.target.files || !e.target.files[0]) return;
@@ -100,6 +110,75 @@ export default function SuratMasukDetailPage() {
 
   const urgensiBadge = getUrgensiBadge(surat.tingkat_urgensi);
   const existingDisposisi = disposisi.filter((d) => d.surat_masuk_id === surat.id);
+
+  // Safe AI analysis parsing
+  const aiAnalysis = React.useMemo(() => {
+    if (!surat?.ai_analysis) return null;
+    if (typeof surat.ai_analysis === "string") {
+      try {
+        return JSON.parse(surat.ai_analysis);
+      } catch {
+        return null;
+      }
+    }
+    return surat.ai_analysis;
+  }, [surat?.ai_analysis]);
+
+  // Dynamically resolve PIC name from current structural users
+  const resolvedPicName = React.useMemo(() => {
+    if (!aiAnalysis) return "-";
+    if (aiAnalysis.saran_bidang) {
+      const matchedUser = users.find((u) => u.bidang && u.bidang === aiAnalysis.saran_bidang);
+      if (matchedUser) {
+        return `${matchedUser.name} (${matchedUser.jabatan || "Kasubag " + getBidangLabel(aiAnalysis.saran_bidang)})`;
+      }
+    }
+    const rawPenerima = aiAnalysis.saran_penerima || "";
+    if (rawPenerima.includes("Ridwan")) {
+      const kur = users.find((u) => u.bidang === "kurikulum");
+      if (kur) return `${kur.name} (${kur.jabatan || "Kasubag Kurikulum"})`;
+    }
+    if (rawPenerima.includes("Farhan")) {
+      const kes = users.find((u) => u.bidang === "kesiswaan");
+      if (kes) return `${kes.name} (${kes.jabatan || "Kasubag Kesiswaan"})`;
+    }
+    if (rawPenerima.includes("Bambang")) {
+      const sar = users.find((u) => u.bidang === "sarpras");
+      if (sar) return `${sar.name} (${sar.jabatan || "Kasubag Sarpras"})`;
+    }
+    if (rawPenerima.includes("Nabila")) {
+      const hum = users.find((u) => u.bidang === "humas_bkk");
+      if (hum) return `${hum.name} (${hum.jabatan || "Kasubag Humas & BKK"})`;
+    }
+    return rawPenerima || "Staf Terkait";
+  }, [aiAnalysis, users]);
+
+  // Disposisi assigned specifically to this teacher
+  const myAssignedDisposisi = React.useMemo(() => {
+    return existingDisposisi.filter((d) => {
+      const isMatchId = d.penerima_id === currentUser.id;
+      const isMatchName = d.penerima_nama && currentUser.name && (
+        d.penerima_nama.toLowerCase().includes(currentUser.name.toLowerCase()) ||
+        currentUser.name.toLowerCase().includes(d.penerima_nama.toLowerCase())
+      );
+      const isMentioned = d.catatan && currentUser.name && d.catatan.toLowerCase().includes(currentUser.name.toLowerCase());
+      return isMatchId || isMatchName || isMentioned;
+    });
+  }, [existingDisposisi, currentUser]);
+
+  const handleUpdateStatus = (dispId: string, newStatus: StatusDisposisi, existingNote?: string) => {
+    updateDisposisiStatus(dispId, newStatus, existingNote);
+    setSavedSuccessId(dispId);
+    setTimeout(() => setSavedSuccessId(null), 2000);
+  };
+
+  const handleSaveTanggapan = (dispId: string, currentStatus: StatusDisposisi) => {
+    const text = tanggapanText[dispId] || "";
+    if (!text.trim()) return;
+    updateDisposisiStatus(dispId, currentStatus, text.trim());
+    setSavedSuccessId(dispId);
+    setTimeout(() => setSavedSuccessId(null), 2000);
+  };
 
   const handleCreateDisposisi = (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,18 +307,20 @@ export default function SuratMasukDetailPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* Upload / Ganti file PDF button */}
-                  <label
-                    htmlFor="replacement-file"
-                    className="cursor-pointer px-3 py-1.5 bg-gold-500 hover:bg-gold-600 text-gray-950 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-xs"
-                  >
-                    <UploadCloud className="w-3.5 h-3.5" />
-                    {isUploadingReplacement
-                      ? "Menyimpan..."
-                      : surat.file_url && !surat.file_url.includes("unsplash.com")
-                      ? "Ganti Berkas PDF"
-                      : "Pilih File PDF Asli"}
-                  </label>
+                  {/* Upload / Ganti file PDF button (Hanya untuk Pimpinan & TU) */}
+                  {(isKepsek || isTU) && (
+                    <label
+                      htmlFor="replacement-file"
+                      className="cursor-pointer px-3 py-1.5 bg-gold-500 hover:bg-gold-600 text-gray-950 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      {isUploadingReplacement
+                        ? "Menyimpan..."
+                        : surat.file_url && !surat.file_url.includes("unsplash.com")
+                        ? "Ganti Berkas PDF"
+                        : "Pilih File PDF Asli"}
+                    </label>
+                  )}
 
                   <button
                     type="button"
@@ -461,121 +542,316 @@ export default function SuratMasukDetailPage() {
             </div>
           )}
 
-          {/* List of Existing Dispositions for this Letter */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900">
-                Riwayat Lembar Disposisi ({existingDisposisi.length})
-              </h3>
-              <span className="text-[11px] text-gray-400">
-                Pelacakan tindak lanjut staf
-              </span>
+          {/* Disposisi Section: Distinct tailored view for Management vs Teacher */}
+          {isManagement ? (
+            /* Manager's View: All dispositions list & coordination tools */
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h3 className="text-sm font-bold text-gray-900">
+                  Riwayat Lembar Disposisi ({existingDisposisi.length})
+                </h3>
+                <span className="text-[11px] text-gray-400">
+                  Pelacakan tindak lanjut staf
+                </span>
+              </div>
+
+              {existingDisposisi.length === 0 ? (
+                <p className="text-xs text-gray-400 py-4 text-center">
+                  Belum ada disposisi yang diterbitkan untuk surat masuk ini.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {existingDisposisi.map((disp) => {
+                    const targetUser = users.find((u) => u.id === disp.penerima_id);
+                    const waUrl = createWhatsAppDispositionLink({
+                      phone: targetUser?.phone || "6281234567890",
+                      penerimaNama: disp.penerima_nama,
+                      nomorSurat: surat.nomor_surat,
+                      pengirim: surat.pengirim,
+                      perihal: surat.perihal,
+                      instruksi: disp.instruksi,
+                      catatan: disp.catatan,
+                      deadline: disp.deadline,
+                      disposisiId: disp.id,
+                    });
+
+                    return (
+                      <div
+                        key={disp.id}
+                        className="p-4 rounded-xl border border-gray-200 hover:border-brand-300 bg-slate-50/50 space-y-2.5 text-xs"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div>
+                            <span className="text-gray-500">Penerima Disposisi:</span>{" "}
+                            <strong className="text-gray-900">{disp.penerima_nama}</strong>
+                            {disp.penerima_bidang && (
+                              <span className="ml-1 text-[10px] bg-brand-100 text-brand-800 px-1.5 py-0.2 rounded capitalize">
+                                {disp.penerima_bidang}
+                              </span>
+                            )}
+                          </div>
+
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              disp.status === "selesai"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : disp.status === "proses"
+                                ? "bg-sky-100 text-sky-800"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {disp.status === "selesai"
+                              ? "Selesai"
+                              : disp.status === "proses"
+                              ? "Sedang Diproses"
+                              : "Menunggu"}
+                          </span>
+                        </div>
+
+                        <div className="bg-white p-3 rounded-lg border border-gray-200">
+                          <p className="font-semibold text-gray-900">
+                            Instruksi: "{disp.instruksi}"
+                          </p>
+                          {disp.catatan && (
+                            <p className="text-gray-600 mt-1 italic">
+                              Catatan: {disp.catatan}
+                            </p>
+                          )}
+                          <p className="text-[11px] text-rose-700 font-bold mt-1">
+                            Deadline: {formatIndonesianDate(disp.deadline)}
+                          </p>
+                        </div>
+
+                        {disp.tanggapan && (
+                          <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-950">
+                            <strong>Tanggapan Penerima:</strong> {disp.tanggapan}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-[10px] text-gray-400">
+                            Diberikan oleh: {disp.pemberi_nama}
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            {/* WhatsApp Trigger Button */}
+                            <a
+                              href={waUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors shadow-xs"
+                            >
+                              <Send className="w-3 h-3" />
+                              Kirim ke WhatsApp
+                            </a>
+
+                            <Link
+                              href={`/disposisi/${disp.id}`}
+                              className="px-3 py-1 bg-brand-50 hover:bg-brand-100 text-brand-800 rounded-lg text-[11px] font-semibold border border-brand-200"
+                            >
+                              Detail & Tindak Lanjut
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
+          ) : (
+            /* Teacher's View: Only shows tasks assigned to this specific teacher with interactive actions */
+            <div>
+              {myAssignedDisposisi.length > 0 ? (
+                <div className="bg-white rounded-2xl border-2 border-brand-500 p-6 shadow-md space-y-5">
+                  <div className="flex flex-wrap items-center justify-between pb-3 border-b border-gray-100 gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-200 text-brand-700 flex items-center justify-center font-bold text-sm">
+                        🎯
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900">
+                          Lembar Penugasan Disposisi Untuk Anda
+                        </h3>
+                        <p className="text-[11px] text-gray-500">
+                          Instruksi resmi tindak lanjut dari Kepala Sekolah / Pimpinan
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold bg-brand-100 text-brand-800 px-2.5 py-0.5 rounded-full border border-brand-200">
+                      {myAssignedDisposisi.length} Tugas Diberikan
+                    </span>
+                  </div>
 
-            {existingDisposisi.length === 0 ? (
-              <p className="text-xs text-gray-400 py-4 text-center">
-                Belum ada disposisi yang diterbitkan untuk surat masuk ini.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {existingDisposisi.map((disp) => {
-                  const targetUser = users.find((u) => u.id === disp.penerima_id);
-                  const waUrl = createWhatsAppDispositionLink({
-                    phone: targetUser?.phone || "6281234567890",
-                    penerimaNama: disp.penerima_nama,
-                    nomorSurat: surat.nomor_surat,
-                    pengirim: surat.pengirim,
-                    perihal: surat.perihal,
-                    instruksi: disp.instruksi,
-                    catatan: disp.catatan,
-                    deadline: disp.deadline,
-                    disposisiId: disp.id,
-                  });
+                  {myAssignedDisposisi.map((disp) => {
+                    const senderUser =
+                      users.find((u) => u.id === disp.pemberi_disposisi_id) ||
+                      users.find((u) => u.role === "kepala_sekolah");
+                    const senderPhone = senderUser?.phone || "6281234567890";
+                    const replyWaUrl = `https://wa.me/${senderPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                      `Assalamu'alaikum Wr. Wb. Bapak/Ibu Pimpinan,\n\nSaya *${currentUser.name}* mengonfirmasi penerimaan tugas disposisi terkait:\n*Surat:* ${surat.nomor_surat}\n*Perihal:* ${surat.perihal}\n*Instruksi:* ${disp.instruksi}\n*Status Progres:* ${
+                        disp.status === "selesai"
+                          ? "SELESAI"
+                          : disp.status === "proses"
+                          ? "SEDANG DIPROSES"
+                          : "MENUNGGU"
+                      }\n\nTerima kasih.`
+                    )}`;
 
-                  return (
-                    <div
-                      key={disp.id}
-                      className="p-4 rounded-xl border border-gray-200 hover:border-brand-300 bg-slate-50/50 space-y-2.5 text-xs"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div>
-                          <span className="text-gray-500">Penerima Disposisi:</span>{" "}
-                          <strong className="text-gray-900">{disp.penerima_nama}</strong>
-                          {disp.penerima_bidang && (
-                            <span className="ml-1 text-[10px] bg-brand-100 text-brand-800 px-1.5 py-0.2 rounded capitalize">
-                              {disp.penerima_bidang}
+                    return (
+                      <div
+                        key={disp.id}
+                        className="p-4 rounded-xl border border-brand-200 bg-brand-50/20 space-y-4 text-xs"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-brand-100">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500 text-[11px]">Sifat Disposisi:</span>
+                            <span className="px-2 py-0.5 rounded font-bold text-[10px] uppercase bg-amber-100 text-amber-800 border border-amber-200">
+                              {disp.sifat || "Biasa"}
                             </span>
+                          </div>
+                          <span
+                            className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                              disp.status === "selesai"
+                                ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                : disp.status === "proses"
+                                ? "bg-sky-100 text-sky-800 border border-sky-300"
+                                : "bg-amber-100 text-amber-800 border border-amber-300"
+                            }`}
+                          >
+                            {disp.status === "selesai"
+                              ? "✓ Selesai"
+                              : disp.status === "proses"
+                              ? "⏳ Sedang Diproses"
+                              : "○ Menunggu Tindak Lanjut"}
+                          </span>
+                        </div>
+
+                        {/* Instruksi Card */}
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs space-y-2">
+                          <div className="text-[11px] text-gray-500 flex items-center justify-between">
+                            <span>
+                              Diberikan oleh: <strong className="text-gray-900">{disp.pemberi_nama}</strong>
+                            </span>
+                            <span className="text-rose-700 font-bold">
+                              Tenggat: {formatIndonesianDate(disp.deadline)}
+                            </span>
+                          </div>
+                          <div className="p-3 bg-slate-50 border-l-4 border-brand-600 rounded-r-lg">
+                            <span className="block text-[10px] font-bold uppercase text-brand-800 mb-0.5">
+                              Instruksi Pimpinan:
+                            </span>
+                            <p className="font-semibold text-gray-900 text-[12px] leading-relaxed">
+                              "{disp.instruksi}"
+                            </p>
+                          </div>
+                          {disp.catatan && (
+                            <p className="text-gray-600 text-[11px] italic bg-amber-50/70 p-2 rounded border border-amber-100">
+                              <strong>Catatan Tambahan:</strong> {disp.catatan}
+                            </p>
                           )}
                         </div>
 
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            disp.status === "selesai"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : disp.status === "proses"
-                              ? "bg-sky-100 text-sky-800"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
-                          {disp.status === "selesai"
-                            ? "Selesai"
-                            : disp.status === "proses"
-                            ? "Sedang Diproses"
-                            : "Menunggu"}
-                        </span>
-                      </div>
-
-                      <div className="bg-white p-3 rounded-lg border border-gray-200">
-                        <p className="font-semibold text-gray-900">
-                          Instruksi: "{disp.instruksi}"
-                        </p>
-                        {disp.catatan && (
-                          <p className="text-gray-600 mt-1 italic">
-                            Catatan: {disp.catatan}
-                          </p>
+                        {/* Existing Tanggapan if any */}
+                        {disp.tanggapan && (
+                          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-950 space-y-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-800 block">
+                              Laporan / Tanggapan Anda yang Telah Tersimpan:
+                            </span>
+                            <p className="text-xs leading-relaxed">{disp.tanggapan}</p>
+                          </div>
                         )}
-                        <p className="text-[11px] text-rose-700 font-bold mt-1">
-                          Deadline: {formatIndonesianDate(disp.deadline)}
-                        </p>
-                      </div>
 
-                      {disp.tanggapan && (
-                        <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-950">
-                          <strong>Tanggapan Penerima:</strong> {disp.tanggapan}
+                        {/* Quick Action Panel for Teacher */}
+                        <div className="space-y-2.5 pt-1">
+                          <span className="block text-[11px] font-bold text-gray-700">
+                            Update Status & Laporkan Progres Anda:
+                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateStatus(disp.id, "proses", disp.tanggapan)}
+                              className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition-colors flex items-center gap-1.5 ${
+                                disp.status === "proses"
+                                  ? "bg-sky-600 text-white shadow-xs"
+                                  : "bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200"
+                              }`}
+                            >
+                              <Clock3 className="w-3.5 h-3.5" />
+                              Tandai Sedang Diproses
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateStatus(disp.id, "selesai", disp.tanggapan)}
+                              className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition-colors flex items-center gap-1.5 ${
+                                disp.status === "selesai"
+                                  ? "bg-emerald-600 text-white shadow-xs"
+                                  : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                              }`}
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              Tandai Selesai
+                            </button>
+                            <a
+                              href={replyWaUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] transition-colors flex items-center gap-1.5 shadow-xs ml-auto"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              Konfirmasi WhatsApp ke Pimpinan
+                            </a>
+                          </div>
+
+                          {/* Tanggapan input */}
+                          <div className="mt-3 flex gap-2">
+                            <input
+                              type="text"
+                              value={tanggapanText[disp.id] ?? (disp.tanggapan || "")}
+                              onChange={(e) =>
+                                setTanggapanText((prev) => ({ ...prev, [disp.id]: e.target.value }))
+                              }
+                              placeholder="Tuliskan catatan tindak lanjut atau laporan singkat hasil pelaksanaan..."
+                              className="flex-1 px-3 py-2 text-xs border border-gray-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSaveTanggapan(disp.id, disp.status)}
+                              className="px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              Simpan Laporan
+                            </button>
+                          </div>
+                          {savedSuccessId === disp.id && (
+                            <p className="text-[11px] text-emerald-700 font-bold flex items-center gap-1 animate-in fade-in">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Laporan / status tindak lanjut berhasil diperbarui ke sistem!
+                            </p>
+                          )}
                         </div>
-                      )}
-
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-[10px] text-gray-400">
-                          Diberikan oleh: {disp.pemberi_nama}
-                        </span>
-
-                        <div className="flex items-center gap-2">
-                          {/* WhatsApp Trigger Button */}
-                          <a
-                            href={waUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors shadow-xs"
-                          >
-                            <Send className="w-3 h-3" />
-                            Kirim ke WhatsApp
-                          </a>
-
-                          <Link
-                            href={`/disposisi/${disp.id}`}
-                            className="px-3 py-1 bg-brand-50 hover:bg-brand-100 text-brand-800 rounded-lg text-[11px] font-semibold border border-brand-200"
-                          >
-                            Detail & Tindak Lanjut
-                          </Link>
-                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2 text-brand-800 font-bold text-sm">
+                    <Info className="w-4 h-4 text-brand-700" />
+                    <span>Status Lembar Disposisi Surat</span>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-gray-600 leading-relaxed space-y-1">
+                    <p className="font-semibold text-gray-900">
+                      Mode Akses Baca Dokumen (Informasi Kedinasan)
+                    </p>
+                    <p>
+                      Anda membuka arsip surat ini dalam mode referensi informasi. Dokumen ini tidak dibebankan sebagai lembar penugasan disposisi khusus kepada akun Anda.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Column: AI Insights & Recommendation Widget */}
@@ -589,38 +865,40 @@ export default function SuratMasukDetailPage() {
               </h3>
             </div>
 
-            {surat.ai_analysis ? (
+            {aiAnalysis ? (
               <div className="space-y-3.5 text-xs">
                 <div>
                   <span className="text-emerald-200 block text-[11px]">
                     Rekomendasi Delegasi Bidang:
                   </span>
                   <p className="font-bold text-gold-300 text-sm mt-0.5">
-                    Bidang {getBidangLabel(surat.ai_analysis.saran_bidang)}
+                    Bidang {getBidangLabel(aiAnalysis.saran_bidang)}
                   </p>
-                  <p className="text-[11px] text-emerald-100/80">
-                    PIC yang disarankan: {surat.ai_analysis.saran_penerima}
+                  <p className="text-[11px] text-emerald-100/90 font-medium">
+                    PIC yang disarankan: <strong className="text-white">{resolvedPicName}</strong>
                   </p>
                 </div>
 
-                <div className="pt-2 border-t border-emerald-700/50">
-                  <span className="text-emerald-200 block text-[11px] mb-1">
-                    Poin Kunci Dokumen:
-                  </span>
-                  <ul className="space-y-1">
-                    {surat.ai_analysis.key_points.map((pt, i) => (
-                      <li key={i} className="flex items-start gap-1.5 text-emerald-50 text-[11px]">
-                        <span className="text-gold-400 font-bold">•</span>
-                        <span>{pt}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {Array.isArray(aiAnalysis.key_points) && aiAnalysis.key_points.length > 0 && (
+                  <div className="pt-2 border-t border-emerald-700/50">
+                    <span className="text-emerald-200 block text-[11px] mb-1">
+                      Poin Kunci Dokumen:
+                    </span>
+                    <ul className="space-y-1">
+                      {aiAnalysis.key_points.map((pt: string, i: number) => (
+                        <li key={i} className="flex items-start gap-1.5 text-emerald-50 text-[11px]">
+                          <span className="text-gold-400 font-bold">•</span>
+                          <span>{pt}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 <div className="pt-2 border-t border-emerald-700/50 flex justify-between items-center text-[11px]">
                   <span className="text-emerald-200">Akurasi Ekstraksi:</span>
                   <strong className="text-gold-300 font-mono">
-                    {surat.ai_analysis.confidence_score}%
+                    {aiAnalysis.confidence_score}%
                   </strong>
                 </div>
               </div>

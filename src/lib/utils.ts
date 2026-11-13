@@ -190,37 +190,41 @@ export function createWhatsAppDispositionLink({
   disposisiId,
   baseUrl,
 }: {
-  phone: string;
-  penerimaNama: string;
-  nomorSurat: string;
-  pengirim: string;
-  perihal: string;
-  instruksi: string;
+  phone?: string;
+  penerimaNama?: string;
+  nomorSurat?: string;
+  pengirim?: string;
+  perihal?: string;
+  instruksi?: string;
   catatan?: string;
-  deadline: string;
-  disposisiId: string;
+  deadline?: string;
+  disposisiId?: string;
   baseUrl?: string;
 }): string {
   // Normalize Indonesian phone: 0812... -> 62812...
-  let cleanPhone = phone.replace(/\D/g, "");
+  let rawPhone = phone || "";
+  let cleanPhone = rawPhone.replace(/\D/g, "");
   if (cleanPhone.startsWith("0")) {
     cleanPhone = "62" + cleanPhone.slice(1);
   }
+  if (!cleanPhone) {
+    cleanPhone = "6285646682246";
+  }
 
   const host = baseUrl || (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
-  const magicLink = `${host}/disposisi/${disposisiId}`;
+  const magicLink = `${host}/disposisi/${disposisiId || ""}`;
 
   const message = `*🔔 NOTIFIKASI DISPOSISI SURAT - SIGAP SMK BAYT AL-HIKMAH*
 ----------------------------------------
-Kepada Yth. *${penerimaNama}*,
+Kepada Yth. *${penerimaNama || "Bapak/Ibu Guru"}*,
 
 Anda telah menerima disposisi surat dinas dengan rincian berikut:
 
-📄 *No. Surat:* ${nomorSurat}
-🏢 *Pengirim:* ${pengirim}
-📌 *Perihal:* ${perihal}
-🎯 *Instruksi Kepala Sekolah:* ${instruksi}
-${catatan ? `📝 *Catatan Khusus:* ${catatan}\n` : ""}⏳ *Batas Waktu (Deadline):* ${formatIndonesianDate(deadline)}
+📄 *No. Surat:* ${nomorSurat || "-"}
+🏢 *Pengirim:* ${pengirim || "-"}
+📌 *Perihal:* ${perihal || "-"}
+🎯 *Instruksi Kepala Sekolah:* ${instruksi || "-"}
+${catatan ? `📝 *Catatan Khusus:* ${catatan}\n` : ""}⏳ *Batas Waktu (Deadline):* ${deadline ? formatIndonesianDate(deadline) : "-"}
 
 Silakan klik tautan di bawah ini untuk membuka detail surat dan memperbarui status tindak lanjut:
 🔗 *Tautan Surat / Disposisi:*

@@ -32,7 +32,8 @@ export default function DisposisiPage() {
   const { currentUser, users, isKepsek, isTU } = useAuth();
   const { disposisi, suratMasuk, updateDisposisi, updateDisposisiStatus, deleteDisposisi, addToast } = useAppData();
 
-  const [tabFilter, setTabFilter] = useState<"semua" | "saya">("semua");
+  const isManagement = isKepsek || isTU;
+  const [tabFilter, setTabFilter] = useState<"semua" | "saya">(isManagement ? "semua" : "saya");
   const [statusFilter, setStatusFilter] = useState<string>("semua");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -85,9 +86,17 @@ export default function DisposisiPage() {
   const filteredDisposisi = disposisi.filter((disp) => {
     const surat = suratMasuk.find((s) => s.id === disp.surat_masuk_id);
 
-    // Tab filter: all vs assigned to me
-    if (tabFilter === "saya" && disp.penerima_id !== currentUser.id) {
-      return false;
+    const isTargetMe =
+      disp.penerima_id === currentUser.id ||
+      (disp.penerima_nama && currentUser.name && disp.penerima_nama.toLowerCase().includes(currentUser.name.toLowerCase())) ||
+      (currentUser.name && disp.catatan && disp.catatan.toLowerCase().includes(currentUser.name.toLowerCase())) ||
+      (currentUser.name && currentUser.name.toLowerCase().includes("nasih") && disp.catatan && disp.catatan.toLowerCase().includes("nasih"));
+
+    // Guru/Kasubag biasa: HANYA melihat disposisi yang ditugaskan khusus untuk dirinya
+    if (!isManagement) {
+      if (!isTargetMe) return false;
+    } else if (tabFilter === "saya") {
+      if (!isTargetMe) return false;
     }
 
     // Status filter
@@ -95,12 +104,17 @@ export default function DisposisiPage() {
       return false;
     }
 
-    // Search term
+    // Search term safely
+    const penerimaStr = disp.penerima_nama || "";
+    const instruksiStr = disp.instruksi || "";
+    const perihalStr = surat?.perihal || "";
+    const nomorStr = surat?.nomor_surat || "";
+
     const match =
-      disp.penerima_nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      disp.instruksi.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (surat && surat.perihal.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (surat && surat.nomor_surat.toLowerCase().includes(searchTerm.toLowerCase()));
+      penerimaStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      instruksiStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      perihalStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      nomorStr.toLowerCase().includes(searchTerm.toLowerCase());
 
     return match;
   });
@@ -123,29 +137,36 @@ export default function DisposisiPage() {
           </p>
         </div>
 
-        {/* Tab Switcher: Semua vs Tugas Saya */}
-        <div className="flex items-center bg-gray-100 p-1 rounded-xl">
-          <button
-            onClick={() => setTabFilter("semua")}
-            className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition-all ${
-              tabFilter === "semua"
-                ? "bg-white text-brand-900 shadow-xs"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Semua Disposisi ({disposisi.length})
-          </button>
-          <button
-            onClick={() => setTabFilter("saya")}
-            className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition-all ${
-              tabFilter === "saya"
-                ? "bg-white text-brand-900 shadow-xs"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Tugas Saya ({disposisi.filter((d) => d.penerima_id === currentUser.id).length})
-          </button>
-        </div>
+        {/* Tab Switcher: Pimpinan/TU vs Guru Biasa */}
+        {isManagement ? (
+          <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+            <button
+              onClick={() => setTabFilter("semua")}
+              className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition-all ${
+                tabFilter === "semua"
+                  ? "bg-white text-brand-900 shadow-xs"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Semua Disposisi ({disposisi.length})
+            </button>
+            <button
+              onClick={() => setTabFilter("saya")}
+              className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition-all ${
+                tabFilter === "saya"
+                  ? "bg-white text-brand-900 shadow-xs"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Tugas Saya ({disposisi.filter((d) => d.penerima_id === currentUser.id || (currentUser.name && d.catatan?.toLowerCase().includes("nasih") && currentUser.name.toLowerCase().includes("nasih"))).length})
+            </button>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 shadow-xs">
+            <CheckCircle2 className="w-4 h-4 text-amber-700" />
+            <span>Daftar Disposisi Khusus Untuk Anda ({filteredDisposisi.length})</span>
+          </div>
+        )}
       </div>
 
       {/* Filter and Search Bar */}
@@ -199,15 +220,20 @@ export default function DisposisiPage() {
             const surat = suratMasuk.find((s) => s.id === disp.surat_masuk_id);
             const statusBadge = getStatusDisposisiBadge(disp.status);
             const urgensiBadge = getUrgensiBadge(disp.sifat);
-            const targetUser = users.find((u) => u.id === disp.penerima_id);
+            const targetUser =
+              users.find((u) => u.id === disp.penerima_id) ||
+              (disp.catatan?.toLowerCase().includes("nasih")
+                ? users.find((u) => u.name.toLowerCase().includes("nasih"))
+                : null);
+            const displayName = disp.penerima_nama || targetUser?.name || "Staf / Guru";
 
             const waUrl = createWhatsAppDispositionLink({
-              phone: targetUser?.phone || "6281234567890",
-              penerimaNama: disp.penerima_nama,
+              phone: targetUser?.phone || "6285646682246",
+              penerimaNama: displayName,
               nomorSurat: surat?.nomor_surat || "-",
               pengirim: surat?.pengirim || "-",
               perihal: surat?.perihal || "-",
-              instruksi: disp.instruksi,
+              instruksi: disp.instruksi || "-",
               catatan: disp.catatan,
               deadline: disp.deadline,
               disposisiId: disp.id,
@@ -222,12 +248,12 @@ export default function DisposisiPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-brand-800 text-white font-bold text-xs flex items-center justify-center border border-gold-400">
-                      {disp.penerima_nama.charAt(0)}
+                      {(displayName || "S").charAt(0)}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-gray-900">
-                          {disp.penerima_nama}
+                          {displayName}
                         </span>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${urgensiBadge.color}`}
@@ -236,7 +262,7 @@ export default function DisposisiPage() {
                         </span>
                       </div>
                       <p className="text-[11px] text-gray-500">
-                        Pemberi Disposisi: <strong>{disp.pemberi_nama}</strong>
+                        Pemberi Disposisi: <strong>{disp.pemberi_nama || "Kepala Sekolah"}</strong>
                       </p>
                     </div>
                   </div>
@@ -257,10 +283,10 @@ export default function DisposisiPage() {
                       Surat No: {surat?.nomor_surat || "Tidak diketahui"}
                     </span>
                     <span className="text-gray-500 text-[11px]">
-                      Pengirim: {surat?.pengirim}
+                      Pengirim: {surat?.pengirim || "-"}
                     </span>
                   </div>
-                  <p className="font-bold text-gray-900">{surat?.perihal}</p>
+                  <p className="font-bold text-gray-900">{surat?.perihal || "-"}</p>
                 </div>
 
                 {/* Instruksi & Catatan */}
@@ -295,27 +321,30 @@ export default function DisposisiPage() {
                 {/* Footer Action Buttons */}
                 <div className="pt-2.5 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100">
                   <div className="flex items-center gap-1.5">
-                    {/* EDIT DISPOSISI */}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEdit(disp)}
-                      className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-                      title="Edit Disposisi"
-                    >
-                      <Edit3 className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Edit</span>
-                    </button>
+                    {/* EDIT & HAPUS DISPOSISI (Hanya untuk Pimpinan / TU) */}
+                    {isManagement && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(disp)}
+                          className="px-2.5 py-1 text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                          title="Edit Disposisi"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Edit</span>
+                        </button>
 
-                    {/* HAPUS DISPOSISI */}
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(disp.id, disp.penerima_nama)}
-                      className="px-2.5 py-1 text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-                      title="Hapus Disposisi"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                      <span>Hapus</span>
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(disp.id, displayName)}
+                          className="px-2.5 py-1 text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                          title="Hapus Disposisi"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                          <span>Hapus</span>
+                        </button>
+                      </>
+                    )}
 
                     <span className="text-[10.5px] text-gray-400 ml-2">
                       Diterbitkan: {formatIndonesianDate(disp.created_at)}

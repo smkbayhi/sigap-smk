@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { INITIAL_USERS } from "@/lib/seedData";
 
 // Helper to extract regex match
 function extractRegex(text: string, regex: RegExp, groupIndex = 1): string | null {
@@ -92,10 +93,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Helper to find PIC from initial structural users
+    const findOfficer = (bidang: string, fallback: string) => {
+      const u = INITIAL_USERS.find((user) => user.bidang === bidang);
+      return u ? `${u.name} (${u.jabatan || "Kasubag " + bidang})` : fallback;
+    };
+
     // Determine target bidang based on keywords
     const combinedContent = (rawText + " " + fileName + " " + perihal).toLowerCase();
     let saranBidang: "kurikulum" | "kesiswaan" | "sarpras" | "humas_bkk" = "kurikulum";
-    let saranPenerima = "M. Ridwan, S.T., M.Kom. (Kasubag Kurikulum)";
+    let saranPenerima = findOfficer("kurikulum", "Moh. Nasih Aminulloh, S.Mat, M.Si (Kasubag Kurikulum)");
 
     if (
       combinedContent.includes("peningkatan kapasitas") ||
@@ -105,7 +112,7 @@ export async function POST(req: NextRequest) {
       combinedContent.includes("pembelajaran")
     ) {
       saranBidang = "kurikulum";
-      saranPenerima = "M. Ridwan, S.T., M.Kom. (Kasubag Kurikulum & Akademik)";
+      saranPenerima = findOfficer("kurikulum", "Moh. Nasih Aminulloh, S.Mat, M.Si (Kasubag Kurikulum)");
     } else if (
       combinedContent.includes("siswa") ||
       combinedContent.includes("santri") ||
@@ -114,7 +121,7 @@ export async function POST(req: NextRequest) {
       combinedContent.includes("olahraga")
     ) {
       saranBidang = "kesiswaan";
-      saranPenerima = "Ust. Farhan Maulana, S.Pd.I. (Kasubag Kesiswaan)";
+      saranPenerima = findOfficer("kesiswaan", "Achmad Jabbar, S. Sn (Kasubag Kesiswaan)");
     } else if (
       combinedContent.includes("sarana") ||
       combinedContent.includes("ruang") ||
@@ -123,7 +130,7 @@ export async function POST(req: NextRequest) {
       combinedContent.includes("laboratorium")
     ) {
       saranBidang = "sarpras";
-      saranPenerima = "Bambang Haryanto, S.T. (Kasubag Sarpras)";
+      saranPenerima = findOfficer("sarpras", "Akhmad Khoiron, Lc (Kasubag Sarpras)");
     } else if (
       combinedContent.includes("industri") ||
       combinedContent.includes("pkl") ||
@@ -132,7 +139,7 @@ export async function POST(req: NextRequest) {
       combinedContent.includes("perusahaan")
     ) {
       saranBidang = "humas_bkk";
-      saranPenerima = "Nabila Zahra, M.Si. (Kasubag Humas & BKK)";
+      saranPenerima = findOfficer("humas_bkk", "Muhammad Fajarul Afthon, S.Pd (Kasubag Humas & BKK)");
     }
 
     const ringkasan =
