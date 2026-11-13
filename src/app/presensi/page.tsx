@@ -189,73 +189,54 @@ Wassalamu’alaikum Wr. Wb.
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-gray-200 shadow-xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-xs">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              {canManageAllPresensi
-                ? "Modul Tata Usaha & Ketenagaan"
-                : "Portal Presensi Mandiri Pendidik & Tenaga Kependidikan"}
-            </span>
-            <span className="text-gray-400 text-xs">•</span>
-            <span className="text-xs text-gray-500 font-medium">
-              {canManageAllPresensi
-                ? "Fingerprint Engine Terintegrasi"
-                : "Monitoring Kedisiplinan & Kinerja Pribadi"}
-            </span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2.5">
-            <FileSpreadsheet className="w-6 h-6 text-brand-700" />
+          {canManageAllPresensi && (
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                Modul Tata Usaha & Ketenagaan
+              </span>
+              <span className="text-gray-400 text-xs">•</span>
+              <span className="text-xs text-gray-500 font-medium">
+                Fingerprint Engine Terintegrasi
+              </span>
+            </div>
+          )}
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <FileSpreadsheet className="w-6 h-6 text-brand-700 shrink-0" />
             {canManageAllPresensi
               ? "Rekapitulasi Presensi & Kinerja Guru"
               : "Monitoring Presensi & Kinerja Pribadi"}
           </h1>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             {canManageAllPresensi ? (
               <>
                 Periode Aktif:{" "}
-                <strong className={currentReport ? "text-gray-800" : "text-gray-400 italic"}>
+                <strong className={currentReport ? "text-slate-800" : "text-gray-400 italic"}>
                   {currentReport ? currentReport.rentangTanggal : "Tidak Ada Periode Aktif"}
                 </strong>
               </>
             ) : (
               <>
                 Evaluasi kehadiran mandiri periode:{" "}
-                <strong className={currentReport ? "text-gray-800" : "text-gray-400 italic"}>
+                <strong className={currentReport ? "text-slate-800" : "text-gray-400 italic"}>
                   {currentReport ? currentReport.rentangTanggal : "Tidak Ada Periode Aktif"}
                 </strong>
-                {" "}untuk perbaikan ketaatan jam kerja berikutnya.
+                {" "}untuk peningkatan kedisiplinan kerja.
               </>
             )}
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Cloud Sync Status & Manual Refresh */}
-          <button
-            onClick={async () => {
-              await syncFromCloud();
-              addToast("success", "Sinkronisasi Cloud", "Data presensi terbaru berhasil dimuat dari Cloud Database.");
-            }}
-            disabled={isSyncing}
-            title={lastSyncedAt ? `Terakhir sinkron: ${new Date(lastSyncedAt).toLocaleTimeString("id-ID")}` : "Sinkronkan dengan Cloud"}
-            className="py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isSyncing ? "animate-spin text-emerald-600" : ""}`} />
-            <span className="hidden sm:inline">{isSyncing ? "Sinkronisasi..." : "Sinkron Cloud"}</span>
-            {isCloudSynced && !isSyncing && (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block ml-0.5" title="Tersambung Cloud" />
-            )}
-          </button>
-
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Period Selector & Delete Button */}
           {allReports.length > 0 && currentReport && (
             <div className="flex items-center gap-1">
               <select
                 value={currentReport.id}
                 onChange={(e) => selectReport(e.target.value)}
-                className="text-xs py-2 px-3 bg-slate-50 border border-gray-300 rounded-xl font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                className="text-xs py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-600 focus:outline-none cursor-pointer"
               >
                 {allReports.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -285,6 +266,23 @@ Wassalamu’alaikum Wr. Wb.
             </div>
           )}
 
+          {/* Cloud Sync Status & Manual Refresh */}
+          <button
+            onClick={async () => {
+              await syncFromCloud();
+              addToast("success", "Sinkronisasi Cloud", "Data presensi terbaru berhasil dimuat dari Cloud Database.");
+            }}
+            disabled={isSyncing}
+            title={lastSyncedAt ? `Terakhir sinkron: ${new Date(lastSyncedAt).toLocaleTimeString("id-ID")}` : "Sinkronkan dengan Cloud"}
+            className="py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isSyncing ? "animate-spin text-emerald-600" : ""}`} />
+            <span className="hidden sm:inline">{isSyncing ? "Sinkronisasi..." : "Sinkron Cloud"}</span>
+            {isCloudSynced && !isSyncing && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block ml-0.5" title="Tersambung Cloud" />
+            )}
+          </button>
+
           {canManageAllPresensi && (
             <button
               onClick={() => setActiveTab("upload")}
@@ -309,7 +307,7 @@ Wassalamu’alaikum Wr. Wb.
 
               <Link
                 href="/presensi/print"
-                className="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                className="py-2 px-3.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
                 <span>{canManageAllPresensi ? "Cetak PDF" : "Cetak Slip Presensi"}</span>
@@ -454,87 +452,108 @@ Wassalamu’alaikum Wr. Wb.
             /* 4 Personal Monitoring KPI Cards for regular teachers/kasubag */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Personal Card 1: Hari Kerja Efektif */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-                  <Calendar className="w-6 h-6" />
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-sm transition-all flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                  <Calendar className="w-5 h-5 text-emerald-700" />
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Hari Kerja Efektif</p>
-                  <h3 className="text-2xl font-black text-gray-900 mt-0.5">
-                    {myTeacherRecord.totalHariKerja}{" "}
-                    <span className="text-xs font-normal text-gray-500">Hari</span>
-                  </h3>
-                  <p className="text-[11px] text-emerald-700 font-medium mt-0.5">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Hari Kerja Efektif
+                  </p>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="text-2xl font-black text-slate-900 tracking-tight">
+                      {myTeacherRecord.totalHariKerja}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500">Hari</span>
+                  </div>
+                  <p className="text-xs text-emerald-700 font-semibold mt-0.5 truncate">
                     {myTeacherRecord.totalHadir} Hari Hadir Bertugas
                   </p>
                 </div>
               </div>
 
               {/* Personal Card 2: Kehadiran Saya */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="w-6 h-6" />
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-sm transition-all flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 border border-blue-100">
+                  <CheckCircle2 className="w-5 h-5 text-blue-700" />
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Tingkat Kehadiran Saya</p>
-                  <h3 className="text-2xl font-black text-blue-900 mt-0.5">
-                    {Math.round((myTeacherRecord.totalHadir / (myTeacherRecord.totalHariKerja || 1)) * 100)}%
-                  </h3>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Tingkat Kehadiran
+                  </p>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="text-2xl font-black text-blue-900 tracking-tight">
+                      {Math.round((myTeacherRecord.totalHadir / (myTeacherRecord.totalHariKerja || 1)) * 100)}%
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5 truncate">
                     {myTeacherRecord.totalIzin || 0} Izin • {myTeacherRecord.totalSakit || 0} Sakit • {myTeacherRecord.totalAlpha || 0} Alpha
                   </p>
                 </div>
               </div>
 
               {/* Personal Card 3: Keterlambatan Saya */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-                  <Clock className="w-6 h-6" />
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-sm transition-all flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-100">
+                  <Clock className="w-5 h-5 text-amber-700" />
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Keterlambatan Saya</p>
-                  <h3 className="text-2xl font-black text-amber-900 mt-0.5">
-                    {myTeacherRecord.totalTerlambatHari}{" "}
-                    <span className="text-xs font-normal text-gray-500">Hari</span>
-                  </h3>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
-                    {myTeacherRecord.totalMenitTerlambat} mnt ({myTeacherRecord.persentaseTerlambat}% dari jadwal)
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Keterlambatan
+                  </p>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="text-2xl font-black text-amber-900 tracking-tight">
+                      {myTeacherRecord.totalTerlambatHari}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500">Hari</span>
+                    <span className="text-xs text-amber-800 font-semibold ml-1">
+                      ({myTeacherRecord.totalMenitTerlambat} mnt)
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5 truncate">
+                    {myTeacherRecord.persentaseTerlambat}% dari jadwal kedatangan
                   </p>
                 </div>
               </div>
 
               {/* Personal Card 4: Status KKM Disiplin */}
-              <div
-                className={`p-5 rounded-2xl border shadow-xs flex items-center gap-4 transition-all ${
+              <div className={`p-5 rounded-2xl border shadow-xs hover:shadow-sm transition-all flex items-center gap-4 ${
+                myTeacherRecord.statusKkm === "TIDAK KKM"
+                  ? "bg-rose-50/60 border-rose-200"
+                  : "bg-emerald-50/60 border-emerald-200"
+              }`}>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${
                   myTeacherRecord.statusKkm === "TIDAK KKM"
-                    ? "bg-rose-50/80 border-rose-200 text-rose-900"
-                    : "bg-emerald-50/80 border-emerald-200 text-emerald-900"
-                }`}
-              >
-                <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                    myTeacherRecord.statusKkm === "TIDAK KKM"
-                      ? "bg-rose-600 text-white animate-pulse"
-                      : "bg-emerald-600 text-white"
-                  }`}
-                >
+                    ? "bg-rose-100 text-rose-700 border-rose-200"
+                    : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                }`}>
                   {myTeacherRecord.statusKkm === "TIDAK KKM" ? (
-                    <AlertTriangle className="w-6 h-6" />
+                    <AlertTriangle className="w-5 h-5" />
                   ) : (
-                    <CheckCircle2 className="w-6 h-6" />
+                    <CheckCircle2 className="w-5 h-5" />
                   )}
                 </div>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider">
+                <div className="min-w-0">
+                  <p className={`text-[11px] font-bold uppercase tracking-wider ${
+                    myTeacherRecord.statusKkm === "TIDAK KKM" ? "text-rose-700" : "text-emerald-700"
+                  }`}>
                     Status KKM Disiplin
                   </p>
-                  <h3 className="text-2xl font-black mt-0.5">
-                    {myTeacherRecord.statusKkm}
-                  </h3>
-                  <p className="text-[11px] mt-0.5">
+                  <div className="mt-0.5">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-black tracking-wide ${
+                      myTeacherRecord.statusKkm === "TIDAK KKM"
+                        ? "bg-rose-600 text-white"
+                        : "bg-emerald-600 text-white"
+                    }`}>
+                      {myTeacherRecord.statusKkm}
+                    </span>
+                  </div>
+                  <p className={`text-xs mt-1 font-medium truncate ${
+                    myTeacherRecord.statusKkm === "TIDAK KKM" ? "text-rose-800" : "text-emerald-800"
+                  }`}>
                     {myTeacherRecord.statusKkm === "TIDAK KKM"
-                      ? "Keterlambatan ≥ 50% (Perlu Evaluasi)"
-                      : "Memenuhi Standar Kedisiplinan"}
+                      ? `Telat ${myTeacherRecord.persentaseTerlambat}% (Ambang < 50%)`
+                      : "Memenuhi Standar Disiplin"}
                   </p>
                 </div>
               </div>
@@ -600,113 +619,119 @@ Wassalamu’alaikum Wr. Wb.
           {!canManageAllPresensi && myTeacherRecord && (
             /* Personal Reflection Banner (Only visible to the individual teacher) */
             myTeacherRecord.statusKkm === "TIDAK KKM" ? (
-              <div className="bg-gradient-to-r from-rose-900 via-rose-800 to-red-900 rounded-2xl p-5 text-white shadow-md flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <ShieldAlert className="w-6 h-6 text-white" />
+              <div className="bg-rose-50/80 border border-rose-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 mt-0.5 border border-rose-200">
+                  <AlertTriangle className="w-5 h-5" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] bg-rose-500/80 font-black px-2 py-0.5 rounded tracking-wider uppercase">
-                      Peringatan Evaluasi Diri Pribadi
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <span className="text-[10px] font-black bg-rose-600 text-white px-2 py-0.5 rounded uppercase tracking-wider">
+                      Peringatan Evaluasi Diri
                     </span>
-                    <span className="text-xs text-rose-200">•</span>
-                    <span className="text-xs text-rose-200">{currentReport.rentangTanggal}</span>
+                    <span className="text-xs text-rose-400 font-bold">•</span>
+                    <span className="text-xs font-semibold text-rose-800">
+                      Periode {currentReport.rentangTanggal}
+                    </span>
                   </div>
-                  <h4 className="text-base font-bold mt-1">
+                  <h4 className="text-sm sm:text-base font-bold text-rose-950">
                     Keterlambatan Kehadiran Anda Mencapai {myTeacherRecord.persentaseTerlambat}% (Status: TIDAK KKM)
                   </h4>
-                  <p className="text-xs text-rose-100/90 mt-1 max-w-3xl leading-relaxed">
-                    Sesuai standar kedisiplinan Yayasan & Tata Usaha, ambang batas toleransi keterlambatan adalah di bawah 50%.
+                  <p className="text-xs text-rose-900/90 mt-1 leading-relaxed max-w-4xl">
+                    Sesuai ketentuan kedisiplinan Yayasan & Tata Usaha SMK Bayt Al-Hikmah, ambang batas toleransi keterlambatan kehadiran adalah di bawah 50%.
                     Pada periode ini Anda tercatat terlambat sebanyak <strong>{myTeacherRecord.totalTerlambatHari} hari</strong> ({myTeacherRecord.totalMenitTerlambat} menit akumulasi).
                     Mohon untuk memperhatikan jam kedatangan (06:50 WIB) sebagai ikhtiar perbaikan ketertiban presensi pada periode berikutnya.
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 rounded-2xl p-5 text-white shadow-md flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <Sparkles className="w-6 h-6 text-white" />
+              <div className="bg-emerald-50/80 border border-emerald-200/90 rounded-2xl p-4 sm:p-5 shadow-xs flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-200">
+                  <Sparkles className="w-5 h-5" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] bg-emerald-500/80 font-black px-2 py-0.5 rounded tracking-wider uppercase">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <span className="text-[10px] font-black bg-emerald-700 text-white px-2 py-0.5 rounded uppercase tracking-wider">
                       Kedisiplinan Memenuhi Standar
                     </span>
-                    <span className="text-xs text-emerald-200">•</span>
-                    <span className="text-xs text-emerald-200">{currentReport.rentangTanggal}</span>
+                    <span className="text-xs text-emerald-400 font-bold">•</span>
+                    <span className="text-xs font-semibold text-emerald-800">
+                      Periode {currentReport.rentangTanggal}
+                    </span>
                   </div>
-                  <h4 className="text-base font-bold mt-1">
+                  <h4 className="text-sm sm:text-base font-bold text-emerald-950">
                     Alhamdulillah, Kehadiran Anda Memenuhi Standar KKM ({myTeacherRecord.persentaseTerlambat}% Keterlambatan)
                   </h4>
-                  <p className="text-xs text-emerald-100/90 mt-1 max-w-3xl leading-relaxed">
-                    Terima kasih atas ketepatan waktu dan dedikasi Anda dalam bertugas di SMK Bayt Al-Hikmah. Terus pertahankan kedisiplinan waktu demi kenyamanan KBM dan keteladanan bagi para santri/siswa.
+                  <p className="text-xs text-emerald-900/90 mt-1 leading-relaxed max-w-4xl">
+                    Terima kasih atas ketepatan waktu dan dedikasi Anda dalam bertugas di SMK Bayt Al-Hikmah. Terus pertahankan kedisiplinan waktu demi kelancaran KBM dan keteladanan bagi para santri/siswa.
                   </p>
                 </div>
               </div>
             )
           )}
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center gap-2 border-b border-gray-200 overflow-x-auto pb-1">
-            {canManageAllPresensi && (
+          {/* Navigation Tabs (Modern Segmented Control) */}
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-3 overflow-x-auto">
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 shrink-0">
+              {canManageAllPresensi && (
+                <button
+                  onClick={() => setActiveTab("rekap")}
+                  className={`py-2 px-3.5 font-bold text-xs rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
+                    activeTab === "rekap"
+                      ? "bg-white text-emerald-900 shadow-xs border border-slate-200/60 font-extrabold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                  }`}
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                  <span>Rekapitulasi Presensi & KKM</span>
+                </button>
+              )}
+
               <button
-                onClick={() => setActiveTab("rekap")}
-                className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
-                  activeTab === "rekap"
-                    ? "bg-brand-800 text-white shadow-xs"
-                    : "text-gray-600 hover:bg-gray-100"
+                onClick={() => setActiveTab("rincian")}
+                className={`py-2 px-3.5 font-bold text-xs rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === "rincian"
+                    ? "bg-white text-emerald-900 shadow-xs border border-slate-200/60 font-extrabold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
                 }`}
               >
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>Rekapitulasi Presensi & KKM</span>
+                <Clock className="w-4 h-4 text-emerald-700" />
+                <span>
+                  {canManageAllPresensi
+                    ? `Log Harian Guru (${selectedTeacher ? getTeacherBiodata(selectedTeacher).displayName.split(",")[0] : ""})`
+                    : "Log Harian Presensi Saya"}
+                </span>
               </button>
-            )}
 
-            <button
-              onClick={() => setActiveTab("rincian")}
-              className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
-                activeTab === "rincian"
-                  ? "bg-brand-800 text-white shadow-xs"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <Clock className="w-4 h-4" />
-              <span>
-                {canManageAllPresensi
-                  ? `Log Harian Guru (${selectedTeacher ? getTeacherBiodata(selectedTeacher).displayName.split(",")[0] : ""})`
-                  : "Log Harian Presensi Saya"}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("evaluasi")}
-              className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
-                activeTab === "evaluasi"
-                  ? "bg-brand-800 text-white shadow-xs"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <FileCheck className="w-4 h-4" />
-              <span>
-                {canManageAllPresensi
-                  ? "Dimensi Kinerja (Bobot 0.40)"
-                  : "Evaluasi Dimensi Kinerja Saya"}
-              </span>
-            </button>
-
-            {canManageAllPresensi && (
               <button
-                onClick={() => setActiveTab("upload")}
-                className={`py-2.5 px-4 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
-                  activeTab === "upload"
-                    ? "bg-brand-800 text-white shadow-xs"
-                    : "text-gray-600 hover:bg-gray-100"
+                onClick={() => setActiveTab("evaluasi")}
+                className={`py-2 px-3.5 font-bold text-xs rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === "evaluasi"
+                    ? "bg-white text-emerald-900 shadow-xs border border-slate-200/60 font-extrabold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
                 }`}
               >
-                <UploadCloud className="w-4 h-4" />
-                <span>Unggah File Fingerprint Baru</span>
+                <FileCheck className="w-4 h-4 text-emerald-700" />
+                <span>
+                  {canManageAllPresensi
+                    ? "Dimensi Kinerja (Bobot 0.40)"
+                    : "Evaluasi Dimensi Kinerja Saya"}
+                </span>
               </button>
-            )}
+
+              {canManageAllPresensi && (
+                <button
+                  onClick={() => setActiveTab("upload")}
+                  className={`py-2 px-3.5 font-bold text-xs rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
+                    activeTab === "upload"
+                      ? "bg-white text-emerald-900 shadow-xs border border-slate-200/60 font-extrabold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                  }`}
+                >
+                  <UploadCloud className="w-4 h-4 text-emerald-700" />
+                  <span>Unggah File Mesin</span>
+                </button>
+              )}
+            </div>
           </div>
 
       {/* TAB 1: REKAPITULASI PRESENSI & KKM */}
@@ -1144,111 +1169,178 @@ Wassalamu’alaikum Wr. Wb.
 
       {/* TAB 3: EVALUASI KINERJA (BOBOT 0.40 KEBIASAAN KERJA) */}
       {activeTab === "evaluasi" && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
-          <div className="p-4 sm:p-5 border-b border-gray-100">
-            <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
-              <FileCheck className="w-5 h-5 text-emerald-600" />
-              {canManageAllPresensi
-                ? "Format Penilaian Dimensi Kinerja Guru & Karyawan (Dokumen Resmi Sekolah)"
-                : "Evaluasi Dimensi Kinerja Presensi & Ketaatan Pribadi"}
-            </h3>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Dimensi Kebiasaan Kerja (Bobot 0.40), Hubungan Kerja (0.15), Kinerja (0.15), Pelanggaran (0.30)
-            </p>
-          </div>
+        <div className="space-y-4">
+          {!canManageAllPresensi && myTeacherRecord && (
+            /* Summary Scorecard Grid for Personal Evaluation */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Skor Ketaatan Waktu
+                </p>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-2xl font-black text-emerald-800">
+                    {myTeacherRecord.skorKetaatan || "4.0"}
+                  </span>
+                  <span className="text-xs text-slate-400 font-semibold">/ 5.0</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Telat {myTeacherRecord.totalTerlambatHari} hari ({myTeacherRecord.persentaseTerlambat}%)
+                </p>
+              </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-gray-700 font-bold border-b border-gray-200">
-                <tr>
-                  <th className="py-3 px-3 text-center">No</th>
-                  <th className="py-3 px-4 min-w-[200px]">Nama Guru & Karyawan</th>
-                  <th className="py-3 px-3 text-center bg-emerald-50/50">Jml Telat</th>
-                  <th className="py-3 px-3 text-center bg-emerald-50/50">% Telat</th>
-                  <th className="py-3 px-3 text-center bg-emerald-50/50">Skor Ketaatan</th>
-                  <th className="py-3 px-3 text-center bg-blue-50/50">Hadir Acara</th>
-                  <th className="py-3 px-3 text-center bg-blue-50/50">Skor Acara</th>
-                  <th className="py-3 px-4 text-center bg-amber-50/60 font-black">
-                    Nilai Kebiasaan Kerja (0.40)
-                  </th>
-                  <th className="py-3 px-3 text-center font-bold">Status KKM</th>
-                  <th className="py-3 px-4 text-center bg-brand-50/80 font-black text-brand-900">
-                    Total Nilai Akhir
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
-                {(canManageAllPresensi
-                  ? currentReport.teachers
-                  : myTeacherRecord
-                  ? [myTeacherRecord]
-                  : []
-                ).map((t, idx) => (
-                  <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3 px-3 text-center text-gray-400 font-bold">{idx + 1}</td>
-                    <td className="py-3 px-4 font-bold text-gray-900">
-                      {(() => {
-                        const bio = getTeacherBiodata(t);
-                        return (
-                          <div>
-                            <div>{bio.displayName}</div>
-                            <div className="text-[10.5px] font-normal text-gray-500">
-                              PIN: <span className="font-mono">{bio.displayPin}</span> • {bio.displayJabatan}
-                              {bio.displayBidang ? ` • ${bio.displayBidang}` : ""}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td className="py-3 px-3 text-center bg-emerald-50/20">{t.totalTerlambatHari}</td>
-                    <td className="py-3 px-3 text-center bg-emerald-50/20 font-bold">
-                      {t.persentaseTerlambat}%
-                    </td>
-                    <td className="py-3 px-3 text-center bg-emerald-50/20 font-mono font-bold text-emerald-700">
-                      {t.skorKetaatan || "4.0"}
-                    </td>
-                    <td className="py-3 px-3 text-center bg-blue-50/20">2 Kali</td>
-                    <td className="py-3 px-3 text-center bg-blue-50/20 font-mono font-bold text-blue-700">
-                      {t.skorAcara || "4.0"}
-                    </td>
-                    <td className="py-3 px-4 text-center bg-amber-50/40 font-mono font-black text-amber-900 text-xs">
-                      {t.nilaiKebiasaanKerja || "4.1"}
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <span
-                        className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                          t.statusKkm === "TIDAK KKM"
-                            ? "bg-rose-100 text-rose-800"
-                            : "bg-emerald-100 text-emerald-800"
-                        }`}
-                      >
-                        {t.statusKkm}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center bg-brand-50/40 font-mono font-black text-brand-900 text-sm">
-                      {t.totalNilaiKinerja || "4.34"}
-                    </td>
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Skor Hadir Acara
+                </p>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-2xl font-black text-blue-800">
+                    {myTeacherRecord.skorAcara || "4.0"}
+                  </span>
+                  <span className="text-xs text-slate-400 font-semibold">/ 5.0</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  2 Acara Resmi Sekolah
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+                <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">
+                  Nilai Kebiasaan Kerja
+                </p>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-2xl font-black text-amber-900">
+                    {myTeacherRecord.nilaiKebiasaanKerja || "4.1"}
+                  </span>
+                  <span className="text-xs text-amber-800 font-bold">(Bobot 40%)</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Kontribusi 0.40 pada PKG
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs">
+                <p className="text-[11px] font-bold text-brand-800 uppercase tracking-wider">
+                  Estimasi Nilai Akhir
+                </p>
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-2xl font-black text-brand-900">
+                    {myTeacherRecord.totalNilaiKinerja || "4.34"}
+                  </span>
+                  <span className="text-xs font-bold text-emerald-700 ml-1">Amat Baik</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Status: {myTeacherRecord.statusKkm}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-gray-100">
+              <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
+                <FileCheck className="w-5 h-5 text-emerald-600" />
+                {canManageAllPresensi
+                  ? "Format Penilaian Dimensi Kinerja Guru & Karyawan (Dokumen Resmi Sekolah)"
+                  : "Rincian Format Penilaian Dimensi Kinerja Guru (Dokumen Resmi)"}
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Dimensi Kebiasaan Kerja (Bobot 0.40), Hubungan Kerja (0.15), Kinerja (0.15), Pelanggaran (0.30)
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-gray-700 font-bold border-b border-gray-200">
+                  <tr>
+                    <th className="py-3 px-3 text-center">No</th>
+                    <th className="py-3 px-4 min-w-[200px]">Nama Guru & Karyawan</th>
+                    <th className="py-3 px-3 text-center bg-emerald-50/50">Jml Telat</th>
+                    <th className="py-3 px-3 text-center bg-emerald-50/50">% Telat</th>
+                    <th className="py-3 px-3 text-center bg-emerald-50/50">Skor Ketaatan</th>
+                    <th className="py-3 px-3 text-center bg-blue-50/50">Hadir Acara</th>
+                    <th className="py-3 px-3 text-center bg-blue-50/50">Skor Acara</th>
+                    <th className="py-3 px-4 text-center bg-amber-50/60 font-black">
+                      Nilai Kebiasaan Kerja (0.40)
+                    </th>
+                    <th className="py-3 px-3 text-center font-bold">Status KKM</th>
+                    <th className="py-3 px-4 text-center bg-brand-50/80 font-black text-brand-900">
+                      Total Nilai Akhir
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
+                  {(canManageAllPresensi
+                    ? currentReport.teachers
+                    : myTeacherRecord
+                    ? [myTeacherRecord]
+                    : []
+                  ).map((t, idx) => (
+                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-3 text-center text-gray-400 font-bold">{idx + 1}</td>
+                      <td className="py-3 px-4 font-bold text-gray-900">
+                        {(() => {
+                          const bio = getTeacherBiodata(t);
+                          return (
+                            <div>
+                              <div>{bio.displayName}</div>
+                              <div className="text-[10.5px] font-normal text-gray-500">
+                                PIN: <span className="font-mono">{bio.displayPin}</span> • {bio.displayJabatan}
+                                {bio.displayBidang ? ` • ${bio.displayBidang}` : ""}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td className="py-3 px-3 text-center bg-emerald-50/20">{t.totalTerlambatHari}</td>
+                      <td className="py-3 px-3 text-center bg-emerald-50/20 font-bold">
+                        {t.persentaseTerlambat}%
+                      </td>
+                      <td className="py-3 px-3 text-center bg-emerald-50/20 font-mono font-bold text-emerald-700">
+                        {t.skorKetaatan || "4.0"}
+                      </td>
+                      <td className="py-3 px-3 text-center bg-blue-50/20">2 Kali</td>
+                      <td className="py-3 px-3 text-center bg-blue-50/20 font-mono font-bold text-blue-700">
+                        {t.skorAcara || "4.0"}
+                      </td>
+                      <td className="py-3 px-4 text-center bg-amber-50/40 font-mono font-black text-amber-900 text-xs">
+                        {t.nilaiKebiasaanKerja || "4.1"}
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <span
+                          className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                            t.statusKkm === "TIDAK KKM"
+                              ? "bg-rose-100 text-rose-800"
+                              : "bg-emerald-100 text-emerald-800"
+                          }`}
+                        >
+                          {t.statusKkm}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center bg-brand-50/40 font-mono font-black text-brand-900 text-sm">
+                        {t.totalNilaiKinerja || "4.34"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          <div className="p-4 bg-slate-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-2">
-            <p>
-              {canManageAllPresensi ? (
-                <>
-                  Menampilkan <strong>{currentReport.teachers.length}</strong> guru & pegawai SMK Bayt Al-Hikmah.
-                </>
-              ) : (
-                <>
-                  Menampilkan evaluasi dimensi kinerja pribadi untuk <strong>{currentUser.name}</strong>.
-                </>
-              )}
-            </p>
-            <p className="text-[11px] text-gray-400">
-              *Bobot Dimensi: Kebiasaan Kerja (40%), Hubungan Kerja (15%), Hasil Kerja (15%), Pelanggaran (30%).
-            </p>
+            <div className="p-4 bg-slate-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-2">
+              <p>
+                {canManageAllPresensi ? (
+                  <>
+                    Menampilkan <strong>{currentReport.teachers.length}</strong> guru & pegawai SMK Bayt Al-Hikmah.
+                  </>
+                ) : (
+                  <>
+                    Menampilkan evaluasi dimensi kinerja pribadi untuk <strong>{currentUser.name}</strong>.
+                  </>
+                )}
+              </p>
+              <p className="text-[11px] text-gray-400">
+                *Bobot Dimensi: Kebiasaan Kerja (40%), Hubungan Kerja (15%), Hasil Kerja (15%), Pelanggaran (30%).
+              </p>
+            </div>
           </div>
         </div>
       )}

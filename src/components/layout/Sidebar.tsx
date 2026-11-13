@@ -7,7 +7,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { usePresensi } from "@/context/PresensiContext";
 import { LOGO_SMK_DATA_URL } from "@/lib/seedData";
-import { findTeacherRecordForUser } from "@/lib/presensiParser";
 import {
   LayoutDashboard,
   Send,
@@ -51,10 +50,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   // Presensi permissions: Kepala Sekolah & Tata Usaha can manage all presensi;
   // teachers and kasubag only monitor their own personal presensi
   const canManageAllPresensi = isKepsek || isTU;
-  const myTeacherRecord = !canManageAllPresensi
-    ? findTeacherRecordForUser(currentReport?.teachers, currentUser)
-    : undefined;
-  const isMyPresensiTidakKkm = myTeacherRecord?.statusKkm === "TIDAK KKM";
 
   const isActive = (path: string) => {
     if (path === "/" && pathname === "/") return true;
@@ -302,14 +297,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 {canManageAllPresensi && Boolean(currentReport && currentReport.guruTidakKkmCount > 0) && (
                   <span className="text-[10px] bg-rose-500 text-white font-black px-1.5 py-0.5 rounded-full shadow-xs">
                     {currentReport?.guruTidakKkmCount} Alert
-                  </span>
-                )}
-                {!canManageAllPresensi && isMyPresensiTidakKkm && (
-                  <span
-                    className="text-[10px] bg-rose-500 text-white font-bold px-1.5 py-0.5 rounded-full shadow-xs"
-                    title="Keterlambatan ≥ 50% (Perlu Evaluasi Diri)"
-                  >
-                    Perlu Evaluasi
                   </span>
                 )}
               </Link>
