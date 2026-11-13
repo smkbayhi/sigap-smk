@@ -234,3 +234,41 @@ _Pesan otomatis dikirim melalui Sistem Informasi Gerak Cepat & Administrasi Terp
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }
+
+export function openPdfInNewTab(url: string) {
+  if (!url) return;
+  if (typeof window === "undefined") return;
+
+  if (url.startsWith("data:")) {
+    try {
+      const arr = url.split(",");
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : "application/pdf";
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const blob = new Blob([u8arr], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+      return;
+    } catch (e) {
+      console.error("Gagal membuka PDF data URL:", e);
+    }
+  }
+
+  // Standard http/https or /uploads/... path
+  window.open(url, "_blank");
+}
+
+export function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => resolve(URL.createObjectURL(file));
+    reader.readAsDataURL(file);
+  });
+}
+

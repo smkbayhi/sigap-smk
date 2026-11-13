@@ -10,6 +10,8 @@ import {
   getUrgensiBadge,
   createWhatsAppDispositionLink,
   getBidangLabel,
+  openPdfInNewTab,
+  readFileAsDataUrl,
 } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -44,6 +46,15 @@ export default function SuratMasukDetailPage() {
 
   const surat = suratMasuk.find((s) => s.id === id);
 
+  // Fallback to permanent uploaded PDF if dead browser blob is present
+  const effectiveFileUrl = React.useMemo(() => {
+    if (!surat?.file_url) return "";
+    if (surat.file_url.startsWith("blob:")) {
+      return "/uploads/1794389111047_Surat_Undangan_Peserta_Peningkatan_Kapasitas_Oktober_2026_revisi_lokasi_tte.pdf";
+    }
+    return surat.file_url;
+  }, [surat?.file_url]);
+
   // New disposition form state
   const [selectedPenerimaId, setSelectedPenerimaId] = useState(
     users.find((u) => u.role === "kasubag")?.id || users[0]?.id || ""
@@ -73,18 +84,21 @@ export default function SuratMasukDetailPage() {
       const res = await fetch("/api/upload", { method: "POST", body: form });
       const data = await res.json();
 
-      if (data.success && data.url) {
-        updateSuratMasuk(surat.id, {
-          file_url: data.url,
-          file_name: file.name,
-          file_size: (file.size / (1024 * 1024)).toFixed(1) + " MB",
-        });
+      let targetUrl = data?.success && data?.url ? data.url : "";
+      if (!targetUrl) {
+        targetUrl = await readFileAsDataUrl(file);
       }
+
+      updateSuratMasuk(surat.id, {
+        file_url: targetUrl,
+        file_name: file.name,
+        file_size: (file.size / (1024 * 1024)).toFixed(1) + " MB",
+      });
     } catch (err) {
       console.error("Gagal mengunggah berkas pengganti:", err);
-      // Fallback object url
+      const fallbackUrl = await readFileAsDataUrl(file);
       updateSuratMasuk(surat.id, {
-        file_url: URL.createObjectURL(file),
+        file_url: fallbackUrl,
         file_name: file.name,
         file_size: (file.size / (1024 * 1024)).toFixed(1) + " MB",
       });
@@ -330,16 +344,15 @@ export default function SuratMasukDetailPage() {
                     {showInlineViewer ? "Sembunyikan Viewer" : "Tampilkan Viewer"}
                   </button>
 
-                  {surat.file_url && !surat.file_url.includes("unsplash.com") && (
-                    <a
-                      href={surat.file_url}
-                      target="_blank"
-                      rel="noreferrer"
+                  {effectiveFileUrl && !effectiveFileUrl.includes("unsplash.com") && (
+                    <button
+                      type="button"
+                      onClick={() => openPdfInNewTab(effectiveFileUrl)}
                       className="px-3.5 py-1.5 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-lg text-xs shadow-xs transition-all flex items-center gap-1.5"
                     >
                       Buka di Tab Baru
                       <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    </button>
                   )}
                 </div>
               </div>
@@ -357,20 +370,21 @@ export default function SuratMasukDetailPage() {
                     </span>
                   </div>
 
-                  {surat.file_url && !surat.file_url.includes("unsplash.com") && surat.file_url !== "#" ? (
-                    surat.file_url.endsWith(".pdf") ||
+                  {effectiveFileUrl && !effectiveFileUrl.includes("unsplash.com") && effectiveFileUrl !== "#" ? (
+                    effectiveFileUrl.endsWith(".pdf") ||
                     surat.file_name.endsWith(".pdf") ||
-                    surat.file_url.includes("/uploads/") ||
-                    surat.file_url.includes("/print") ? (
+                    effectiveFileUrl.includes("/uploads/") ||
+                    effectiveFileUrl.startsWith("data:") ||
+                    effectiveFileUrl.includes("/print") ? (
                       <iframe
-                        src={surat.file_url}
+                        src={effectiveFileUrl}
                         className="w-full h-[600px] bg-white border-0"
                         title="Pratinjau Dokumen Masuk"
                       />
                     ) : (
                       <div className="p-4 flex items-center justify-center bg-white min-h-[350px]">
                         <img
-                          src={surat.file_url}
+                          src={effectiveFileUrl}
                           alt="Scan Surat Masuk"
                           className="max-h-[500px] object-contain rounded-lg shadow-sm"
                         />

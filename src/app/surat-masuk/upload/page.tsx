@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { TingkatUrgensi, BidangStruktural } from "@/lib/database.types";
+import { readFileAsDataUrl } from "@/lib/utils";
 import {
   UploadCloud,
   ArrowLeft,
@@ -164,11 +165,13 @@ export default function UploadSuratMasukPage() {
         if (upData.success && upData.url) {
           setFileUrl(upData.url);
         } else {
-          setFileUrl(URL.createObjectURL(file));
+          const fallbackDataUrl = await readFileAsDataUrl(file);
+          setFileUrl(fallbackDataUrl);
         }
       } catch (upErr) {
-        console.warn("Upload fallback to object URL:", upErr);
-        setFileUrl(URL.createObjectURL(file));
+        console.warn("Upload fallback to persistent data URL:", upErr);
+        const fallbackDataUrl = await readFileAsDataUrl(file);
+        setFileUrl(fallbackDataUrl);
       }
 
       // Auto trigger AI OCR extraction immediately!
