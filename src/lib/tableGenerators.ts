@@ -1,13 +1,44 @@
 // Table HTML generators for official SMK Bayt Al-Hikmah letters
 
+export function cleanSppdHtmlLegacy(html: string): string {
+  if (!html) return "";
+
+  let cleaned = html;
+
+  // 1. Remove introductory paragraph for SPPD
+  cleaned = cleaned.replace(
+    /<p[^>]*>[\s\S]*?Pejabat yang berwenang dengan ini menerbitkan Surat Perintah Perjalanan Dinas[\s\S]*?<\/p>/gi,
+    ""
+  );
+
+  // 2. Remove "Lembar ke" and "Kode No." top-right table
+  cleaned = cleaned.replace(
+    /<div[^>]*style="[^"]*display:\s*flex;\s*justify-content:\s*flex-end[^"]*"[^>]*>[\s\S]*?Lembar ke[\s\S]*?Kode No[\s\S]*?<\/div>/gi,
+    ""
+  );
+
+  // 3. Remove "(Halaman 2 / Lembar Belakang)" and dashed separator
+  cleaned = cleaned.replace(
+    /<p[^>]*>[\s\S]*?\(Halaman 2\s*\/\s*Lembar Belakang\)[\s\S]*?<\/p>/gi,
+    ""
+  );
+  cleaned = cleaned.replace(/border-top:\s*2px\s*dashed\s*#[0-9a-fA-F]{3,6};?/gi, "");
+  cleaned = cleaned.replace(/<hr[^>]*style="[^"]*dashed[^"]*"[^>]*\/?>/gi, "");
+
+  return cleaned;
+}
+
 export function alignParagraphsWithKeyValueTables(html: string): string {
   if (!html) return "";
+
+  // Always sanitize legacy SPPD patterns first
+  const sanitized = cleanSppdHtmlLegacy(html);
 
   // Replace <p> blocks that contain key-value colon pairs like "Nama : ...<br/>NIY : ...<br/>Jabatan : ..."
   const pRegex = /<p>([\s\S]*?)<\/p>/gi;
   const kvRegex = /^([A-Za-z0-9\s\/\(\)\.,'-]{2,30})\s*:\s*(.+)$/;
 
-  return html.replace(pRegex, (match, inner) => {
+  return sanitized.replace(pRegex, (match, inner) => {
     // Split by <br>, <br/>, or newline
     const lines = inner
       .split(/<br\s*\/?>|\r?\n/gi)
@@ -301,7 +332,7 @@ export function generateSppdHtml(data: {
       <tbody>
         <!-- Row I -->
         <tr>
-          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black; background: #fafafa;"></td>
+          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black; background: #ffffff;"></td>
           <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black;">
             <strong>I.</strong> Berangkat dari : ${tempatBerangkat}<br/>
             &nbsp;&nbsp;&nbsp;&nbsp;(Tempat Kedudukan)<br/>

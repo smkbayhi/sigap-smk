@@ -23,6 +23,7 @@ import {
   encodeLetterMeta,
 } from "@/lib/letterTemplates";
 import {
+  alignParagraphsWithKeyValueTables,
   generateJadwalPelaksanaanHtml,
   generateSppdHtml,
   generateDaftarSiswaHtml,
@@ -48,6 +49,7 @@ import {
   Layers,
   FileText,
   Search,
+  CheckCircle2,
 } from "lucide-react";
 
 interface CatalogCardItem {
@@ -317,7 +319,7 @@ export default function BuatSuratKeluarPage() {
     setJudulSurat(tmpl.judulSurat);
     setPerihal(tmpl.perihal);
     setTujuan(tmpl.tujuan);
-    setIntiSurat(tmpl.inti);
+    setIntiSurat(tmpl.tipeTabel === "sppd_resmi" ? "" : tmpl.inti);
     setTipeTabel(tmpl.tipeTabel);
     setModelTtd(tmpl.modelTtd);
     setJenisPenutup(tmpl.penutupJenis);
@@ -954,36 +956,54 @@ export default function BuatSuratKeluarPage() {
                   <PenTool className="w-3.5 h-3.5 text-brand-600" />
                   2. Isi Utama Dokumen
                 </h3>
-                {layoutFormat === "korespondensi" && (
+                {tipeTabel === "sppd_resmi" ? (
+                  <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded">
+                    Format Formulir SPPD 10 Butir Baku
+                  </span>
+                ) : layoutFormat === "korespondensi" ? (
                   <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded">
                     Salam Pembuka Islami Terpasang Otomatis
                   </span>
-                )}
+                ) : null}
               </div>
 
-              {/* Salam info banner */}
-              {layoutFormat === "korespondensi" && (
-                <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 text-[11px] text-emerald-950 italic font-serif leading-relaxed">
-                  "Assalamu’alaikum wr. wb. Salam silaturrahim kami sampaikan, semoga Allah SWT senantiasa melimpahkan rahmat, taufiq, serta hidayahNya kepada kita dalam menjalani rutinitas sehari-hari. Amin."
+              {tipeTabel === "sppd_resmi" ? (
+                <div className="bg-amber-50/80 border border-amber-200/80 rounded-xl p-3.5 text-xs text-amber-950 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-amber-800" />
+                    Format Formulir SPPD Resmi Tanpa Narasi Pembuka
+                  </div>
+                  <p className="text-[11px] text-amber-900 leading-relaxed">
+                    Sesuai format dinas baku SMK Bayt Al-Hikmah, dokumen SPPD langsung menampilkan judul <strong>SURAT PERINTAH PERJALANAN DINAS (SPPD)</strong>, nomor surat di bawahnya, tabel rincian 10 butir penugasan, dan lembar visum. Teks pengantar paragraf telah ditiadakan.
+                  </p>
                 </div>
-              )}
+              ) : (
+                <>
+                  {/* Salam info banner */}
+                  {layoutFormat === "korespondensi" && (
+                    <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 text-[11px] text-emerald-950 italic font-serif leading-relaxed">
+                      "Assalamu’alaikum wr. wb. Salam silaturrahim kami sampaikan, semoga Allah SWT senantiasa melimpahkan rahmat, taufiq, serta hidayahNya kepada kita dalam menjalani rutinitas sehari-hari. Amin."
+                    </div>
+                  )}
 
-              <div>
-                <label className="block text-xs font-bold text-gray-800 mb-1">
-                  Inti / Maksud Surat <span className="text-rose-500">*</span>:
-                </label>
-                <textarea
-                  rows={6}
-                  required
-                  value={intiSurat}
-                  onChange={(e) => setIntiSurat(e.target.value)}
-                  placeholder="Ketikkan teks inti surat Anda di sini..."
-                  className="w-full text-xs rounded-xl border border-gray-300 p-3 leading-relaxed focus:ring-2 focus:ring-brand-500 font-serif"
-                />
-                <span className="text-[10.5px] text-gray-400 block mt-1">
-                  Tips: Pisahkan antar-paragraf dengan menekan Enter 2 kali. Gunakan penomoran (1., 2.) untuk daftar butir.
-                </span>
-              </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-800 mb-1">
+                      Inti / Maksud Surat <span className="text-rose-500">*</span>:
+                    </label>
+                    <textarea
+                      rows={6}
+                      required
+                      value={intiSurat}
+                      onChange={(e) => setIntiSurat(e.target.value)}
+                      placeholder="Ketikkan teks inti surat Anda di sini..."
+                      className="w-full text-xs rounded-xl border border-gray-300 p-3 leading-relaxed focus:ring-2 focus:ring-brand-500 font-serif"
+                    />
+                    <span className="text-[10.5px] text-gray-400 block mt-1">
+                      Tips: Pisahkan antar-paragraf dengan menekan Enter 2 kali. Gunakan penomoran (1., 2.) untuk daftar butir.
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Section 3: Sertakan Tabel Interaktif */}
@@ -1005,12 +1025,21 @@ export default function BuatSuratKeluarPage() {
                 </label>
                 <select
                   value={tipeTabel}
-                  onChange={(e) => setTipeTabel(e.target.value as TipeTabelSurat)}
+                  onChange={(e) => {
+                    const val = e.target.value as TipeTabelSurat;
+                    setTipeTabel(val);
+                    if (val === "sppd_resmi") {
+                      setIntiSurat("");
+                      setLayoutFormat("judul_tengah");
+                      setJudulSurat("SURAT PERINTAH PERJALANAN DINAS (SPPD)");
+                      setPerihal("Surat Perintah Perjalanan Dinas (SPPD)");
+                    }
+                  }}
                   className="w-full text-xs font-semibold rounded-xl border border-gray-300 p-2.5 bg-white focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="none">Tanpa Tabel</option>
                   <option value="jadwal_pelaksanaan">📅 Tabel Jadwal Pelaksanaan (Hari, Tanggal, Waktu, Tempat, Agenda)</option>
-                  <option value="sppd_resmi">🎖️ Tabel SPPD Resmi (8 Butir Standar Pemerintah)</option>
+                  <option value="sppd_resmi">🎖️ Tabel SPPD Resmi (10 Butir Standar & Lembar Visum)</option>
                   <option value="daftar_siswa">🎓 Tabel Siswa / Rekomendasi Kolektif (Daftar Nama Siswa)</option>
                   <option value="pengantar_berkas">📂 Tabel Pengantar Berkas Cabdin (No, Berkas, Jumlah, Keterangan)</option>
                   <option value="outing_class">🚌 Tabel Outing Class Santri (Rute & Rundown)</option>
@@ -1728,8 +1757,8 @@ export default function BuatSuratKeluarPage() {
               </div>
             )}
 
-            {/* FORMAT A: KORESPONDENSI DINAS */}
-            {layoutFormat === "korespondensi" && (
+            {/* FORMAT A: KORESPONDENSI DINAS (Kecuali SPPD Resmi) */}
+            {layoutFormat === "korespondensi" && tipeTabel !== "sppd_resmi" && (
               <>
                 <div className="mb-3 text-[11px]">
                   <table className="border-collapse">
@@ -1765,7 +1794,7 @@ export default function BuatSuratKeluarPage() {
             {/* Assembled Body Preview */}
             <div
               className="prose prose-sm max-w-none text-[11px] text-black mb-4 space-y-2 leading-relaxed text-justify"
-              dangerouslySetInnerHTML={{ __html: currentPreviewBody }}
+              dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(currentPreviewBody) }}
             />
 
             {/* Signature Block Simulation (Hanya untuk selain SPPD, karena SPPD telah memiliki blok TTD Muka & Belakang Visum tersendiri) */}
