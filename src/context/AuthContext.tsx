@@ -9,8 +9,8 @@ interface AuthContextType {
   currentUser: User;
   users: User[];
   setCurrentUserById: (userId: string) => void;
-  updateUser: (userId: string, data: Partial<User>) => void;
-  addUser: (data: Omit<User, "id">) => User;
+  updateUser: (userId: string, data: Partial<User>) => Promise<void>;
+  addUser: (data: Omit<User, "id">) => Promise<User>;
   deleteUser: (userId: string) => Promise<void> | void;
   login: (identifier: string, password?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
@@ -79,6 +79,7 @@ const unmarkUserAsDeleted = (userId: string) => {
 const mapDbRowToUser = (row: any): User => {
   let userPassword = row.id === "user-kepsek" ? "14215094" : "123456";
   let userAvatar = row.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
+  let userBidang = row.bidang;
 
   if (row.avatar && typeof row.avatar === "string" && row.avatar.startsWith("{")) {
     try {
@@ -90,6 +91,9 @@ const mapDbRowToUser = (row: any): User => {
         userAvatar = parsed.url;
       } else if (parsed.logoSmkUrl) {
         userAvatar = parsed.logoSmkUrl;
+      }
+      if (parsed.bidang) {
+        userBidang = parsed.bidang;
       }
     } catch {
       // fallback
@@ -107,8 +111,8 @@ const mapDbRowToUser = (row: any): User => {
     password: userPassword,
     role: row.role,
     jabatan: row.jabatan,
-    bidang: row.bidang,
-    phone: row.phone,
+    bidang: userBidang || undefined,
+    phone: row.phone || "",
     avatar: userAvatar,
     ttd_url: row.ttd_url,
     stempel_url: row.stempel_url,
@@ -126,6 +130,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isSupabaseConfigured || !supabase) return;
     try {
       let avatarPayload = "";
+      const validDbBidang = ["kurikulum", "kesiswaan", "sarpras", "humas_bkk"].includes(user.bidang as string)
+        ? user.bidang
+        : null;
+
       if (user.id === "user-kepsek") {
         try {
           const { data: existing } = await supabase
@@ -141,14 +149,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (user.avatar && !user.avatar.startsWith("{")) {
             obj.url = user.avatar;
           }
+          if (user.bidang) {
+            obj.bidang = user.bidang;
+          }
           avatarPayload = JSON.stringify(obj);
         } catch {
-          avatarPayload = JSON.stringify({ url: user.avatar, password: user.password || "14215094" });
+          avatarPayload = JSON.stringify({
+            url: user.avatar,
+            password: user.password || "14215094",
+            bidang: user.bidang,
+          });
         }
       } else {
         avatarPayload = JSON.stringify({
           url: user.avatar && !user.avatar.startsWith("{") ? user.avatar : "",
           password: user.password || "123456",
+          bidang: user.bidang || "",
         });
       }
 
@@ -168,34 +184,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
-      await supabase.from("users").upsert({
+      const safePhone = user.phone && user.phone.trim() ? user.phone : "628000000000";
+      const safeNip = user.niy && user.niy.trim() ? user.niy : (user.nip && user.nip.trim() ? user.nip : user.id);
+
+      const { error } = await supabase.from("users").upsert({
         id: user.id,
-        nip: user.niy || user.nip || user.id,
+        nip: safeNip,
         name: user.name,
-        email: user.email,
+        email: user.email.trim().toLowerCase(),
         role: user.role,
         jabatan: user.jabatan,
-        bidang: user.bidang || null,
-        phone: user.phone,
+        bidang: validDbBidang,
+        phone: safePhone,
         avatar: avatarPayload,
         ttd_url: ttdToSave,
         stempel_url: stempelToSave,
       });
+
+      if (error) {
+        console.error("Supabase user sync error:", error);
+        throw error;
+      }
     } catch (e) {
       console.warn("Failed to sync user to Supabase:", e);
+      throw e;
     }
   };
 
   // Load from local storage & Supabase
   useEffect(() => {
+    let parsedUsers: User[] = [];
     if (typeof window !== "undefined") {
       try {
         const deletedIds = getDeletedUserIds();
         const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
-        let parsedUsers: User[] = INITIAL_USERS.filter((u) => !deletedIds.includes(u.id));
+        parsedUsers = INITIAL_USERS.filter((u) => !deletedIds.includes(u.id));
         if (storedUsers) {
           parsedUsers = JSON.parse(storedUsers);
-          // Ensure NIY is mapped & deleted IDs are excluded
           parsedUsers = parsedUsers
             .filter((u) => !deletedIds.includes(u.id))
             .map((u) => ({
@@ -247,12 +272,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             const activeRows = data.filter((row: any) => !deletedIds.includes(row.id));
-            if (activeRows.length > 0) {
-              const mapped: User[] = activeRows.map(mapDbRowToUser);
-              setUsers(mapped);
-              if (typeof window !== "undefined") {
-                localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(mapped));
-              }
+            const cloudMapped: User[] = activeRows.map(mapDbRowToUser);
+            const cloudIds = new Set(cloudMapped.map((u) => u.id));
+            const cloudEmails = new Set(cloudMapped.map((u) => (u.email || "").toLowerCase()));
+
+            // CRITICAL FIX: Retain any locally added users so they don't vanish on F5!
+            let currentLocalUsers: User[] = parsedUsers;
+            if (typeof window !== "undefined") {
+              try {
+                const raw = localStorage.getItem(USERS_STORAGE_KEY);
+                if (raw) currentLocalUsers = JSON.parse(raw);
+              } catch {}
+            }
+
+            const localOnly = currentLocalUsers.filter(
+              (lu) =>
+                !cloudIds.has(lu.id) &&
+                !cloudEmails.has((lu.email || "").toLowerCase()) &&
+                !deletedIds.includes(lu.id)
+            );
+
+            // Re-sync localOnly users to cloud in the background
+            localOnly.forEach((lu) => {
+              syncUserToCloud(lu).catch((err) => {
+                console.warn("Background re-sync user failed:", lu.name, err);
+              });
+            });
+
+            const mergedUsers = [...cloudMapped, ...localOnly];
+            setUsers(mergedUsers);
+            if (typeof window !== "undefined") {
+              localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(mergedUsers));
             }
           }
         });
@@ -278,7 +328,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateUser = (userId: string, data: Partial<User>) => {
+  const updateUser = async (userId: string, data: Partial<User>) => {
     unmarkUserAsDeleted(userId);
     const updated = users.map((u) => {
       if (u.id === userId) {
@@ -292,14 +342,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const updatedCurrent = updated.find((u) => u.id === userId);
     if (updatedCurrent) {
-      syncUserToCloud(updatedCurrent);
       if (currentUser.id === userId) {
         setCurrentUser(updatedCurrent);
       }
+      await syncUserToCloud(updatedCurrent);
     }
   };
 
-  const addUser = (data: Omit<User, "id">): User => {
+  const addUser = async (data: Omit<User, "id">): Promise<User> => {
     const newId = "user-" + Date.now();
     unmarkUserAsDeleted(newId);
     const newUser: User = {
@@ -307,11 +357,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: newId,
       niy: data.niy || data.nip || "",
       nip: data.niy || data.nip || "",
-      password: data.password || "password123",
+      password: data.password || "123456",
     };
     const updated = [...users, newUser];
     saveUsersState(updated);
-    syncUserToCloud(newUser);
+    await syncUserToCloud(newUser);
     return newUser;
   };
 

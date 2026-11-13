@@ -128,7 +128,7 @@ export default function MasterUsersPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formName.trim() || !formNiy.trim() || !formEmail.trim()) {
@@ -136,40 +136,68 @@ export default function MasterUsersPage() {
       return;
     }
 
-    if (isEditing && editUserId) {
-      updateUser(editUserId, {
-        name: formName,
-        niy: formNiy,
-        nip: formNiy,
-        jabatan: formJabatan,
-        role: formRole,
-        bidang: formRole === "kasubag" && formBidang ? (formBidang as BidangStruktural) : undefined,
-        email: formEmail,
-        password: formPassword,
-        phone: formPhone.replace(/\D/g, ""),
-        ttd_url: formTtd,
-        stempel_url: formStempel,
-      });
-      addToast("success", "Data Pegawai Disimpan", `Data ${formName} (NIY: ${formNiy}) berhasil diperbarui.`);
-    } else {
-      addUser({
-        name: formName,
-        niy: formNiy,
-        nip: formNiy,
-        jabatan: formJabatan,
-        role: formRole,
-        bidang: formRole === "kasubag" && formBidang ? (formBidang as BidangStruktural) : undefined,
-        email: formEmail,
-        password: formPassword || "123456",
-        phone: formPhone.replace(/\D/g, ""),
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-        ttd_url: formTtd,
-        stempel_url: formStempel,
-      });
-      addToast("success", "Pengguna Baru Ditambahkan", `Akun untuk ${formName} siap digunakan login.`);
+    const cleanEmail = formEmail.trim().toLowerCase();
+    const cleanNiy = formNiy.trim();
+
+    // Check duplicate NIY
+    const duplicateNiy = users.find(
+      (u) => (u.niy === cleanNiy || u.nip === cleanNiy) && u.id !== editUserId
+    );
+    if (duplicateNiy) {
+      addToast("error", "NIY Sudah Digunakan", `NIY ${cleanNiy} sudah terdaftar atas nama ${duplicateNiy.name}. Gunakan NIY yang unik.`);
+      return;
     }
 
-    setIsModalOpen(false);
+    // Check duplicate Email
+    const duplicateEmail = users.find(
+      (u) => u.email.toLowerCase() === cleanEmail && u.id !== editUserId
+    );
+    if (duplicateEmail) {
+      addToast("error", "Email Sudah Digunakan", `Email ${cleanEmail} sudah digunakan oleh ${duplicateEmail.name}. Silakan gunakan email unik.`);
+      return;
+    }
+
+    const safePhone = formPhone.replace(/\D/g, "") || "628000000000";
+
+    try {
+      if (isEditing && editUserId) {
+        await updateUser(editUserId, {
+          name: formName,
+          niy: cleanNiy,
+          nip: cleanNiy,
+          jabatan: formJabatan,
+          role: formRole,
+          bidang: formRole === "kasubag" && formBidang ? (formBidang as BidangStruktural) : undefined,
+          email: cleanEmail,
+          password: formPassword,
+          phone: safePhone,
+          ttd_url: formTtd,
+          stempel_url: formStempel,
+        });
+        addToast("success", "Data Pegawai Disimpan", `Data ${formName} (NIY: ${cleanNiy}) berhasil disimpan & disinkronkan ke Cloud.`);
+      } else {
+        await addUser({
+          name: formName,
+          niy: cleanNiy,
+          nip: cleanNiy,
+          jabatan: formJabatan,
+          role: formRole,
+          bidang: formRole === "kasubag" && formBidang ? (formBidang as BidangStruktural) : undefined,
+          email: cleanEmail,
+          password: formPassword || "123456",
+          phone: safePhone,
+          avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+          ttd_url: formTtd,
+          stempel_url: formStempel,
+        });
+        addToast("success", "Pengguna Baru Ditambahkan", `Akun ${formName} berhasil disimpan ke Cloud Database.`);
+      }
+
+      setIsModalOpen(false);
+    } catch (err: any) {
+      console.error("Gagal simpan pengguna:", err);
+      addToast("error", "Gagal Simpan ke Database", err.message || "Terjadi kesalahan saat menyimpan akun.");
+    }
   };
 
   const handleDelete = async (userId: string, name: string) => {
