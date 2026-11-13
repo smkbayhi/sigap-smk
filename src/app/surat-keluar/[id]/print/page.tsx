@@ -161,6 +161,24 @@ export default function SuratKeluarPrintPage() {
           size: 215mm 330mm; /* Standar Ukuran Kertas Resmi F4 / Folio (Indonesia) */
           margin: 10mm 15mm 10mm 15mm !important;
         }
+        @media screen {
+          .sppd-page-2 {
+            margin-top: 36px !important;
+            padding-top: 20px !important;
+            border-top: 2px dashed #94a3b8 !important;
+            position: relative;
+          }
+          .sppd-page-2::before {
+            content: "--- HALAMAN 2: LEMBAR VISUM PERJALANAN DINAS (UKURAN F4 / FOLIO) ---";
+            display: block;
+            text-align: center;
+            font-size: 8.5pt;
+            font-weight: bold;
+            color: #64748b;
+            margin-bottom: 14px;
+            letter-spacing: 0.5px;
+          }
+        }
         @media print {
           html, body {
             width: 100% !important;
@@ -184,6 +202,16 @@ export default function SuratKeluarPrintPage() {
           .page-break-avoid {
             break-inside: avoid !important;
             page-break-inside: avoid !important;
+          }
+          .sppd-page-2 {
+            border-top: none !important;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+            break-before: page !important;
+            page-break-before: always !important;
+          }
+          .sppd-page-2::before {
+            display: none !important;
           }
         }
       `}</style>
@@ -268,7 +296,7 @@ export default function SuratKeluarPrintPage() {
               {/* Letter Body (Aligned Key-Value Data) */}
               <div
                 className="mb-4 text-[10.5pt] sm:text-[11pt] leading-relaxed text-justify space-y-2.5"
-                dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(cleanHtml) }}
+                dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(cleanHtml, surat.nomor_surat) }}
               />
 
               {/* Signature & Official Stamp Block (1 Pihak, 2 Pihak Cabdin/Yayasan, 3 Pihak Bank Jatim/SP) */}

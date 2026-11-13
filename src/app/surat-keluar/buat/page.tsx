@@ -1794,7 +1794,7 @@ export default function BuatSuratKeluarPage() {
             {/* Assembled Body Preview */}
             <div
               className="prose prose-sm max-w-none text-[11px] text-black mb-4 space-y-2 leading-relaxed text-justify"
-              dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(currentPreviewBody) }}
+              dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(currentPreviewBody, previewNomorSurat) }}
             />
 
             {/* Signature Block Simulation (Hanya untuk selain SPPD, karena SPPD telah memiliki blok TTD Muka & Belakang Visum tersendiri) */}

@@ -1,38 +1,82 @@
 // Table HTML generators for official SMK Bayt Al-Hikmah letters
 
-export function cleanSppdHtmlLegacy(html: string): string {
+export function cleanSppdHtmlLegacy(html: string, fallbackNomor?: string): string {
   if (!html) return "";
 
   let cleaned = html;
 
-  // 1. Remove introductory paragraph for SPPD
+  // 1. Detect nomor surat if not provided
+  let detectedNomor = fallbackNomor || "";
+  if (!detectedNomor) {
+    const noMatch =
+      cleaned.match(/Nomor\s*<\/td>\s*<td[^>]*>:<\/td>\s*<td[^>]*>([^<]+)<\/td>/i) ||
+      cleaned.match(/Nomor\s*:\s*([0-9A-Za-z\.\/-]+)/i);
+    if (noMatch) detectedNomor = noMatch[1].trim();
+  }
+
+  // 2. Remove introductory paragraph for SPPD
   cleaned = cleaned.replace(
     /<p[^>]*>[\s\S]*?Pejabat yang berwenang dengan ini menerbitkan Surat Perintah Perjalanan Dinas[\s\S]*?<\/p>/gi,
     ""
   );
 
-  // 2. Remove "Lembar ke" and "Kode No." top-right table
+  // 3. Remove "Lembar ke" and "Kode No." top-right table
   cleaned = cleaned.replace(
     /<div[^>]*style="[^"]*display:\s*flex;\s*justify-content:\s*flex-end[^"]*"[^>]*>[\s\S]*?Lembar ke[\s\S]*?Kode No[\s\S]*?<\/div>/gi,
     ""
   );
 
-  // 3. Remove "(Halaman 2 / Lembar Belakang)" and dashed separator
-  cleaned = cleaned.replace(
-    /<p[^>]*>[\s\S]*?\(Halaman 2\s*\/\s*Lembar Belakang\)[\s\S]*?<\/p>/gi,
-    ""
-  );
+  // 4. Ensure Nomor Surat is prominently placed right under SURAT PERINTAH PERJALANAN DINAS (SPPD)
+  if (detectedNomor) {
+    const titleRegex = /(<h2[^>]*>[\s\S]*?SURAT PERINTAH PERJALANAN DINAS \(SPPD\)[\s\S]*?<\/h2>)/i;
+    const hasNomorUnderTitle = /SURAT PERINTAH PERJALANAN DINAS \(SPPD\)[\s\S]{0,140}Nomor\s*:/i.test(cleaned);
+    if (!hasNomorUnderTitle && titleRegex.test(cleaned)) {
+      cleaned = cleaned.replace(
+        titleRegex,
+        `$1\n    <p style="font-size: 10pt; font-weight: 600; margin: 4px 0 0 0; text-align: center;">Nomor : ${detectedNomor}</p>`
+      );
+    }
+  }
+
+  // 5. Remove "(Halaman 2 / Lembar Belakang)" safely without deleting surrounding elements
+  cleaned = cleaned.replace(/<span[^>]*>\s*\(?Halaman 2\s*\/\s*Lembar Belakang\)?\s*<\/span>/gi, "");
+  cleaned = cleaned.replace(/\(?Halaman 2\s*\/\s*Lembar Belakang\)?/gi, "");
+
+  // 6. Remove dashed border separator lines
   cleaned = cleaned.replace(/border-top:\s*2px\s*dashed\s*#[0-9a-fA-F]{3,6};?/gi, "");
   cleaned = cleaned.replace(/<hr[^>]*style="[^"]*dashed[^"]*"[^>]*\/?>/gi, "");
+
+  // 7. Ensure sppd-page-2 class is present on Lembar Belakang wrapper
+  cleaned = cleaned.replace(
+    /<div style="page-break-before:\s*always;/gi,
+    '<div class="sppd-page-2" style="page-break-before: always;'
+  );
+
+  // 8. Clean up dotted lines in spare signature cells so manual wet signature & stamp can be placed cleanly
+  cleaned = cleaned.replace(
+    /<strong>III\.<\/strong>\s*Tiba di\s*:\s*\.{5,}/gi,
+    "<strong>III.</strong> Tiba di :"
+  );
+  cleaned = cleaned.replace(/Pada Tanggal\s*:\s*\.{5,}/gi, "Pada Tanggal :");
+  cleaned = cleaned.replace(/Berangkat dari\s*:\s*\.{5,}/gi, "Berangkat dari :");
+  cleaned = cleaned.replace(/Ke\s*:\s*\.{5,}/gi, "Ke :");
+  cleaned = cleaned.replace(
+    /\(\s*\.{8,}\s*\)/gi,
+    "(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)"
+  );
+  cleaned = cleaned.replace(
+    /NIP\/Jabatan:\s*\.{5,}/gi,
+    "NIP/Jabatan: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+  );
 
   return cleaned;
 }
 
-export function alignParagraphsWithKeyValueTables(html: string): string {
+export function alignParagraphsWithKeyValueTables(html: string, fallbackNomor?: string): string {
   if (!html) return "";
 
   // Always sanitize legacy SPPD patterns first
-  const sanitized = cleanSppdHtmlLegacy(html);
+  const sanitized = cleanSppdHtmlLegacy(html, fallbackNomor);
 
   // Replace <p> blocks that contain key-value colon pairs like "Nama : ...<br/>NIY : ...<br/>Jabatan : ..."
   const pRegex = /<p>([\s\S]*?)<\/p>/gi;
@@ -317,7 +361,7 @@ export function generateSppdHtml(data: {
   </div>
 
   <!-- ================= LEMBAR BELAKANG (VISUM SPPD) ================= -->
-  <div style="page-break-before: always; break-before: page; margin-top: 24px; padding-top: 8px;">
+  <div class="sppd-page-2" style="page-break-before: always; break-before: page; margin-top: 24px; padding-top: 8px;">
     <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px; font-size: 8.5pt;">
       <span style="font-weight: bold;">SPPD No: ${nomorSurat}</span>
     </div>
@@ -372,27 +416,27 @@ export function generateSppdHtml(data: {
           </td>
         </tr>
 
-        <!-- Row III -->
+        <!-- Row III (Kolom Kosong Putih Bersih untuk Tanda Tangan & Stempel Basah Pejabat Terkait) -->
         <tr>
-          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black;">
-            <strong>III.</strong> Tiba di : ........................................<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pada Tanggal : ........................................<br/>
+          <td style="width: 50%; padding: 8px 6px; vertical-align: top; border: 1px solid black; background: #ffffff;">
+            <strong>III.</strong> Tiba di :<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pada Tanggal :<br/>
             <div style="margin-top: 6px; text-align: center;">
               <p style="margin: 0; font-weight: bold;">Kepala / Pimpinan Instansi,</p>
-              <div style="height: 40px;"></div>
-              <p style="margin: 0; font-weight: bold;">( ........................................ )</p>
-              <p style="margin: 0; font-size: 8pt;">NIP/Jabatan: ...........................</p>
+              <div style="height: 48px;"></div>
+              <p style="margin: 0; font-weight: bold;">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</p>
+              <p style="margin: 0; font-size: 8pt;">NIP/Jabatan: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
             </div>
           </td>
-          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black;">
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Berangkat dari : ........................................<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ke : ........................................<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pada Tanggal : ........................................<br/>
+          <td style="width: 50%; padding: 8px 6px; vertical-align: top; border: 1px solid black; background: #ffffff;">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Berangkat dari :<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ke :<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pada Tanggal :<br/>
             <div style="margin-top: 6px; text-align: center;">
               <p style="margin: 0; font-weight: bold;">Kepala / Pimpinan Instansi,</p>
-              <div style="height: 40px;"></div>
-              <p style="margin: 0; font-weight: bold;">( ........................................ )</p>
-              <p style="margin: 0; font-size: 8pt;">NIP/Jabatan: ...........................</p>
+              <div style="height: 48px;"></div>
+              <p style="margin: 0; font-weight: bold;">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</p>
+              <p style="margin: 0; font-size: 8pt;">NIP/Jabatan: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
             </div>
           </td>
         </tr>

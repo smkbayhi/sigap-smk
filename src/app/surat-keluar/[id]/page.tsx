@@ -366,7 +366,7 @@ export default function SuratKeluarDetailPage() {
               {/* Letter Body (Clean HTML without metadata comment, aligned key-value tables) */}
               <div
                 className="prose prose-sm max-w-none text-gray-900 mb-8 leading-relaxed font-serif text-xs sm:text-[13px] text-justify space-y-2.5"
-                dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(cleanHtml) }}
+                dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(cleanHtml, surat.nomor_surat) }}
               />
 
               {/* Signature & Official Seal Block (1 Pihak, 2 Pihak Cabdin/Yayasan, 3 Pihak Bank Jatim/SP) */}
