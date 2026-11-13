@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { formatIndonesianDate, getStatusSuratKeluarBadge } from "@/lib/utils";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
+import { OfficialFooterSurat } from "@/components/kop-surat/OfficialFooterSurat";
 import { DigitalSignatureModal } from "@/components/signature/DigitalSignatureModal";
 import { SuratSignatureBlock } from "@/components/surat/SuratSignatureBlock";
 import { parseLetterMeta } from "@/lib/letterTemplates";
@@ -284,12 +285,6 @@ export default function SuratKeluarDetailPage() {
         className="max-w-4xl mx-auto bg-white border border-gray-300 rounded-2xl shadow-xl p-8 sm:p-14 surat-resmi text-gray-900 text-sm leading-relaxed"
         style={{ fontFamily: '"Times New Roman", Times, "Nimbus Roman No9 L", Georgia, serif' }}
       >
-        {/* Kop Surat Resmi */}
-        <OfficialKopSurat
-          logoYayasanOverride={surat.logo_yayasan_url || schoolSettings?.logoYayasanUrl || LOGO_YAYASAN_DATA_URL}
-          logoSmkOverride={surat.logo_smk_url || schoolSettings?.logoSmkUrl || LOGO_SMK_CIRCULAR_DATA_URL}
-        />
-
         {(() => {
           const { cleanHtml, meta } = parseLetterMeta(surat.isi_surat);
           const isJudulTengah = meta.layout === "judul_tengah";
@@ -317,6 +312,13 @@ export default function SuratKeluarDetailPage() {
 
           return (
             <>
+              {/* Kop Surat Resmi (Sesuai Pilihan Template: Tradisional vs Modern TP 2027/2028) */}
+              <OfficialKopSurat
+                variant={meta.kopVariant}
+                logoYayasanOverride={surat.logo_yayasan_url || schoolSettings?.logoYayasanUrl || LOGO_YAYASAN_DATA_URL}
+                logoSmkOverride={surat.logo_smk_url || schoolSettings?.logoSmkUrl || LOGO_SMK_CIRCULAR_DATA_URL}
+              />
+
               {/* FORMAT B: JUDUL TENGAH (Surat Tugas, Surat Rekomendasi, Surat Kuasa, dll.) */}
               {isJudulTengah ? (
                 <div className="text-center my-4 font-serif">
@@ -380,6 +382,9 @@ export default function SuratKeluarDetailPage() {
                 tembusan={meta.tembusan}
                 isPrint={false}
               />
+
+              {/* Official Footer Accent Bar (Aktif bila Template Kop Modern TP 2027/2028 dipilih) */}
+              <OfficialFooterSurat variant={meta.kopVariant} isPrint={false} />
             </>
           );
         })()}

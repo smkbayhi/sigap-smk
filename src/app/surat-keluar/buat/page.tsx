@@ -8,11 +8,13 @@ import { useAppData } from "@/context/AppDataContext";
 import { JenisSuratKeluar, StatusSuratKeluar } from "@/lib/database.types";
 import { generateNomorSurat, formatIndonesianDate, getBulanRomawi } from "@/lib/utils";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
+import { OfficialFooterSurat } from "@/components/kop-surat/OfficialFooterSurat";
 import { SuratSignatureBlock } from "@/components/surat/SuratSignatureBlock";
 import {
   REAL_2026_LETTER_TEMPLATES,
   LetterTemplateItem,
   LayoutFormatSurat,
+  TemplateKopSurat,
   ModelTandaTangan,
   TipeTabelSurat,
   SALAM_PEMBUKA_FIXED,
@@ -62,6 +64,7 @@ export default function BuatSuratKeluarPage() {
   // Form core states
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("undangan-pembekalan-pkl");
   const [jenisSurat, setJenisSurat] = useState<JenisSuratKeluar>("surat_undangan");
+  const [kopVariant, setKopVariant] = useState<TemplateKopSurat>("tradisional");
   const [layoutFormat, setLayoutFormat] = useState<LayoutFormatSurat>("korespondensi");
   const [judulSurat, setJudulSurat] = useState("");
   const [perihal, setPerihal] = useState("Undangan Pembekalan PKL");
@@ -285,6 +288,7 @@ export default function BuatSuratKeluarPage() {
       modelTtd,
       tipeTabel,
       tembusan: tembusanList.filter(Boolean),
+      kopVariant,
     });
 
     const completePayloadHtml = `${metaHeader}\n${bodyHtml}`;
@@ -393,6 +397,77 @@ export default function BuatSuratKeluarPage() {
                 <Layers className="w-3.5 h-3.5 text-brand-600" />
                 1. Tata Letak (Layout) & Identitas Surat
               </h3>
+
+              {/* Kop Surat Template Selector (Tradisional vs Modern TP 2027/2028) */}
+              <div>
+                <label className="block text-xs font-bold text-gray-800 uppercase tracking-wide mb-2 flex items-center justify-between">
+                  <span>Pilihan Template Kop Surat & Identitas (Header & Footer):</span>
+                  <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded">
+                    Resmi TP 2027/2028 Tersedia
+                  </span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setKopVariant("tradisional")}
+                    className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-2.5 ${
+                      kopVariant === "tradisional"
+                        ? "border-brand-600 bg-brand-50/70 ring-2 ring-brand-500/25"
+                        : "border-gray-200 bg-slate-50/50 hover:bg-slate-100/60"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="kopVariant"
+                      checked={kopVariant === "tradisional"}
+                      onChange={() => setKopVariant("tradisional")}
+                      className="mt-0.5 text-brand-700 focus:ring-brand-500"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-gray-900">
+                          Template 1: Kop Tradisional
+                        </span>
+                        <span className="text-[9px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-bold">
+                          Standar Saat Ini
+                        </span>
+                      </div>
+                      <span className="text-[10.5px] text-gray-500 leading-tight block mt-0.5">
+                        Format 3 kolom: Logo Yayasan di kiri, Logo SMK di kanan, alamat tengah dengan dobel garis pembatas hitam.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setKopVariant("modern_2027")}
+                    className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-2.5 ${
+                      kopVariant === "modern_2027"
+                        ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/25"
+                        : "border-gray-200 bg-slate-50/50 hover:bg-slate-100/60"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="kopVariant"
+                      checked={kopVariant === "modern_2027"}
+                      onChange={() => setKopVariant("modern_2027")}
+                      className="mt-0.5 text-emerald-700 focus:ring-emerald-500"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-gray-900">
+                          Template 2: Kop Modern Baru
+                        </span>
+                        <span className="text-[9px] bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">
+                          Resmi TP 2027/2028
+                        </span>
+                      </div>
+                      <span className="text-[10.5px] text-gray-500 leading-tight block mt-0.5">
+                        Header modern: Logo ganda di kiri, branding Bayt Al-Hikmah, pilar kontak hijau tua di kanan, serta footer bar kuning keemasan.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Layout Mode Selector */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1205,8 +1280,8 @@ export default function BuatSuratKeluarPage() {
             className="bg-white border border-gray-300 rounded-xl p-5 shadow-sm surat-resmi text-[11px] text-gray-900 leading-relaxed overflow-hidden"
             style={{ fontFamily: '"Times New Roman", Times, "Nimbus Roman No9 L", Georgia, serif' }}
           >
-            {/* Kop Surat Resmi */}
-            <OfficialKopSurat />
+            {/* Kop Surat Resmi (Sesuai Pilihan: Tradisional atau Modern TP 2027/2028) */}
+            <OfficialKopSurat variant={kopVariant} />
 
             {/* FORMAT B: JUDUL TENGAH */}
             {layoutFormat === "judul_tengah" && (
@@ -1270,6 +1345,9 @@ export default function BuatSuratKeluarPage() {
               tembusan={tembusanList.filter(Boolean)}
               isPrint={false}
             />
+
+            {/* Official Footer Accent Bar (Aktif bila Template Kop Modern TP 2027/2028 dipilih) */}
+            <OfficialFooterSurat variant={kopVariant} isPrint={false} />
           </div>
         </div>
       </div>

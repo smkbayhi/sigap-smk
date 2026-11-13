@@ -2,6 +2,8 @@ import { JenisSuratKeluar } from "./database.types";
 
 export type LayoutFormatSurat = "korespondensi" | "judul_tengah";
 
+export type TemplateKopSurat = "tradisional" | "modern_2027";
+
 export type ModelTandaTangan =
   | "1_kepsek"
   | "2_cabdin"
@@ -24,6 +26,7 @@ export interface LetterMetaConfig {
   modelTtd: ModelTandaTangan;
   tipeTabel: TipeTabelSurat;
   tembusan: string[];
+  kopVariant?: TemplateKopSurat;
 }
 
 export interface LetterTemplateItem {
@@ -91,6 +94,7 @@ export function parseLetterMeta(rawHtml: string): {
     modelTtd: "1_kepsek",
     tipeTabel: "none",
     tembusan: [],
+    kopVariant: "tradisional",
   };
 
   if (!rawHtml) {
@@ -120,6 +124,7 @@ export function parseLetterMeta(rawHtml: string): {
         modelTtd: parsed.modelTtd || "1_kepsek",
         tipeTabel: parsed.tipeTabel || "none",
         tembusan: Array.isArray(parsed.tembusan) ? parsed.tembusan : [],
+        kopVariant: parsed.kopVariant === "modern_2027" ? "modern_2027" : "tradisional",
       },
     };
   } catch (e) {

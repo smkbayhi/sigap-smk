@@ -3,15 +3,19 @@
 import React from "react";
 import { useAppData } from "@/context/AppDataContext";
 import { LOGO_YAYASAN_DATA_URL, LOGO_SMK_CIRCULAR_DATA_URL } from "@/lib/seedData";
+import { KOP_HEADER_2027_DATA_URL } from "@/lib/kopAssets2027";
+import { TemplateKopSurat } from "@/lib/letterTemplates";
 
 interface OfficialKopSuratProps {
   className?: string;
+  variant?: TemplateKopSurat;
   logoYayasanOverride?: string;
   logoSmkOverride?: string;
 }
 
 export const OfficialKopSurat: React.FC<OfficialKopSuratProps> = ({
   className = "",
+  variant = "tradisional",
   logoYayasanOverride,
   logoSmkOverride,
 }) => {
@@ -20,6 +24,20 @@ export const OfficialKopSurat: React.FC<OfficialKopSuratProps> = ({
   const logoYayasan = logoYayasanOverride || schoolSettings?.logoYayasanUrl || LOGO_YAYASAN_DATA_URL;
   const logoSmk = logoSmkOverride || schoolSettings?.logoSmkUrl || LOGO_SMK_CIRCULAR_DATA_URL;
 
+  // TEMPLATE 2: KOP MODERN BARU (RESMI TAHUN PELAJARAN 2027/2028)
+  if (variant === "modern_2027") {
+    return (
+      <div className={`w-full mb-5 select-none ${className}`}>
+        <img
+          src={KOP_HEADER_2027_DATA_URL}
+          alt="Kop Surat Resmi TP 2027/2028 SMK Bayt Al-Hikmah"
+          className="w-full h-auto object-contain max-h-36 sm:max-h-40"
+        />
+      </div>
+    );
+  }
+
+  // TEMPLATE 1: KOP TRADISIONAL RESMI (STANDAR SAAT INI)
   return (
     <div
       className={`w-full text-center mb-6 select-none ${className}`}

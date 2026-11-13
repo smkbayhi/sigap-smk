@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
+import { OfficialFooterSurat } from "@/components/kop-surat/OfficialFooterSurat";
 import {
   Upload,
   RotateCcw,
@@ -38,6 +39,7 @@ export default function MasterKopSuratPage() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [processingField, setProcessingField] = useState<string | null>(null);
+  const [previewKopVariant, setPreviewKopVariant] = useState<"tradisional" | "modern_2027">("tradisional");
 
   // Keep state in sync if schoolSettings loads from storage/cloud
   useEffect(() => {
@@ -448,16 +450,39 @@ export default function MasterKopSuratPage() {
 
       {/* Live Preview Paper: Surat Resmi with Times New Roman */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-10 shadow-sm space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-brand-800" />
             <h2 className="text-sm font-bold text-gray-900">
-              Pratinjau Langsung (Live Preview) Surat Dinas
+              Pratinjau Langsung (Live Preview) Surat Resmi
             </h2>
           </div>
-          <span className="text-[11px] bg-brand-50 text-brand-800 border border-brand-200 font-semibold px-2.5 py-0.5 rounded-full">
-            Font: Times New Roman
-          </span>
+          
+          {/* Template Switcher Tabs */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPreviewKopVariant("tradisional")}
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                previewKopVariant === "tradisional"
+                  ? "bg-brand-800 text-white shadow-xs"
+                  : "bg-slate-100 text-gray-700 hover:bg-slate-200"
+              }`}
+            >
+              Template 1: Tradisional (Saat Ini)
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewKopVariant("modern_2027")}
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                previewKopVariant === "modern_2027"
+                  ? "bg-emerald-700 text-white shadow-xs"
+                  : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200"
+              }`}
+            >
+              Template 2: Modern (TP 2027/2028)
+            </button>
+          </div>
         </div>
 
         {/* Paper Simulation */}
@@ -465,8 +490,12 @@ export default function MasterKopSuratPage() {
           className="max-w-3xl mx-auto bg-white border border-gray-300 rounded-xl p-6 sm:p-10 shadow-xs surat-resmi text-gray-900 text-xs sm:text-[13px] leading-relaxed"
           style={{ fontFamily: '"Times New Roman", Times, "Nimbus Roman No9 L", Georgia, serif' }}
         >
-          {/* Kop with custom logos */}
-          <OfficialKopSurat logoYayasanOverride={logoYayasan} logoSmkOverride={logoSmk} />
+          {/* Kop with custom logos & variant */}
+          <OfficialKopSurat
+            variant={previewKopVariant}
+            logoYayasanOverride={logoYayasan}
+            logoSmkOverride={logoSmk}
+          />
 
           {/* Metadata sample */}
           <div className="mb-4">
@@ -544,6 +573,9 @@ export default function MasterKopSuratPage() {
               </p>
             </div>
           </div>
+
+          {/* Footer Accent Bar (Aktif bila Template 2 dipilih) */}
+          <OfficialFooterSurat variant={previewKopVariant} isPrint={false} />
         </div>
 
         <div className="pt-4 flex justify-end">

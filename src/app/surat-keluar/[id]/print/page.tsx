@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAppData } from "@/context/AppDataContext";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
+import { OfficialFooterSurat } from "@/components/kop-surat/OfficialFooterSurat";
 import { SuratSignatureBlock } from "@/components/surat/SuratSignatureBlock";
 import { parseLetterMeta } from "@/lib/letterTemplates";
 import { formatIndonesianDate } from "@/lib/utils";
@@ -206,19 +207,20 @@ export default function SuratKeluarPrintPage() {
           </button>
         </div>
 
-        {/* Official Kop Surat Yayasan & SMK Bayt Al-Hikmah */}
-        <OfficialKopSurat 
-          className="mb-2.5 sm:mb-3"
-          logoYayasanOverride={displayLogoYayasan}
-          logoSmkOverride={displayLogoSmk}
-        />
-
         {(() => {
           const { cleanHtml, meta } = parseLetterMeta(surat.isi_surat);
           const isJudulTengah = meta.layout === "judul_tengah";
 
           return (
             <>
+              {/* Official Kop Surat (Sesuai Pilihan Template: Tradisional vs Modern TP 2027/2028) */}
+              <OfficialKopSurat 
+                variant={meta.kopVariant}
+                className="mb-2.5 sm:mb-3"
+                logoYayasanOverride={displayLogoYayasan}
+                logoSmkOverride={displayLogoSmk}
+              />
+
               {/* FORMAT B: JUDUL TENGAH (Surat Tugas, Surat Rekomendasi, SPPD, Surat Kuasa) */}
               {isJudulTengah ? (
                 <div className="text-center my-3">
@@ -282,6 +284,9 @@ export default function SuratKeluarPrintPage() {
                 tembusan={meta.tembusan}
                 isPrint={true}
               />
+
+              {/* Official Footer Accent Bar (Aktif bila Template Kop Modern TP 2027/2028 dipilih) */}
+              <OfficialFooterSurat variant={meta.kopVariant} isPrint={true} />
             </>
           );
         })()}
