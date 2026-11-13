@@ -71,85 +71,365 @@ export function generateJadwalPelaksanaanHtml(data: {
 }
 
 export function generateSppdHtml(data: {
+  pejabat?: string;
+  pegawai?: string;
+  niyPegawai?: string;
+  pangkat?: string;
+  jabatanPegawai?: string;
+  tingkatBiaya?: string;
+  maksud?: string;
+  transportasi?: string;
+  tempatBerangkat?: string;
+  tempatTujuan?: string;
+  durasi?: string;
+  tglBerangkat?: string;
+  tglKembali?: string;
+  pengikut?: string;
+  instansiBeban?: string;
+  mataAnggaran?: string;
+  keterangan?: string;
+  catatanLain?: string;
+  // Metadata & fallbacks
   hari?: string;
   tanggal?: string;
   waktu?: string;
   tempat?: string;
   acara?: string;
-  pejabat?: string;
-  pegawai?: string;
-  jabatanPegawai?: string;
   perjalanan?: string;
-  transportasi?: string;
-  durasi?: string;
-  maksud?: string;
   beban?: string;
-  keterangan?: string;
+  nomorSurat?: string;
+  tanggalSurat?: string;
+  namaKepsek?: string;
+  niyKepsek?: string;
+  displayStamp?: string | null;
+  displayTtd?: string | null;
 }): string {
-  // First, if there is a schedule part for Surat Tugas
-  let html = "";
-  if (data.hari || data.tanggal || data.waktu || data.tempat || data.acara) {
-    html += generateJadwalPelaksanaanHtml({
-      hari: data.hari,
-      tanggal: data.tanggal,
-      waktu: data.waktu,
-      tempat: data.tempat,
-      agenda: data.acara,
-    });
+  const pejabat = data.pejabat || "Kepala SMK Bayt Al-Hikmah";
+  const pegawai = data.pegawai || "Moh. Nasih Aminulloh, S.Mat, M.Si";
+  const niyPegawai = data.niyPegawai || "23060333";
+  const pangkat = data.pangkat || "-";
+  const jabatan = data.jabatanPegawai || "Guru Produktif SMK Bayt Al-Hikmah";
+  const tingkatBiaya = data.tingkatBiaya || "Sesuai Standar Yayasan / BOSP";
+  const maksud = data.maksud || data.acara || "Pendampingan Siswa PKL dan Workshop Peningkatan Kompetensi";
+  const transportasi = data.transportasi || "Kendaraan Pribadi / Operasional";
+  const tempatBerangkat = data.tempatBerangkat || (data.perjalanan && data.perjalanan.includes(" ke ") ? data.perjalanan.split(" ke ")[0]?.replace("Dari: ", "") : "SMK Bayt Al-Hikmah, Kota Pasuruan");
+  const tempatTujuan = data.tempatTujuan || (data.perjalanan && data.perjalanan.includes(" ke ") ? data.perjalanan.split(" ke ")[1] : "Cabang Dinas Pendidikan Wilayah Pasuruan");
+  const durasi = data.durasi || "1 (satu) hari";
+  const tglBerangkat = data.tglBerangkat || data.tanggal || "14 Januari 2026";
+  const tglKembali = data.tglKembali || data.tanggal || "14 Januari 2026";
+  const pengikut = data.pengikut || "-";
+  const instansiBeban = data.instansiBeban || data.beban || "SMK Bayt Al-Hikmah";
+  const mataAnggaran = data.mataAnggaran || "Dana BOSP / Anggaran Operasional Rutin";
+  const keterangan = data.keterangan || "Surat Tugas Terlampir";
+  const catatanLain = data.catatanLain || "-";
+  const nomorSurat = data.nomorSurat || ".../SPPD/SMK-BAYHI/XI/2026";
+  const tanggalSurat = data.tanggalSurat || data.tanggal || "14 Januari 2026";
+  const namaKepsek = data.namaKepsek || "Mokhamat Ekhsan, S.Kom";
+  const niyKepsek = data.niyKepsek || "14215094";
+
+  // Parse pengikut rows if multiple lines or format as table rows
+  let pengikutContent = "";
+  if (!pengikut || pengikut.trim() === "-" || pengikut.trim() === "") {
+    pengikutContent = `<tr><td style="padding: 2px 4px; border: none;">1. -</td><td style="padding: 2px 4px; border: none;">-</td></tr>`;
+  } else {
+    const lines = pengikut.split("\n").filter(Boolean);
+    pengikutContent = lines.map((l, idx) => {
+      const parts = l.split(" - ");
+      const name = parts[0]?.trim() || l.trim();
+      const desc = parts[1]?.trim() || "-";
+      return `<tr><td style="padding: 2px 4px; border: none;">${idx + 1}. ${name}</td><td style="padding: 2px 4px; border: none;">${desc}</td></tr>`;
+    }).join("");
   }
 
-  // Then the official 8-point SPPD table
-  html += `
-<div style="margin-top: 14px; margin-bottom: 10px; page-break-inside: avoid;">
-  <p style="text-align: center; font-weight: bold; text-decoration: underline; margin-bottom: 2px; font-size: 11pt;">
-    SURAT PERINTAH PERJALANAN DINAS (SPPD)
-  </p>
-  <table style="width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 10pt; border: 1px solid black;" border="1">
+  let html = `
+<div style="font-family: 'Times New Roman', Times, serif; color: #000; font-size: 9.5pt; line-height: 1.4;">
+  <!-- ================= LEMBAR DEPAN (MUKA) SPPD ================= -->
+  <!-- Top Right Header: Lembar ke, Kode No, Nomor -->
+  <div style="display: flex; justify-content: flex-end; margin-bottom: 6px;">
+    <table style="border-collapse: collapse; font-size: 9pt; width: 250px;">
+      <tbody>
+        <tr>
+          <td style="width: 75px; padding: 1px 0;">Lembar ke</td>
+          <td style="width: 10px; padding: 1px 0;">:</td>
+          <td style="padding: 1px 0;">....................................</td>
+        </tr>
+        <tr>
+          <td style="padding: 1px 0;">Kode No.</td>
+          <td style="padding: 1px 0;">:</td>
+          <td style="padding: 1px 0;">....................................</td>
+        </tr>
+        <tr>
+          <td style="padding: 1px 0;">Nomor</td>
+          <td style="padding: 1px 0;">:</td>
+          <td style="padding: 1px 0; font-weight: bold;">${nomorSurat}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Judul SPPD -->
+  <div style="text-align: center; margin: 4px 0 10px 0;">
+    <h2 style="font-size: 12pt; font-weight: bold; text-decoration: underline; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+      SURAT PERINTAH PERJALANAN DINAS (SPPD)
+    </h2>
+  </div>
+
+  <!-- Tabel 10 Butir Standar SPPD -->
+  <table style="width: 100%; border-collapse: collapse; border: 1px solid black; font-size: 9.5pt; margin-bottom: 14px;" border="1">
     <tbody>
       <tr>
-        <td style="width: 28px; text-align: center; padding: 4px; vertical-align: top; border: 1px solid black;">1.</td>
-        <td style="width: 220px; padding: 4px; vertical-align: top; border: 1px solid black;">Pejabat yang berwenang</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">: ${data.pejabat || "Mokhamat Ekhsan, S.Kom"}</td>
+        <td style="width: 28px; text-align: center; vertical-align: top; padding: 4px 6px; border: 1px solid black;">1.</td>
+        <td style="width: 220px; vertical-align: top; padding: 4px 6px; border: 1px solid black;">Pejabat yang memberi perintah</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black; font-weight: 600;">${pejabat}</td>
       </tr>
       <tr>
-        <td style="text-align: center; padding: 4px; vertical-align: top; border: 1px solid black;">2.</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">Nama / NIY Pegawai yang diperintahkan</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">: ${data.pegawai || "-"}</td>
+        <td style="text-align: center; vertical-align: top; padding: 4px 6px; border: 1px solid black;">2.</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">Nama / NIY / NUPTK Pegawai yang diperintahkan</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">
+          <strong style="font-size: 10pt;">${pegawai}</strong><br/>
+          <span style="font-size: 9pt;">NIY/NUPTK: ${niyPegawai}</span>
+        </td>
       </tr>
       <tr>
-        <td style="text-align: center; padding: 4px; vertical-align: top; border: 1px solid black;">3.</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">Jabatan dan Golongan Ruang</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">: ${data.jabatanPegawai || "Guru SMK Bayt Al-Hikmah"}</td>
+        <td style="text-align: center; vertical-align: top; padding: 4px 6px; border: 1px solid black;">3.</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">
+          a. Pangkat dan Golongan<br/>
+          b. Jabatan / Instansi<br/>
+          c. Tingkat Biaya Perjalanan Dinas
+        </td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">
+          a. ${pangkat}<br/>
+          b. ${jabatan}<br/>
+          c. ${tingkatBiaya}
+        </td>
       </tr>
       <tr>
-        <td style="text-align: center; padding: 4px; vertical-align: top; border: 1px solid black;">4.</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">Perjalanan Dinas yang diperintahkan<br/><span style="font-size: 9pt; color: #333;">Transportasi menggunakan:</span></td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">: ${data.perjalanan || "SMK Bayt Al-Hikmah"}<br/>&nbsp;&nbsp;${data.transportasi || "Kendaraan Operasional / Mobil"}</td>
+        <td style="text-align: center; vertical-align: top; padding: 4px 6px; border: 1px solid black;">4.</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">Maksud Perjalanan Dinas</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">${maksud}</td>
       </tr>
       <tr>
-        <td style="text-align: center; padding: 4px; vertical-align: top; border: 1px solid black;">5.</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">Perjalanan Dinas direncanakan</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">: ${data.durasi || "Selama 1 (satu) hari"}</td>
+        <td style="text-align: center; vertical-align: top; padding: 4px 6px; border: 1px solid black;">5.</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">Alat angkutan yang dipergunakan</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">${transportasi}</td>
       </tr>
       <tr>
-        <td style="text-align: center; padding: 4px; vertical-align: top; border: 1px solid black;">6.</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">Maksud mengadakan Perjalanan Dinas</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">: ${data.maksud || data.acara || "-"}</td>
+        <td style="text-align: center; vertical-align: top; padding: 4px 6px; border: 1px solid black;">6.</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">
+          a. Tempat berangkat<br/>
+          b. Tempat tujuan
+        </td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">
+          a. ${tempatBerangkat}<br/>
+          b. ${tempatTujuan}
+        </td>
       </tr>
       <tr>
-        <td style="text-align: center; padding: 4px; vertical-align: top; border: 1px solid black;">7.</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">Perhitungan / Pembebanan Biaya</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">: ${data.beban || "SMK Bayt Al-Hikmah"}</td>
+        <td style="text-align: center; vertical-align: top; padding: 4px 6px; border: 1px solid black;">7.</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">
+          a. Lamanya Perjalanan Dinas<br/>
+          b. Tanggal berangkat<br/>
+          c. Tanggal harus kembali
+        </td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">
+          a. ${durasi}<br/>
+          b. ${tglBerangkat}<br/>
+          c. ${tglKembali}
+        </td>
       </tr>
       <tr>
-        <td style="text-align: center; padding: 4px; vertical-align: top; border: 1px solid black;">8.</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">Keterangan lain-lain</td>
-        <td style="padding: 4px; vertical-align: top; border: 1px solid black;">: ${data.keterangan || "-"}</td>
+        <td style="text-align: center; vertical-align: top; padding: 4px 6px; border: 1px solid black;">8.</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">Pengikut: Nama</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 8.5pt;">
+            <thead>
+              <tr style="border-bottom: 1px solid #999; font-weight: bold;">
+                <td style="padding-bottom: 2px;">Nama</td>
+                <td style="padding-bottom: 2px;">Tanggal Lahir / Jabatan / Keterangan</td>
+              </tr>
+            </thead>
+            <tbody>
+              ${pengikutContent}
+            </tbody>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="text-align: center; vertical-align: top; padding: 4px 6px; border: 1px solid black;">9.</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">
+          Pembebanan Anggaran:<br/>
+          a. Instansi<br/>
+          b. Mata Anggaran / Akun
+        </td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">
+          <br/>
+          a. ${instansiBeban}<br/>
+          b. ${mataAnggaran}
+        </td>
+      </tr>
+      <tr>
+        <td style="text-align: center; vertical-align: top; padding: 4px 6px; border: 1px solid black;">10.</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">Keterangan lain-lain</td>
+        <td style="vertical-align: top; padding: 4px 6px; border: 1px solid black;">${keterangan}</td>
       </tr>
     </tbody>
   </table>
+
+  <!-- Tanda Tangan Pejabat Penerbit SPPD (Lembar Muka) -->
+  <div style="display: flex; justify-content: flex-end; margin-top: 10px; margin-bottom: 24px;">
+    <div style="width: 270px; text-align: left; font-size: 9.5pt;">
+      <p style="margin: 0;">Dikeluarkan di : Pasuruan</p>
+      <p style="margin: 0 0 4px 0;">Pada tanggal : ${tanggalSurat}</p>
+      <p style="margin: 0; font-weight: bold;">Kepala Sekolah,</p>
+
+      <!-- Signature & Stamp container with authentic positioning -->
+      <div style="position: relative; height: 75px; margin: 4px 0; display: flex; align-items: center;">
+        ${
+          data.displayStamp
+            ? `<div style="position: absolute; left: -22px; top: -20px; pointer-events: none; opacity: 0.9; z-index: 1;">
+                 <img src="${data.displayStamp}" alt="Stempel" style="width: 125px; height: 125px; object-fit: contain; mix-blend-mode: multiply;" />
+               </div>`
+            : ""
+        }
+        ${
+          data.displayTtd
+            ? `<div style="position: relative; z-index: 2; left: 18px; top: -4px;">
+                 <img src="${data.displayTtd}" alt="TTD" style="height: 75px; max-width: 160px; object-fit: contain; mix-blend-mode: multiply;" />
+               </div>`
+            : `<div style="height: 55px;"></div>`
+        }
+      </div>
+
+      <p style="margin: 0; font-weight: bold; text-decoration: underline; font-size: 10.5pt;">${namaKepsek}</p>
+      <p style="margin: 0; font-size: 9pt;">NIY. ${niyKepsek}</p>
+    </div>
+  </div>
+
+  <!-- ================= LEMBAR BELAKANG (VISUM SPPD) ================= -->
+  <div style="page-break-before: always; break-before: page; margin-top: 28px; padding-top: 16px; border-top: 2px dashed #999;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 8.5pt;">
+      <span style="font-style: italic; color: #555;">(Halaman 2 / Lembar Belakang)</span>
+      <span style="font-weight: bold;">SPPD No: ${nomorSurat}</span>
+    </div>
+    
+    <div style="text-align: center; margin-bottom: 10px;">
+      <p style="font-size: 10.5pt; font-weight: bold; text-decoration: underline; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+        LEMBAR VISUM PERJALANAN DINAS
+      </p>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; border: 1px solid black; font-size: 8.5pt;" border="1">
+      <tbody>
+        <!-- Row I -->
+        <tr>
+          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black; background: #fafafa;"></td>
+          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black;">
+            <strong>I.</strong> Berangkat dari : ${tempatBerangkat}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;(Tempat Kedudukan)<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;Ke : ${tempatTujuan}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;Pada Tanggal : ${tglBerangkat}<br/>
+            <div style="margin-top: 6px; text-align: center;">
+              <p style="margin: 0; font-weight: bold;">Kepala Sekolah,</p>
+              <div style="height: 40px;"></div>
+              <p style="margin: 0; font-weight: bold; text-decoration: underline;">${namaKepsek}</p>
+              <p style="margin: 0; font-size: 8pt;">NIY. ${niyKepsek}</p>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row II -->
+        <tr>
+          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black;">
+            <strong>II.</strong> Tiba di : ${tempatTujuan}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pada Tanggal : ${tglBerangkat}<br/>
+            <div style="margin-top: 6px; text-align: center;">
+              <p style="margin: 0; font-weight: bold;">Kepala / Pimpinan Instansi,</p>
+              <div style="height: 40px;"></div>
+              <p style="margin: 0; font-weight: bold;">( ........................................ )</p>
+              <p style="margin: 0; font-size: 8pt;">NIP/Jabatan: ...........................</p>
+            </div>
+          </td>
+          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black;">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Berangkat dari : ${tempatTujuan}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ke : ${tempatBerangkat}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pada Tanggal : ${tglKembali}<br/>
+            <div style="margin-top: 6px; text-align: center;">
+              <p style="margin: 0; font-weight: bold;">Kepala / Pimpinan Instansi,</p>
+              <div style="height: 40px;"></div>
+              <p style="margin: 0; font-weight: bold;">( ........................................ )</p>
+              <p style="margin: 0; font-size: 8pt;">NIP/Jabatan: ...........................</p>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row III -->
+        <tr>
+          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black;">
+            <strong>III.</strong> Tiba di : ........................................<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pada Tanggal : ........................................<br/>
+            <div style="margin-top: 6px; text-align: center;">
+              <p style="margin: 0; font-weight: bold;">Kepala / Pimpinan Instansi,</p>
+              <div style="height: 40px;"></div>
+              <p style="margin: 0; font-weight: bold;">( ........................................ )</p>
+              <p style="margin: 0; font-size: 8pt;">NIP/Jabatan: ...........................</p>
+            </div>
+          </td>
+          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black;">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Berangkat dari : ........................................<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ke : ........................................<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pada Tanggal : ........................................<br/>
+            <div style="margin-top: 6px; text-align: center;">
+              <p style="margin: 0; font-weight: bold;">Kepala / Pimpinan Instansi,</p>
+              <div style="height: 40px;"></div>
+              <p style="margin: 0; font-weight: bold;">( ........................................ )</p>
+              <p style="margin: 0; font-size: 8pt;">NIP/Jabatan: ...........................</p>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row IV -->
+        <tr>
+          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black;">
+            <strong>IV.</strong> Tiba kembali di : ${tempatBerangkat}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Tempat Kedudukan)<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pada Tanggal : ${tglKembali}<br/>
+            <div style="margin-top: 6px; text-align: center;">
+              <p style="margin: 0; font-weight: bold;">Kepala Sekolah,</p>
+              <div style="height: 40px;"></div>
+              <p style="margin: 0; font-weight: bold; text-decoration: underline;">${namaKepsek}</p>
+              <p style="margin: 0; font-size: 8pt;">NIY. ${niyKepsek}</p>
+            </div>
+          </td>
+          <td style="width: 50%; padding: 6px; vertical-align: top; border: 1px solid black; font-size: 8pt; line-height: 1.4;">
+            Telah diperiksa dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.
+            <div style="margin-top: 6px; text-align: center;">
+              <p style="margin: 0; font-weight: bold; font-size: 8.5pt;">Kepala Sekolah,</p>
+              <div style="height: 40px;"></div>
+              <p style="margin: 0; font-weight: bold; text-decoration: underline; font-size: 9pt;">${namaKepsek}</p>
+              <p style="margin: 0; font-size: 8pt;">NIY. ${niyKepsek}</p>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row V -->
+        <tr>
+          <td colspan="2" style="padding: 6px 8px; border: 1px solid black; font-size: 8pt;">
+            <strong>V. CATATAN LAIN-LAIN:</strong><br/>
+            ${catatanLain}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Row VI -->
+    <div style="margin-top: 6px; font-size: 7.5pt; line-height: 1.35; text-align: justify; color: #111;">
+      <strong>VI. PERHATIAN:</strong><br/>
+      Pejabat yang berwenang menerbitkan SPPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan keuangan sekolah/yayasan apabila sekolah menderita rugi akibat kesalahan, kelalaian, dan kealpaannya.
+    </div>
+  </div>
 </div>
 `;
+
   return html;
 }
 

@@ -79,9 +79,9 @@ const CATALOG_TEMPLATES: CatalogCardItem[] = [
   {
     id: "surat-tugas-sppd-resmi",
     badge: "SPPD RESMI",
-    title: "Surat Perintah Tugas & SPPD Resmi",
-    description: "Surat penugasan kedinasan disertai formulir SPPD 8 butir standar Cabang Dinas & Kemdikbud.",
-    fields: "12 field",
+    title: "SURAT PERINTAH PERJALANAN DINAS (SPPD)",
+    description: "Format resmi Formulir SPPD 10 butir disertai lembar visum keberangkatan dan kedatangan tempat tujuan.",
+    fields: "10 field + Visum",
     category: "tugas_sppd",
   },
   {
@@ -222,20 +222,32 @@ export default function BuatSuratKeluarPage() {
   });
 
   const [sppdData, setSppdData] = useState({
+    pejabat: "Kepala SMK Bayt Al-Hikmah",
+    pegawai: "Moh. Nasih Aminulloh, S.Mat, M.Si",
+    niyPegawai: "23060333",
+    pangkat: "-",
+    jabatanPegawai: "Guru Produktif SMK Bayt Al-Hikmah",
+    tingkatBiaya: "Sesuai Standar Yayasan / BOSP",
+    maksud: "Pendampingan Siswa PKL dan Workshop Peningkatan Kompetensi Guru Kejuruan",
+    transportasi: "Kendaraan Pribadi / Operasional",
+    tempatBerangkat: "SMK Bayt Al-Hikmah, Kota Pasuruan",
+    tempatTujuan: "Cabang Dinas Pendidikan Wilayah Pasuruan",
+    durasi: "1 (satu) hari",
+    tglBerangkat: "14 Januari 2026",
+    tglKembali: "14 Januari 2026",
+    pengikut: "-",
+    instansiBeban: "SMK Bayt Al-Hikmah",
+    mataAnggaran: "Dana BOSP / Anggaran Operasional Rutin",
+    keterangan: "Surat Tugas Nomor: 014/ST/SMK-BAYHI/I/2026",
+    catatanLain: "-",
+    // backward compat
     hari: "Rabu",
     tanggal: "14 Januari 2026",
     waktu: "08.00 s.d 14.00 WIB",
     tempat: "Aula Pertemuan SMKN 1 Bangil",
     acara: "Workshop Pembelajaran Berbasis Standar dan Uji Sertifikasi Siswa SMK",
-    pejabat: "Mokhamat Ekhsan, S.Kom",
-    pegawai: "Moh. Nasih Aminulloh, S.Mat, M.Si (NIY. 23060333)",
-    jabatanPegawai: "Guru Produktif / SMK Bayt Al-Hikmah",
     perjalanan: "Dari: SMK Bayt Al-Hikmah ke SMKN 1 Bangil",
-    transportasi: "Mobil Operasional Sekolah",
-    durasi: "Selama 1 (satu) hari",
-    maksud: "Workshop Pembelajaran Berbasis Standar dan Uji Sertifikasi Siswa SMK",
     beban: "SMK Bayt Al-Hikmah",
-    keterangan: "-",
   });
 
   const [siswaData, setSiswaData] = useState([
@@ -333,7 +345,15 @@ export default function BuatSuratKeluarPage() {
       case "jadwal_pelaksanaan":
         return generateJadwalPelaksanaanHtml(jadwalData);
       case "sppd_resmi":
-        return generateSppdHtml(sppdData);
+        return generateSppdHtml({
+          ...sppdData,
+          nomorSurat: previewNomorSurat,
+          namaKepsek: schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom",
+          niyKepsek: schoolSettings?.niyKepsek || "14215094",
+          tanggalSurat: formatIndonesianDate(tanggalSurat),
+          displayStamp: schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL,
+          displayTtd: schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL,
+        });
       case "daftar_siswa":
         return generateDaftarSiswaHtml(siswaData);
       case "pengantar_berkas":
@@ -1054,92 +1074,198 @@ export default function BuatSuratKeluarPage() {
                 </div>
               )}
 
-              {/* TABEL TYPE B: SPPD RESMI 8 BUTIR */}
+              {/* TABEL TYPE B: SPPD RESMI 10 BUTIR */}
               {tipeTabel === "sppd_resmi" && (
-                <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-3 animate-in fade-in-50 text-xs">
-                  <span className="text-xs font-bold text-brand-900 block">
-                    Isian Formulir SPPD Resmi (8 Butir Standar Cabdin & Kemdikbud):
-                  </span>
+                <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 animate-in fade-in-50 text-xs">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="text-xs font-bold text-brand-900 block">
+                      Formulir Isian SPPD Resmi (10 Butir Standar & Lembar Visum):
+                    </span>
+                    <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded">
+                      Lembar Depan & Belakang
+                    </span>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block font-semibold text-gray-700 mb-1">1. Pejabat yang Berwenang:</label>
+                      <label className="block font-semibold text-gray-700 mb-1">1. Pejabat yang Memberi Perintah:</label>
                       <input
                         type="text"
                         value={sppdData.pejabat}
                         onChange={(e) => setSppdData({ ...sppdData, pejabat: e.target.value })}
                         className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Contoh: Kepala SMK Bayt Al-Hikmah"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-gray-700 mb-1">2. Pegawai yang Diperintahkan:</label>
+                      <label className="block font-semibold text-gray-700 mb-1">2. Nama Pegawai yang Diperintahkan:</label>
                       <input
                         type="text"
                         value={sppdData.pegawai}
                         onChange={(e) => setSppdData({ ...sppdData, pegawai: e.target.value })}
-                        className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2 font-bold"
+                        placeholder="Contoh: Moh. Nasih Aminulloh, S.Mat, M.Si"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-gray-700 mb-1">3. Jabatan / Golongan:</label>
+                      <label className="block font-semibold text-gray-700 mb-1">NIY / NUPTK Pegawai:</label>
+                      <input
+                        type="text"
+                        value={sppdData.niyPegawai}
+                        onChange={(e) => setSppdData({ ...sppdData, niyPegawai: e.target.value })}
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2 font-mono"
+                        placeholder="Contoh: 23060333"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-gray-700 mb-1">3a. Pangkat dan Golongan:</label>
+                      <input
+                        type="text"
+                        value={sppdData.pangkat}
+                        onChange={(e) => setSppdData({ ...sppdData, pangkat: e.target.value })}
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Isi jika ada, atau '-'"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-gray-700 mb-1">3b. Jabatan / Instansi:</label>
                       <input
                         type="text"
                         value={sppdData.jabatanPegawai}
                         onChange={(e) => setSppdData({ ...sppdData, jabatanPegawai: e.target.value })}
                         className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Contoh: Guru Produktif SMK Bayt Al-Hikmah"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-gray-700 mb-1">4. Perjalanan Dinas Dari & Ke:</label>
+                      <label className="block font-semibold text-gray-700 mb-1">3c. Tingkat Biaya Perjalanan Dinas:</label>
                       <input
                         type="text"
-                        value={sppdData.perjalanan}
-                        onChange={(e) => setSppdData({ ...sppdData, perjalanan: e.target.value })}
+                        value={sppdData.tingkatBiaya}
+                        onChange={(e) => setSppdData({ ...sppdData, tingkatBiaya: e.target.value })}
                         className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Contoh: Sesuai Standar Yayasan / BOSP"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block font-semibold text-gray-700 mb-1">4. Maksud Perjalanan Dinas:</label>
+                      <textarea
+                        rows={2}
+                        value={sppdData.maksud}
+                        onChange={(e) => setSppdData({ ...sppdData, maksud: e.target.value })}
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Contoh: Pendampingan Siswa PKL / Mengikuti Workshop"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-gray-700 mb-1">Transportasi Menggunakan:</label>
+                      <label className="block font-semibold text-gray-700 mb-1">5. Alat Angkutan yang Dipergunakan:</label>
                       <input
                         type="text"
                         value={sppdData.transportasi}
                         onChange={(e) => setSppdData({ ...sppdData, transportasi: e.target.value })}
                         className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Kendaraan Umum / Kendaraan Pribadi / Kendaraan Dinas"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-gray-700 mb-1">5. Lamanya Perjalanan Dinas:</label>
+                      <label className="block font-semibold text-gray-700 mb-1">6a. Tempat Berangkat:</label>
+                      <input
+                        type="text"
+                        value={sppdData.tempatBerangkat}
+                        onChange={(e) => setSppdData({ ...sppdData, tempatBerangkat: e.target.value })}
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="SMK Bayt Al-Hikmah, Kota Pasuruan"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-gray-700 mb-1">6b. Tempat Tujuan:</label>
+                      <input
+                        type="text"
+                        value={sppdData.tempatTujuan}
+                        onChange={(e) => setSppdData({ ...sppdData, tempatTujuan: e.target.value })}
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Nama Instansi/Perusahaan Tujuan, Kota/Kabupaten"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-gray-700 mb-1">7a. Lamanya Perjalanan Dinas:</label>
                       <input
                         type="text"
                         value={sppdData.durasi}
                         onChange={(e) => setSppdData({ ...sppdData, durasi: e.target.value })}
                         className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Contoh: 1 (satu) hari"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-gray-700 mb-1">7b. Tanggal Berangkat:</label>
+                      <input
+                        type="text"
+                        value={sppdData.tglBerangkat}
+                        onChange={(e) => setSppdData({ ...sppdData, tglBerangkat: e.target.value })}
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Contoh: 14 Januari 2026"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-gray-700 mb-1">7c. Tanggal Harus Kembali:</label>
+                      <input
+                        type="text"
+                        value={sppdData.tglKembali}
+                        onChange={(e) => setSppdData({ ...sppdData, tglKembali: e.target.value })}
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Contoh: 14 Januari 2026"
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block font-semibold text-gray-700 mb-1">6. Maksud Perjalanan Dinas:</label>
-                      <input
-                        type="text"
-                        value={sppdData.maksud}
-                        onChange={(e) => setSppdData({ ...sppdData, maksud: e.target.value })}
-                        className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                      <label className="block font-semibold text-gray-700 mb-1">
+                        8. Pengikut (Format: Nama - Keterangan):
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={sppdData.pengikut}
+                        onChange={(e) => setSppdData({ ...sppdData, pengikut: e.target.value })}
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2 font-mono"
+                        placeholder="Contoh: 1. Muhammad Alif - Siswa PKL (atau isi '-' jika tidak ada)"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-gray-700 mb-1">7. Pembebanan Biaya:</label>
+                      <label className="block font-semibold text-gray-700 mb-1">9a. Pembebanan Anggaran (Instansi):</label>
                       <input
                         type="text"
-                        value={sppdData.beban}
-                        onChange={(e) => setSppdData({ ...sppdData, beban: e.target.value })}
+                        value={sppdData.instansiBeban}
+                        onChange={(e) => setSppdData({ ...sppdData, instansiBeban: e.target.value })}
                         className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="SMK Bayt Al-Hikmah"
                       />
                     </div>
                     <div>
-                      <label className="block font-semibold text-gray-700 mb-1">8. Keterangan Lain-Lain:</label>
+                      <label className="block font-semibold text-gray-700 mb-1">9b. Mata Anggaran / Akun:</label>
+                      <input
+                        type="text"
+                        value={sppdData.mataAnggaran}
+                        onChange={(e) => setSppdData({ ...sppdData, mataAnggaran: e.target.value })}
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Dana BOSP / Anggaran Rutin Yayasan"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-gray-700 mb-1">10. Keterangan Lain-Lain:</label>
                       <input
                         type="text"
                         value={sppdData.keterangan}
                         onChange={(e) => setSppdData({ ...sppdData, keterangan: e.target.value })}
                         className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Surat Tugas Nomor: .../ST/SMK-BAYHI/XI/2026"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-gray-700 mb-1">Catatan Lain-Lain (Lembar Belakang Visum):</label>
+                      <input
+                        type="text"
+                        value={sppdData.catatanLain}
+                        onChange={(e) => setSppdData({ ...sppdData, catatanLain: e.target.value })}
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder="Isi '-' jika tidak ada"
                       />
                     </div>
                   </div>
@@ -1585,8 +1711,8 @@ export default function BuatSuratKeluarPage() {
             {/* Kop Surat Resmi (Sesuai Pilihan: Tradisional atau Modern TP 2027/2028) */}
             <OfficialKopSurat variant={kopVariant} />
 
-            {/* FORMAT B: JUDUL TENGAH */}
-            {layoutFormat === "judul_tengah" && (
+            {/* FORMAT B: JUDUL TENGAH (Kecuali SPPD yang telah memiliki header tabel lembar ke & judul sendiri) */}
+            {layoutFormat === "judul_tengah" && tipeTabel !== "sppd_resmi" && (
               <div className="text-center my-3">
                 <h2 className="text-[13pt] font-bold uppercase underline tracking-wider text-black">
                   {judulSurat || perihal || "SURAT RESMI"}
@@ -1637,20 +1763,22 @@ export default function BuatSuratKeluarPage() {
               dangerouslySetInnerHTML={{ __html: currentPreviewBody }}
             />
 
-            {/* Signature Block Simulation */}
-            <SuratSignatureBlock
-              modelTtd={modelTtd}
-              tanggalSurat={tanggalSurat}
-              namaKepsek={schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom"}
-              niyKepsek={schoolSettings?.niyKepsek || "14215094"}
-              displayStamp={schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL}
-              displayTtd={schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL}
-              isApprovedOrHasTtd={true}
-              isApprovedOrHasStempel={true}
-              namaPenerima={tujuan}
-              tembusan={tembusanList.filter(Boolean)}
-              isPrint={false}
-            />
+            {/* Signature Block Simulation (Hanya untuk selain SPPD, karena SPPD telah memiliki blok TTD Muka & Belakang Visum tersendiri) */}
+            {tipeTabel !== "sppd_resmi" && (
+              <SuratSignatureBlock
+                modelTtd={modelTtd}
+                tanggalSurat={tanggalSurat}
+                namaKepsek={schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom"}
+                niyKepsek={schoolSettings?.niyKepsek || "14215094"}
+                displayStamp={schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL}
+                displayTtd={schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL}
+                isApprovedOrHasTtd={true}
+                isApprovedOrHasStempel={true}
+                namaPenerima={tujuan}
+                tembusan={tembusanList.filter(Boolean)}
+                isPrint={false}
+              />
+            )}
 
             {/* Official Footer Accent Bar (Aktif bila Template Kop Modern TP 2027/2028 dipilih) */}
             <OfficialFooterSurat variant={kopVariant} isPrint={false} />

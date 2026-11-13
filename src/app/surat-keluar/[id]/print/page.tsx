@@ -222,8 +222,8 @@ export default function SuratKeluarPrintPage() {
                 logoSmkOverride={displayLogoSmk}
               />
 
-              {/* FORMAT B: JUDUL TENGAH (Surat Tugas, Surat Rekomendasi, SPPD, Surat Kuasa) */}
-              {isJudulTengah ? (
+              {/* FORMAT B: JUDUL TENGAH (Kecuali SPPD yang telah memiliki header tabel lembar ke & judul sendiri) */}
+              {isJudulTengah && meta.tipeTabel !== "sppd_resmi" ? (
                 <div className="text-center my-3">
                   <h2 className="text-[12.5pt] sm:text-[13pt] font-bold uppercase underline tracking-wider text-black">
                     {meta.judul || surat.perihal}
@@ -232,7 +232,7 @@ export default function SuratKeluarPrintPage() {
                     Nomor: {surat.nomor_surat}
                   </p>
                 </div>
-              ) : (
+              ) : meta.tipeTabel === "sppd_resmi" ? null : (
                 /* FORMAT A: KORESPONDENSI DINAS (Nomor/Lampiran/Perihal di kiri, Kepada Yth.) */
                 <>
                   <div className="mb-3 text-[10.5pt] sm:text-[11pt]">
@@ -272,19 +272,21 @@ export default function SuratKeluarPrintPage() {
               />
 
               {/* Signature & Official Stamp Block (1 Pihak, 2 Pihak Cabdin/Yayasan, 3 Pihak Bank Jatim/SP) */}
-              <SuratSignatureBlock
-                modelTtd={meta.modelTtd}
-                tanggalSurat={surat.tanggal_surat}
-                namaKepsek={displayKepsek}
-                niyKepsek={displayNiy}
-                displayStamp={displayStamp}
-                displayTtd={displayTtd}
-                isApprovedOrHasTtd={isApprovedOrHasTtd}
-                isApprovedOrHasStempel={isApprovedOrHasStempel}
-                namaPenerima={surat.tujuan}
-                tembusan={meta.tembusan}
-                isPrint={true}
-              />
+              {meta.tipeTabel !== "sppd_resmi" && (
+                <SuratSignatureBlock
+                  modelTtd={meta.modelTtd}
+                  tanggalSurat={surat.tanggal_surat}
+                  namaKepsek={displayKepsek}
+                  niyKepsek={displayNiy}
+                  displayStamp={displayStamp}
+                  displayTtd={displayTtd}
+                  isApprovedOrHasTtd={isApprovedOrHasTtd}
+                  isApprovedOrHasStempel={isApprovedOrHasStempel}
+                  namaPenerima={surat.tujuan}
+                  tembusan={meta.tembusan}
+                  isPrint={true}
+                />
+              )}
 
               {/* Official Footer Accent Bar (Aktif bila Template Kop Modern TP 2027/2028 dipilih) */}
               <OfficialFooterSurat variant={meta.kopVariant} isPrint={true} />
