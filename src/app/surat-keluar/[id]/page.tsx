@@ -11,6 +11,7 @@ import { OfficialFooterSurat } from "@/components/kop-surat/OfficialFooterSurat"
 import { DigitalSignatureModal } from "@/components/signature/DigitalSignatureModal";
 import { SuratSignatureBlock } from "@/components/surat/SuratSignatureBlock";
 import { parseLetterMeta } from "@/lib/letterTemplates";
+import { alignParagraphsWithKeyValueTables } from "@/lib/tableGenerators";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { mapDbToSuratKeluar } from "@/lib/supabaseSync";
 import { SuratKeluar } from "@/lib/database.types";
@@ -362,10 +363,10 @@ export default function SuratKeluarDetailPage() {
                 </>
               )}
 
-              {/* Letter Body (Clean HTML without metadata comment) */}
+              {/* Letter Body (Clean HTML without metadata comment, aligned key-value tables) */}
               <div
                 className="prose prose-sm max-w-none text-gray-900 mb-8 leading-relaxed font-serif text-xs sm:text-[13px] text-justify space-y-2.5"
-                dangerouslySetInnerHTML={{ __html: cleanHtml }}
+                dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(cleanHtml) }}
               />
 
               {/* Signature & Official Seal Block (1 Pihak, 2 Pihak Cabdin/Yayasan, 3 Pihak Bank Jatim/SP) */}

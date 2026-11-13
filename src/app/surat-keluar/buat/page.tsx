@@ -232,7 +232,7 @@ export default function BuatSuratKeluarPage() {
       .filter(Boolean);
 
     paragraphs.forEach((p) => {
-      // Check for numbered list
+      // 1. Check for numbered list
       if (p.includes("\n1.") || p.startsWith("1.")) {
         const lines = p.split("\n");
         const normalLines = lines.filter((l) => !/^\d+\./.test(l.trim()));
@@ -249,9 +249,33 @@ export default function BuatSuratKeluarPage() {
           });
           html += `</ol>\n`;
         }
-      } else {
-        html += `<p>${p.replace(/\n/g, "<br/>")}</p>\n`;
+        return;
       }
+
+      // 2. Check for key-value pair lines (e.g. Nama : ..., NIY : ..., Jabatan : ...)
+      const lines = p.split("\n").map((l) => l.trim()).filter(Boolean);
+      const kvRegex = /^([A-Za-z0-9\s\/\(\)\.,'-]{2,30})\s*:\s*(.+)$/;
+      const kvLines = lines.filter((l) => kvRegex.test(l));
+      const nonKvLines = lines.filter((l) => !kvRegex.test(l));
+
+      if (kvLines.length >= 2 && kvLines.length >= lines.length / 2) {
+        if (nonKvLines.length > 0) {
+          html += `<p>${nonKvLines.join("<br/>")}</p>\n`;
+        }
+        html += `<table style="width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 11pt;">\n`;
+        kvLines.forEach((l, idx) => {
+          const m = l.match(kvRegex);
+          if (m) {
+            const widthStyle = idx === 0 ? "width: 130px; " : "";
+            html += `  <tr><td style="${widthStyle}padding: 3px 0; vertical-align: top;">${m[1].trim()}</td><td style="padding: 3px 0; vertical-align: top;">: ${m[2].trim()}</td></tr>\n`;
+          }
+        });
+        html += `</table>\n`;
+        return;
+      }
+
+      // 3. Normal paragraph
+      html += `<p>${p.replace(/\n/g, "<br/>")}</p>\n`;
     });
 
     // 3. Append Table HTML

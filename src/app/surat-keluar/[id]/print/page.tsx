@@ -7,6 +7,7 @@ import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import { OfficialFooterSurat } from "@/components/kop-surat/OfficialFooterSurat";
 import { SuratSignatureBlock } from "@/components/surat/SuratSignatureBlock";
 import { parseLetterMeta } from "@/lib/letterTemplates";
+import { alignParagraphsWithKeyValueTables } from "@/lib/tableGenerators";
 import { formatIndonesianDate } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { mapDbToSuratKeluar } from "@/lib/supabaseSync";
@@ -264,10 +265,10 @@ export default function SuratKeluarPrintPage() {
                 </>
               )}
 
-              {/* Letter Body */}
+              {/* Letter Body (Aligned Key-Value Data) */}
               <div
                 className="mb-4 text-[10.5pt] sm:text-[11pt] leading-relaxed text-justify space-y-2.5"
-                dangerouslySetInnerHTML={{ __html: cleanHtml }}
+                dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(cleanHtml) }}
               />
 
               {/* Signature & Official Stamp Block (1 Pihak, 2 Pihak Cabdin/Yayasan, 3 Pihak Bank Jatim/SP) */}

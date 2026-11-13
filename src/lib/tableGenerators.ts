@@ -1,5 +1,44 @@
 // Table HTML generators for official SMK Bayt Al-Hikmah letters
 
+export function alignParagraphsWithKeyValueTables(html: string): string {
+  if (!html) return "";
+
+  // Replace <p> blocks that contain key-value colon pairs like "Nama : ...<br/>NIY : ...<br/>Jabatan : ..."
+  const pRegex = /<p>([\s\S]*?)<\/p>/gi;
+  const kvRegex = /^([A-Za-z0-9\s\/\(\)\.,'-]{2,30})\s*:\s*(.+)$/;
+
+  return html.replace(pRegex, (match, inner) => {
+    // Split by <br>, <br/>, or newline
+    const lines = inner
+      .split(/<br\s*\/?>|\r?\n/gi)
+      .map((l: string) => l.trim())
+      .filter(Boolean);
+
+    // Check if lines have key-value colon patterns
+    const kvLines = lines.filter((l: string) => kvRegex.test(l));
+    const nonKvLines = lines.filter((l: string) => !kvRegex.test(l));
+
+    if (kvLines.length >= 2 && kvLines.length >= lines.length / 2) {
+      let out = "";
+      if (nonKvLines.length > 0) {
+        out += `<p>${nonKvLines.join("<br/>")}</p>\n`;
+      }
+      out += `<table style="width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 11pt;">\n`;
+      kvLines.forEach((l: string, idx: number) => {
+        const m = l.match(kvRegex);
+        if (m) {
+          const widthStyle = idx === 0 ? "width: 130px; " : "";
+          out += `  <tr><td style="${widthStyle}padding: 3px 0; vertical-align: top;">${m[1].trim()}</td><td style="padding: 3px 0; vertical-align: top;">: ${m[2].trim()}</td></tr>\n`;
+        }
+      });
+      out += `</table>\n`;
+      return out;
+    }
+
+    return match;
+  });
+}
+
 export function generateJadwalPelaksanaanHtml(data: {
   hari?: string;
   tanggal?: string;
