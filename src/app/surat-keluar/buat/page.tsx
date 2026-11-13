@@ -36,72 +36,12 @@ import {
   Eye,
   Sparkles,
   Calendar,
-  CheckSquare,
-  Square,
-  HelpCircle,
+  Bookmark,
+  ChevronDown,
+  ChevronUp,
   Plus,
   Trash2,
-  Table as TableIcon,
-  PenTool,
-  Bookmark,
-  Layers,
-  Zap,
-  Settings2,
-  CheckCircle2,
-  Check,
-  Clock,
-  MapPin,
-  ChevronRight,
-  Info,
 } from "lucide-react";
-
-const CATEGORY_OPTIONS = [
-  { id: "all", label: "Semua Template" },
-  { id: "undangan", label: "Undangan" },
-  { id: "permohonan", label: "Permohonan" },
-  { id: "tugas_sppd", label: "Surat Tugas" },
-  { id: "kesiswaan", label: "Kesiswaan" },
-  { id: "pengantar_kuasa", label: "Pengantar & Kuasa" },
-  { id: "peringatan", label: "Peringatan" },
-];
-
-const getCategoryBadge = (category: string) => {
-  switch (category) {
-    case "undangan":
-      return "bg-amber-50 text-amber-800 border-amber-200";
-    case "permohonan":
-      return "bg-blue-50 text-blue-800 border-blue-200";
-    case "tugas_sppd":
-      return "bg-purple-50 text-purple-800 border-purple-200";
-    case "kesiswaan":
-      return "bg-emerald-50 text-emerald-800 border-emerald-200";
-    case "pengantar_kuasa":
-      return "bg-slate-100 text-slate-800 border-slate-200";
-    case "peringatan":
-      return "bg-rose-50 text-rose-800 border-rose-200";
-    default:
-      return "bg-gray-50 text-gray-700 border-gray-200";
-  }
-};
-
-const getCategoryLabel = (category: string) => {
-  switch (category) {
-    case "undangan":
-      return "Undangan";
-    case "permohonan":
-      return "Permohonan";
-    case "tugas_sppd":
-      return "Surat Tugas";
-    case "kesiswaan":
-      return "Kesiswaan";
-    case "pengantar_kuasa":
-      return "Pengantar/Kuasa";
-    case "peringatan":
-      return "Peringatan";
-    default:
-      return "Template";
-  }
-};
 
 export default function BuatSuratKeluarPage() {
   const router = useRouter();
@@ -117,12 +57,9 @@ export default function BuatSuratKeluarPage() {
   const nextNoUrut = highestNoUrut + 1;
   const previewNomorSurat = generateNomorSurat(nextNoUrut, new Date());
 
-  // Mode switcher states: Mode Cepat (Default) vs Mode Lanjutan (Kustom TU)
-  const [editorMode, setEditorMode] = useState<"cepat" | "lanjutan">("cepat");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-
   // Form core states
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("undangan-pembekalan-pkl");
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [jenisSurat, setJenisSurat] = useState<JenisSuratKeluar>("surat_undangan");
   const [kopVariant, setKopVariant] = useState<TemplateKopSurat>("tradisional");
   const [layoutFormat, setLayoutFormat] = useState<LayoutFormatSurat>("korespondensi");
@@ -397,10 +334,19 @@ export default function BuatSuratKeluarPage() {
     }, 400);
   };
 
-  const filteredTemplates =
-    categoryFilter === "all"
-      ? REAL_2026_LETTER_TEMPLATES
-      : REAL_2026_LETTER_TEMPLATES.filter((t) => t.category === categoryFilter);
+  const handleSelectBlank = () => {
+    setSelectedTemplateId("");
+    setJenisSurat("surat_undangan");
+    setLayoutFormat("korespondensi");
+    setJudulSurat("");
+    setPerihal("");
+    setTujuan("");
+    setIntiSurat("");
+    setTipeTabel("none");
+    setModelTtd("1_kepsek");
+    setJenisPenutup("undangan");
+    setLampiran("-");
+  };
 
   return (
     <div className="space-y-6 pb-16">
@@ -431,10 +377,10 @@ export default function BuatSuratKeluarPage() {
               </div>
               <div>
                 <h2 className="text-base font-bold text-gray-900">
-                  Pembuat Draf Surat Keluar Resmi
+                  Buat Surat Keluar
                 </h2>
                 <p className="text-xs text-gray-500">
-                  Format baku disesuaikan dengan Arsip Surat SMK Bayt Al-Hikmah Tahun 2026.
+                  Pilih contoh surat untuk isi otomatis, atau ketik langsung kebutuhan Anda.
                 </p>
               </div>
             </div>
@@ -443,1434 +389,345 @@ export default function BuatSuratKeluarPage() {
             </span>
           </div>
 
-          {/* Mode Switcher: Mode Cepat (Rekomendasi) vs Mode Lanjutan (Kustom Lengkap TU) */}
-          <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center gap-1.5 border border-slate-200 shadow-xs">
-            <button
-              type="button"
-              onClick={() => setEditorMode("cepat")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
-                editorMode === "cepat"
-                  ? "bg-brand-700 text-white shadow-sm ring-1 ring-brand-800"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/70"
-              }`}
-            >
-              <Zap className={`w-4 h-4 ${editorMode === "cepat" ? "text-amber-300" : "text-amber-500"}`} />
-              <span>⚡ Mode Cepat (Rekomendasi)</span>
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded-full font-bold hidden sm:inline-block ${
-                  editorMode === "cepat" ? "bg-amber-400/20 text-amber-200" : "bg-slate-200 text-slate-700"
-                }`}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* 1. Pilih Contoh / Template Surat (1 Dropdown Ringkas) */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Bookmark className="w-3.5 h-3.5 text-brand-700" />
+                  Pilih Contoh Surat (Otomatis Mengisi Format):
+                </span>
+                <span className="text-[10px] text-gray-400 font-normal">Bisa diedit kembali</span>
+              </label>
+              <select
+                value={selectedTemplateId}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) {
+                    handleSelectBlank();
+                  } else {
+                    const tmpl = REAL_2026_LETTER_TEMPLATES.find((t) => t.id === val);
+                    if (tmpl) handleApplyTemplate(tmpl);
+                  }
+                }}
+                className="w-full text-xs font-semibold rounded-xl border border-gray-300 p-2.5 bg-slate-50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-brand-500 transition-colors cursor-pointer"
               >
-                3 Langkah Praktis
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditorMode("lanjutan")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
-                editorMode === "lanjutan"
-                  ? "bg-brand-700 text-white shadow-sm ring-1 ring-brand-800"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/70"
-              }`}
-            >
-              <Settings2 className={`w-4 h-4 ${editorMode === "lanjutan" ? "text-blue-300" : "text-slate-500"}`} />
-              <span>⚙️ Mode Lanjutan (Kustom TU)</span>
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded-full font-bold hidden sm:inline-block ${
-                  editorMode === "lanjutan" ? "bg-blue-400/20 text-blue-200" : "bg-slate-200 text-slate-700"
-                }`}
-              >
-                Fitur Lengkap
-              </span>
-            </button>
-          </div>
+                <option value="">-- Ketik Surat Kosong / Kustom Sendiri --</option>
+                <optgroup label="Surat Undangan & Kegiatan">
+                  <option value="undangan-pembekalan-pkl">Undangan Pembekalan Siswa PKL DKV</option>
+                </optgroup>
+                <optgroup label="Surat Tugas & SPPD">
+                  <option value="surat-tugas-guru">Surat Tugas Guru / Workshop</option>
+                </optgroup>
+                <optgroup label="Surat Permohonan">
+                  <option value="permohonan-ruang-laptop-blk">Permohonan Izin Pemakaian Ruang & Laptop BLK</option>
+                  <option value="permohonan-outing-class">Permohonan Izin Outing Class ke Pesantren</option>
+                  <option value="permohonan-biaya-catering-pkl">Permohonan Biaya Catering Santri PKL (Yayasan)</option>
+                </optgroup>
+                <optgroup label="Kesiswaan & Beasiswa">
+                  <option value="rekomendasi-siswa-kolektif">Surat Rekomendasi Siswa Kolektif (Golden Ticket ITS)</option>
+                  <option value="keterangan-siswa-eligible">Surat Keterangan Siswa Eligible SNBP</option>
+                  <option value="keterangan-beasiswa-spp">Surat Keterangan Siswa Berprestasi Bebas SPP</option>
+                  <option value="keterangan-mutasi-keluar-cabdin">Surat Keterangan Mutasi Keluar Siswa</option>
+                </optgroup>
+                <optgroup label="Pengantar & Kuasa">
+                  <option value="surat-pengantar-cabdin">Surat Pengantar Berkas Nominasi ke Cabdin</option>
+                  <option value="surat-kuasa-bank-jatim">Surat Kuasa Rekening Giro BOS Bank Jatim</option>
+                </optgroup>
+                <optgroup label="Peringatan & Evaluasi">
+                  <option value="surat-peringatan-presensi-guru">Surat Peringatan (SP) Kedisiplinan Guru</option>
+                </optgroup>
+              </select>
+            </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {editorMode === "cepat" ? (
-              // =========================================================
-              // ⚡ MODE CEPAT (3 LANGKAH PRAKTIS & CEPAT)
-              // =========================================================
-              <div className="space-y-5 animate-in fade-in-50 duration-200">
-                {/* LANGKAH 1: PILIH TEMPLATE */}
-                <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/70 space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-brand-700 text-white text-[11px] font-bold flex items-center justify-center">
-                        1
-                      </span>
-                      <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                        Pilih Template Surat Resmi (1 Klik Langsung Terisi)
-                      </h3>
-                    </div>
-                    <span className="text-[10px] font-bold text-brand-800 bg-brand-100 px-2 py-0.5 rounded-full">
-                      {REAL_2026_LETTER_TEMPLATES.length} Template
-                    </span>
-                  </div>
+            {/* 2. Tujuan / Penerima Surat */}
+            <div>
+              <label className="block text-xs font-bold text-gray-800 mb-1">
+                {layoutFormat === "korespondensi" ? "Kepada Yth. (Tujuan Surat)" : "Penerima Tugas / Pihak yang Dituju"} <span className="text-rose-500">*</span>:
+              </label>
+              <input
+                type="text"
+                required
+                value={tujuan}
+                onChange={(e) => setTujuan(e.target.value)}
+                placeholder={
+                  layoutFormat === "korespondensi"
+                    ? "Contoh: Direktur Pendidikan Bayt Al-Hikmah / Kepala BLK Komunitas"
+                    : "Contoh: Moh. Nasih Aminulloh, S.Mat, M.Si"
+                }
+                className="w-full text-xs font-medium rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500"
+              />
+              {layoutFormat === "korespondensi" && (
+                <span className="text-[10px] text-gray-400 mt-1 block">
+                  * Baris "Di tempat" otomatis ditambahkan di bawah nama penerima.
+                </span>
+              )}
+            </div>
 
-                  {/* Category filter pills */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                    {CATEGORY_OPTIONS.map((cat) => {
-                      const isCatActive = categoryFilter === cat.id;
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setCategoryFilter(cat.id)}
-                          className={`px-2.5 py-1 rounded-lg font-bold text-[11px] whitespace-nowrap transition-colors ${
-                            isCatActive
-                              ? "bg-brand-700 text-white shadow-xs"
-                              : "bg-white border border-gray-200 text-gray-600 hover:bg-slate-100"
-                          }`}
-                        >
-                          {cat.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+            {/* 3. Perihal & Tanggal Surat */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-gray-800 mb-1">
+                  Perihal / Hal Surat <span className="text-rose-500">*</span>:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={perihal}
+                  onChange={(e) => setPerihal(e.target.value)}
+                  placeholder="Contoh: Undangan Pembekalan PKL"
+                  className="w-full text-xs font-medium rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-800 mb-1">
+                  Tanggal Surat:
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={tanggalSurat}
+                  onChange={(e) => setTanggalSurat(e.target.value)}
+                  className="w-full text-xs rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+            </div>
 
-                  {/* Template cards grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-                    {filteredTemplates.map((tmpl) => {
-                      const isSelected = selectedTemplateId === tmpl.id;
-                      return (
-                        <button
-                          key={tmpl.id}
-                          type="button"
-                          onClick={() => handleApplyTemplate(tmpl)}
-                          className={`p-2.5 text-left rounded-xl border text-xs transition-all relative flex flex-col justify-between ${
-                            isSelected
-                              ? "border-brand-600 bg-white ring-2 ring-brand-500/30 shadow-xs"
-                              : "border-gray-200 bg-white hover:border-brand-400 hover:bg-brand-50/20 text-gray-700"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-1.5 mb-1.5">
-                            <span
-                              className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded border ${getCategoryBadge(
-                                tmpl.category
-                              )}`}
-                            >
-                              {getCategoryLabel(tmpl.category)}
-                            </span>
-                            {isSelected ? (
-                              <span className="flex items-center gap-1 text-[10px] font-bold text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded">
-                                <CheckCircle2 className="w-3 h-3 text-brand-600" />
-                                Aktif
-                              </span>
-                            ) : (
-                              <span className="text-[9.5px] text-gray-400">
-                                {tmpl.layout === "judul_tengah" ? "Tengah" : "Dinas"}
-                              </span>
-                            )}
-                          </div>
-                          <div className="font-bold text-[11.5px] text-gray-900 line-clamp-1">
-                            {tmpl.label}
-                          </div>
-                          <div className="text-[10.5px] text-gray-500 line-clamp-1 mt-0.5 font-normal">
-                            {tmpl.perihal || tmpl.judulSurat}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+            {/* 4. Waktu & Tempat Pelaksanaan (Hanya jika surat berjadwal) */}
+            {tipeTabel === "jadwal_pelaksanaan" && (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-brand-700" />
+                    Waktu, Tempat & Agenda Pelaksanaan:
+                  </span>
+                  <span className="text-[10px] text-brand-700 font-semibold bg-brand-50 border border-brand-200 px-2 py-0.5 rounded">
+                    Tabel Terpasang Otomatis
+                  </span>
                 </div>
-
-                {/* LANGKAH 2: DATA POKOK SURAT */}
-                <div className="border border-slate-200 rounded-2xl p-4 bg-white space-y-4 shadow-xs">
-                  <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-brand-700 text-white text-[11px] font-bold flex items-center justify-center">
-                        2
-                      </span>
-                      <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                        Lengkapi Data Pokok Surat
-                      </h3>
-                    </div>
-                    <span className="text-[10.5px] text-gray-500">
-                      Tersambung langsung ke Pratinjau
-                    </span>
-                  </div>
-
-                  {/* Tujuan Surat */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <div>
-                    <label className="block text-xs font-bold text-gray-800 mb-1">
-                      {layoutFormat === "korespondensi" ? (
-                        <>
-                          Kepada Yth. (Tujuan / Penerima Surat) <span className="text-rose-500">*</span>
-                        </>
-                      ) : (
-                        <>
-                          Penerima Tugas / Pihak yang Dituju <span className="text-rose-500">*</span>
-                        </>
-                      )}:
-                    </label>
+                    <label className="block text-[11px] text-gray-600 mb-0.5">Hari:</label>
                     <input
                       type="text"
-                      required
-                      value={tujuan}
-                      onChange={(e) => setTujuan(e.target.value)}
-                      placeholder={
-                        layoutFormat === "korespondensi"
-                          ? "Contoh: Direktur Pendidikan Bayt Al-Hikmah / Kepala BLK Komunitas"
-                          : "Contoh: Moh. Nasih Aminulloh, S.Mat, M.Si (atau pihak terkait)"
-                      }
-                      className="w-full text-xs font-semibold rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-brand-500"
+                      value={jadwalData.hari}
+                      onChange={(e) => setJadwalData({ ...jadwalData, hari: e.target.value })}
+                      placeholder="Hari (Sabtu)"
+                      className="w-full rounded-lg border border-gray-300 p-2 text-xs bg-white"
                     />
-                    {layoutFormat === "korespondensi" && (
-                      <span className="text-[10px] text-gray-400 mt-1 block">
-                        * Baris "Di tempat" otomatis ditambahkan di bawah nama penerima.
-                      </span>
-                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-0.5">Tanggal Pelaksanaan:</label>
+                    <input
+                      type="text"
+                      value={jadwalData.tanggal}
+                      onChange={(e) => setJadwalData({ ...jadwalData, tanggal: e.target.value })}
+                      placeholder="3 Januari 2026"
+                      className="w-full rounded-lg border border-gray-300 p-2 text-xs bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-0.5">Pukul / Waktu:</label>
+                    <input
+                      type="text"
+                      value={jadwalData.waktu}
+                      onChange={(e) => setJadwalData({ ...jadwalData, waktu: e.target.value })}
+                      placeholder="09.00 WIB s.d selesai"
+                      className="w-full rounded-lg border border-gray-300 p-2 text-xs bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-0.5">Tempat:</label>
+                    <input
+                      type="text"
+                      value={jadwalData.tempat}
+                      onChange={(e) => setJadwalData({ ...jadwalData, tempat: e.target.value })}
+                      placeholder="Ruang Rapat SMK"
+                      className="w-full rounded-lg border border-gray-300 p-2 text-xs bg-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] text-gray-600 mb-0.5">Agenda / Acara:</label>
+                    <input
+                      type="text"
+                      value={jadwalData.agenda}
+                      onChange={(e) => setJadwalData({ ...jadwalData, agenda: e.target.value })}
+                      placeholder="Agenda kegiatan"
+                      className="w-full rounded-lg border border-gray-300 p-2 text-xs bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 5. Isi / Redaksi Surat */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-gray-800">
+                  Isi / Maksud Surat <span className="text-rose-500">*</span>:
+                </label>
+                <span className="text-[10px] text-gray-400">
+                  Salam pembuka & penutup Islami baku disisipkan otomatis
+                </span>
+              </div>
+              <textarea
+                rows={5}
+                required
+                value={intiSurat}
+                onChange={(e) => setIntiSurat(e.target.value)}
+                placeholder="Ketikkan teks inti surat di sini..."
+                className="w-full text-xs rounded-xl border border-gray-300 p-3 leading-relaxed focus:ring-2 focus:ring-brand-500 font-serif"
+              />
+            </div>
+
+            {/* 6. Pengaturan Lanjutan (Accordion Lipat Rapi) */}
+            <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                className="w-full px-3.5 py-2.5 text-left text-xs font-bold text-gray-700 hover:text-gray-900 flex items-center justify-between hover:bg-slate-100/70 transition-colors"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-brand-700" />
+                  Opsi Tambahan (Lampiran, Pilihan Kop, Penandatangan)
+                </span>
+                {showAdvancedOptions ? (
+                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                )}
+              </button>
+
+              {showAdvancedOptions && (
+                <div className="p-3.5 border-t border-slate-200 bg-white space-y-3.5 text-xs animate-in fade-in-50">
+                  {/* Kop Surat Variant */}
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">
+                      Pilihan Template Kop Surat:
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setKopVariant("tradisional")}
+                        className={`p-2 rounded-lg border text-left text-xs transition-colors ${
+                          kopVariant === "tradisional"
+                            ? "border-brand-600 bg-brand-50/80 font-bold text-brand-950 ring-1 ring-brand-500/30"
+                            : "border-gray-200 bg-white text-gray-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        Kop Tradisional (Standar)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setKopVariant("modern_2027")}
+                        className={`p-2 rounded-lg border text-left text-xs transition-colors ${
+                          kopVariant === "modern_2027"
+                            ? "border-emerald-600 bg-emerald-50/80 font-bold text-emerald-950 ring-1 ring-emerald-500/30"
+                            : "border-gray-200 bg-white text-gray-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        Kop Modern (TP 2027/2028)
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Perihal & Tanggal */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-bold text-gray-800 mb-1">
-                        Perihal / Hal Surat <span className="text-rose-500">*</span>:
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={perihal}
-                        onChange={(e) => setPerihal(e.target.value)}
-                        placeholder="Contoh: Undangan Pembekalan PKL"
-                        className="w-full text-xs rounded-xl border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-brand-500 font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-800 mb-1">
-                        Tanggal Surat:
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={tanggalSurat}
-                        onChange={(e) => setTanggalSurat(e.target.value)}
-                        className="w-full text-xs rounded-xl border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-brand-500"
-                      />
+                  {/* Format Layout */}
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-1">
+                      Format Surat:
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setLayoutFormat("korespondensi")}
+                        className={`p-2 rounded-lg border text-left text-xs transition-colors ${
+                          layoutFormat === "korespondensi"
+                            ? "border-brand-600 bg-brand-50/80 font-bold text-brand-950 ring-1 ring-brand-500/30"
+                            : "border-gray-200 bg-white text-gray-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        Surat Dinas (Korespondensi)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLayoutFormat("judul_tengah")}
+                        className={`p-2 rounded-lg border text-left text-xs transition-colors ${
+                          layoutFormat === "judul_tengah"
+                            ? "border-brand-600 bg-brand-50/80 font-bold text-brand-950 ring-1 ring-brand-500/30"
+                            : "border-gray-200 bg-white text-gray-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        Judul Tengah (Surat Tugas)
+                      </button>
                     </div>
                   </div>
 
                   {/* Lampiran */}
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-bold text-gray-700">Lampiran:</label>
-                      <div className="flex items-center gap-1">
-                        {["-", "1 Berkas", "1 Lembar", "Terlampir"].map((lamp) => (
-                          <button
-                            key={lamp}
-                            type="button"
-                            onClick={() => setLampiran(lamp)}
-                            className={`text-[10px] px-2 py-0.5 rounded-md font-semibold transition-colors ${
-                              lampiran === lamp
-                                ? "bg-brand-700 text-white"
-                                : "bg-slate-100 hover:bg-slate-200 text-slate-700"
-                            }`}
-                          >
-                            {lamp}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <label className="block font-semibold text-gray-700 mb-1">
+                      Lampiran Surat:
+                    </label>
                     <input
                       type="text"
                       value={lampiran}
                       onChange={(e) => setLampiran(e.target.value)}
                       placeholder="Contoh: - atau 1 Berkas"
-                      className="w-full text-xs rounded-xl border border-gray-300 px-3 py-1.5 focus:ring-2 focus:ring-brand-500"
+                      className="w-full text-xs rounded-lg border border-gray-300 p-2"
                     />
                   </div>
 
-                  {/* KONDISIONAL: JADWAL PELAKSANAAN */}
-                  {tipeTabel === "jadwal_pelaksanaan" && (
-                    <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3.5 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-emerald-700" />
-                          Waktu, Tempat & Agenda Pelaksanaan:
-                        </span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">
-                          Tabel Terpasang Otomatis
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-gray-700 mb-0.5">
-                            Hari & Tanggal:
-                          </label>
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <input
-                              type="text"
-                              value={jadwalData.hari}
-                              onChange={(e) => setJadwalData({ ...jadwalData, hari: e.target.value })}
-                              placeholder="Hari (Sabtu)"
-                              className="rounded-lg border border-gray-300 p-2 text-xs bg-white"
-                            />
-                            <input
-                              type="text"
-                              value={jadwalData.tanggal}
-                              onChange={(e) => setJadwalData({ ...jadwalData, tanggal: e.target.value })}
-                              placeholder="3 Januari 2026"
-                              className="rounded-lg border border-gray-300 p-2 text-xs bg-white"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold text-gray-700 mb-0.5">
-                            Pukul / Waktu:
-                          </label>
-                          <input
-                            type="text"
-                            value={jadwalData.waktu}
-                            onChange={(e) => setJadwalData({ ...jadwalData, waktu: e.target.value })}
-                            placeholder="Contoh: 09.00 WIB s.d selesai"
-                            className="w-full rounded-lg border border-gray-300 p-2 text-xs bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold text-gray-700 mb-0.5">
-                            Tempat Pelaksanaan:
-                          </label>
-                          <input
-                            type="text"
-                            value={jadwalData.tempat}
-                            onChange={(e) => setJadwalData({ ...jadwalData, tempat: e.target.value })}
-                            placeholder="Contoh: Ruang Rapat Pimpinan SMK"
-                            className="w-full rounded-lg border border-gray-300 p-2 text-xs bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold text-gray-700 mb-0.5">
-                            Agenda / Acara:
-                          </label>
-                          <input
-                            type="text"
-                            value={jadwalData.agenda}
-                            onChange={(e) => setJadwalData({ ...jadwalData, agenda: e.target.value })}
-                            placeholder="Contoh: Pembekalan Peserta PKL"
-                            className="w-full rounded-lg border border-gray-300 p-2 text-xs bg-white"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* KONDISIONAL: SPPD RESMI SUMMARY */}
-                  {tipeTabel === "sppd_resmi" && (
-                    <div className="bg-amber-50/60 border border-amber-200/80 rounded-xl p-3.5 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-700" />
-                          Data Formulir SPPD Resmi:
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setEditorMode("lanjutan")}
-                          className="text-[10.5px] text-brand-700 font-bold hover:underline"
-                        >
-                          Buka 8 Butir Lengkap →
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-gray-700 mb-0.5">Pegawai yang Diperintahkan:</label>
-                          <input
-                            type="text"
-                            value={sppdData.pegawai}
-                            onChange={(e) => setSppdData({ ...sppdData, pegawai: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-gray-300 p-1.5 bg-white"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-gray-700 mb-0.5">Perjalanan Dinas (Dari & Ke):</label>
-                          <input
-                            type="text"
-                            value={sppdData.perjalanan}
-                            onChange={(e) => setSppdData({ ...sppdData, perjalanan: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-gray-300 p-1.5 bg-white"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* KONDISIONAL: DAFTAR SISWA SUMMARY */}
-                  {tipeTabel === "daftar_siswa" && (
-                    <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                          Tabel Siswa Terlampir ({siswaData.length} Santri)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setEditorMode("lanjutan")}
-                          className="text-[10.5px] text-brand-700 font-bold hover:underline"
-                        >
-                          Kelola Baris Siswa di Mode Lanjutan →
-                        </button>
-                      </div>
-                      <div className="text-[11px] text-gray-700">
-                        {siswaData.map((s, idx) => (
-                          <span key={idx} className="inline-block bg-white border border-gray-200 px-2 py-0.5 rounded mr-1.5 mb-1 font-medium">
-                            {idx + 1}. {s.nama || "Siswa"} ({s.kelas})
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Inti / Maksud Surat */}
+                  {/* Model Penandatangan */}
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-bold text-gray-800">
-                        Isi / Maksud Surat <span className="text-rose-500">*</span>:
-                      </label>
-                      <span className="text-[10px] text-gray-400">
-                        Otomatis terisi standar template
-                      </span>
-                    </div>
-                    <textarea
-                      rows={4}
-                      required
-                      value={intiSurat}
-                      onChange={(e) => setIntiSurat(e.target.value)}
-                      placeholder="Ketikkan teks inti surat di sini..."
-                      className="w-full text-xs rounded-xl border border-gray-300 p-2.5 leading-relaxed focus:ring-2 focus:ring-brand-500 font-serif"
-                    />
-                    <span className="text-[10px] text-gray-400 block mt-0.5">
-                      Format baku pembuka dan doa penutup Islami terpasang otomatis oleh sistem.
-                    </span>
-                  </div>
-                </div>
-
-                {/* LANGKAH 3: STANDAR OTOMATIS & PENGAJUAN */}
-                <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/70 space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-brand-700 text-white text-[11px] font-bold flex items-center justify-center">
-                        3
-                      </span>
-                      <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                        Otomatis Dikelola Sistem & Pengajuan
-                      </h3>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
-                      Siap Cetak & Verifikasi
-                    </span>
-                  </div>
-
-                  {/* Highlights Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-white border border-gray-200 rounded-xl p-3 text-[11px]">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                      <div>
-                        <span className="font-bold text-gray-900 block">Kop Surat Resmi</span>
-                        <span className="text-gray-500 text-[10.5px]">
-                          {kopVariant === "tradisional" ? "Kop Tradisional SMK" : "Kop Modern Baru TP 2027/2028"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                      <div>
-                        <span className="font-bold text-gray-900 block">Nomor Surat Baku</span>
-                        <span className="font-mono text-brand-900 font-bold text-[10.5px]">{previewNomorSurat}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                      <div>
-                        <span className="font-bold text-gray-900 block">Salam & Doa Islami</span>
-                        <span className="text-gray-500 text-[10.5px]">
-                          {layoutFormat === "korespondensi" ? "Salam Pembuka & Penutup Silaturrahim" : "Pengantar Resmi Sesuai Tata Naskah"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                      <div>
-                        <span className="font-bold text-gray-900 block">Penandatangan Dokumen</span>
-                        <span className="text-gray-500 text-[10.5px]">
-                          {schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom"} (Kepala SMK)
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Status Pengajuan */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                    <div>
-                      <span className="text-xs font-bold text-gray-800 block">
-                        Status Alur Dokumen:
-                      </span>
-                      <span className="text-[11px] text-gray-500">
-                        Masuk ke antrean Kepala Sekolah untuk disetujui & ditandatangani digital.
-                      </span>
-                    </div>
-                    <select
-                      value={statusTujuan}
-                      onChange={(e) => setStatusTujuan(e.target.value as StatusSuratKeluar)}
-                      className="text-xs font-semibold rounded-lg border border-gray-300 px-3 py-1.5 bg-slate-50 focus:ring-2 focus:ring-brand-500"
-                    >
-                      <option value="menunggu_persetujuan">Menunggu Persetujuan (Kepsek)</option>
-                      <option value="draft">Simpan Sebagai Draf Internal</option>
-                    </select>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setEditorMode("lanjutan")}
-                      className="text-[11px] font-semibold text-brand-700 hover:text-brand-900 hover:underline flex items-center gap-1"
-                    >
-                      <Settings2 className="w-3.5 h-3.5" />
-                      Butuh kustomisasi format lanjutan TU? Beralih ke Mode Lanjutan
-                    </button>
-
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href="/surat-keluar"
-                        className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-200/70 rounded-xl transition-colors"
-                      >
-                        Batal
-                      </Link>
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="px-5 py-2.5 text-xs font-bold text-white bg-brand-700 hover:bg-brand-800 disabled:opacity-50 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
-                      >
-                        <Zap className="w-4 h-4 text-amber-300" />
-                        {isSubmitting ? "Menyimpan Surat..." : "Simpan & Ajukan Surat"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              // =========================================================
-              // ⚙️ MODE LANJUTAN (KUSTOM LENGKAP TATA USAHA)
-              // =========================================================
-              <div className="space-y-5 animate-in fade-in-50 duration-200">
-                {/* TEMPLATE PICKER (Real 2026 Archive) */}
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-gray-800 uppercase tracking-wide flex items-center gap-1.5">
-                      <Bookmark className="w-3.5 h-3.5 text-brand-700" />
-                      Pilihan Contoh Cepat / Template Resmi 2026:
-                    </label>
-                    <span className="text-[10px] font-bold text-brand-800 bg-brand-100 px-2 py-0.5 rounded-full">
-                      {REAL_2026_LETTER_TEMPLATES.length} Template Siap Pakai
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {REAL_2026_LETTER_TEMPLATES.map((tmpl) => {
-                      const isSelected = selectedTemplateId === tmpl.id;
-                      return (
-                        <button
-                          key={tmpl.id}
-                          type="button"
-                          onClick={() => handleApplyTemplate(tmpl)}
-                          className={`p-2.5 text-left rounded-xl border text-xs transition-all flex flex-col justify-between ${
-                            isSelected
-                              ? "border-brand-600 bg-brand-50/80 text-brand-950 font-bold ring-2 ring-brand-500/20 shadow-xs"
-                              : "border-gray-200 bg-white hover:border-brand-400 hover:bg-slate-50 text-gray-700"
-                          }`}
-                        >
-                          <span className="font-bold text-[11.5px] line-clamp-1">{tmpl.label}</span>
-                          <span className="text-[10px] text-gray-500 mt-1 line-clamp-1 font-normal">
-                            {tmpl.layout === "judul_tengah" ? `[Tengah] ${tmpl.judulSurat}` : `[Dinas] ${tmpl.perihal}`}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Section 1: Format Layout & Identitas Dokumen */}
-                <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-4">
-                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5 pb-2 border-b border-gray-100">
-                    <Layers className="w-3.5 h-3.5 text-brand-600" />
-                    1. Tata Letak (Layout) & Identitas Surat
-                  </h3>
-
-                  {/* Kop Surat Template Selector (Tradisional vs Modern TP 2027/2028) */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-800 uppercase tracking-wide mb-2 flex items-center justify-between">
-                      <span>Pilihan Template Kop Surat & Identitas (Header & Footer):</span>
-                      <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded">
-                        Resmi TP 2027/2028 Tersedia
-                      </span>
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div
-                        onClick={() => setKopVariant("tradisional")}
-                        className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-2.5 ${
-                          kopVariant === "tradisional"
-                            ? "border-brand-600 bg-brand-50/70 ring-2 ring-brand-500/25"
-                            : "border-gray-200 bg-slate-50/50 hover:bg-slate-100/60"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="kopVariant"
-                          checked={kopVariant === "tradisional"}
-                          onChange={() => setKopVariant("tradisional")}
-                          className="mt-0.5 text-brand-700 focus:ring-brand-500"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-gray-900">
-                              Template 1: Kop Tradisional
-                            </span>
-                            <span className="text-[9px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-bold">
-                              Standar Saat Ini
-                            </span>
-                          </div>
-                          <span className="text-[10.5px] text-gray-500 leading-tight block mt-0.5">
-                            Format 3 kolom: Logo Yayasan di kiri, Logo SMK di kanan, alamat tengah dengan dobel garis pembatas hitam.
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        onClick={() => setKopVariant("modern_2027")}
-                        className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-2.5 ${
-                          kopVariant === "modern_2027"
-                            ? "border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/25"
-                            : "border-gray-200 bg-slate-50/50 hover:bg-slate-100/60"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="kopVariant"
-                          checked={kopVariant === "modern_2027"}
-                          onChange={() => setKopVariant("modern_2027")}
-                          className="mt-0.5 text-emerald-700 focus:ring-emerald-500"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-gray-900">
-                              Template 2: Kop Modern Baru
-                            </span>
-                            <span className="text-[9px] bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold">
-                              Resmi TP 2027/2028
-                            </span>
-                          </div>
-                          <span className="text-[10.5px] text-gray-500 leading-tight block mt-0.5">
-                            Header modern: Logo ganda di kiri, branding Bayt Al-Hikmah, pilar kontak hijau tua di kanan, serta footer bar kuning keemasan.
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Layout Mode Selector */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div
-                      onClick={() => setLayoutFormat("korespondensi")}
-                      className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-2.5 ${
-                        layoutFormat === "korespondensi"
-                          ? "border-brand-600 bg-brand-50/60 ring-2 ring-brand-500/20"
-                          : "border-gray-200 bg-slate-50/50 hover:bg-slate-100/60"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="layoutFormat"
-                        checked={layoutFormat === "korespondensi"}
-                        onChange={() => setLayoutFormat("korespondensi")}
-                        className="mt-0.5 text-brand-700 focus:ring-brand-500"
-                      />
-                      <div>
-                        <span className="text-xs font-bold text-gray-900 block">
-                          Format A: Korespondensi / Surat Dinas
-                        </span>
-                        <span className="text-[10.5px] text-gray-500 leading-tight block mt-0.5">
-                          Nomor, Lampiran, & Perihal di sisi kiri, Kepada Yth., serta Salam Pembuka & Doa Penutup Islami.
-                        </span>
-                      </div>
-                    </div>
-
-                    <div
-                      onClick={() => setLayoutFormat("judul_tengah")}
-                      className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-2.5 ${
-                        layoutFormat === "judul_tengah"
-                          ? "border-brand-600 bg-brand-50/60 ring-2 ring-brand-500/20"
-                          : "border-gray-200 bg-slate-50/50 hover:bg-slate-100/60"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="layoutFormat"
-                        checked={layoutFormat === "judul_tengah"}
-                        onChange={() => setLayoutFormat("judul_tengah")}
-                        className="mt-0.5 text-brand-700 focus:ring-brand-500"
-                      />
-                      <div>
-                        <span className="text-xs font-bold text-gray-900 block">
-                          Format B: Judul Tengah (Surat Tugas / Rekomendasi)
-                        </span>
-                        <span className="text-[10.5px] text-gray-500 leading-tight block mt-0.5">
-                          Judul kapital bergaris bawah tebal di tengah, Nomor di bawah judul, langsung pengantar resmi.
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Conditional Judul Surat for Format B */}
-                  {layoutFormat === "judul_tengah" && (
-                    <div className="animate-in fade-in-50">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Judul Dokumen (Kapital & Garis Bawah di Tengah) <span className="text-rose-500">*</span>:
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={judulSurat}
-                        onChange={(e) => setJudulSurat(e.target.value)}
-                        placeholder="Contoh: SURAT TUGAS, SURAT REKOMENDASI, SURAT KUASA, dll."
-                        className="w-full text-xs font-bold font-mono tracking-wider rounded-xl border border-gray-300 px-3 py-2 uppercase focus:ring-2 focus:ring-brand-500"
-                      />
-                    </div>
-                  )}
-
-                  {/* Nomor & Tanggal */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Nomor Surat (Otomatis):
-                      </label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={previewNomorSurat}
-                        className="w-full text-xs font-mono font-bold bg-slate-100 border border-slate-300 rounded-xl px-3 py-2 text-brand-950 cursor-not-allowed"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Tanggal Surat:
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={tanggalSurat}
-                        onChange={(e) => setTanggalSurat(e.target.value)}
-                        className="w-full text-xs rounded-xl border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-brand-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Perihal & Lampiran */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Perihal / Hal Surat <span className="text-rose-500">*</span>:
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={perihal}
-                        onChange={(e) => setPerihal(e.target.value)}
-                        placeholder="Contoh: Undangan Pembekalan PKL"
-                        className="w-full text-xs rounded-xl border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-brand-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Lampiran:
-                      </label>
-                      <input
-                        type="text"
-                        value={lampiran}
-                        onChange={(e) => setLampiran(e.target.value)}
-                        placeholder="Contoh: - atau 1 Berkas"
-                        className="w-full text-xs rounded-xl border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-brand-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Tujuan Surat */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">
-                      Tujuan / Penerima Surat (Yth.) {layoutFormat === "korespondensi" && <span className="text-rose-500">*</span>}:
-                    </label>
-                    <input
-                      type="text"
-                      required={layoutFormat === "korespondensi"}
-                      value={tujuan}
-                      onChange={(e) => setTujuan(e.target.value)}
-                      placeholder={
-                        layoutFormat === "korespondensi"
-                          ? "Contoh: Direktur Pendidikan Bayt Al-Hikmah / Kepala BLK Komunitas"
-                          : "Contoh: Moh. Nasih Aminulloh, S.Mat, M.Si (atau pihak terkait)"
-                      }
-                      className="w-full text-xs rounded-xl border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-brand-500"
-                    />
-                    {layoutFormat === "korespondensi" && (
-                      <span className="text-[10px] text-gray-400 mt-0.5 block">
-                        Format korespondensi otomatis dilengkapi baris "Di tempat"
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Section 2: Isi Surat (Inti/Maksud Surat) */}
-                <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                    <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                      <PenTool className="w-3.5 h-3.5 text-brand-600" />
-                      2. Isi Utama Dokumen
-                    </h3>
-                    {layoutFormat === "korespondensi" && (
-                      <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded">
-                        Salam Pembuka Islami Terpasang Otomatis
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Salam info banner */}
-                  {layoutFormat === "korespondensi" && (
-                    <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 text-[11px] text-emerald-950 italic font-serif leading-relaxed">
-                      "Assalamu’alaikum wr. wb. Salam silaturrahim kami sampaikan, semoga Allah SWT senantiasa melimpahkan rahmat, taufiq, serta hidayahNya kepada kita dalam menjalani rutinitas sehari-hari. Amin."
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-800 mb-1">
-                      Inti / Maksud Surat <span className="text-rose-500">*</span>:
-                    </label>
-                    <textarea
-                      rows={6}
-                      required
-                      value={intiSurat}
-                      onChange={(e) => setIntiSurat(e.target.value)}
-                      placeholder="Ketikkan teks inti surat Anda di sini..."
-                      className="w-full text-xs rounded-xl border border-gray-300 p-3 leading-relaxed focus:ring-2 focus:ring-brand-500 font-serif"
-                    />
-                    <span className="text-[10.5px] text-gray-400 block mt-1">
-                      Tips: Pisahkan antar-paragraf dengan menekan Enter 2 kali. Gunakan penomoran (1., 2.) untuk daftar butir.
-                    </span>
-                  </div>
-                </div>
-
-                {/* Section 3: Sertakan Tabel Interaktif */}
-                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/70 space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                    <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                      <TableIcon className="w-3.5 h-3.5 text-brand-700" />
-                      3. Sertakan Tabel Pelaksanaan / Rincian Dokumen
-                    </h3>
-                    <span className="text-[10px] font-bold text-brand-800 bg-brand-100 px-2.5 py-0.5 rounded-full">
-                      {tipeTabel === "none" ? "Tanpa Tabel" : "Tabel Aktif"}
-                    </span>
-                  </div>
-
-                  {/* Tipe Tabel Selector */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                      Pilih Format Tabel:
-                    </label>
-                    <select
-                      value={tipeTabel}
-                      onChange={(e) => setTipeTabel(e.target.value as TipeTabelSurat)}
-                      className="w-full text-xs font-semibold rounded-xl border border-gray-300 p-2.5 bg-white focus:ring-2 focus:ring-brand-500"
-                    >
-                      <option value="none">Tanpa Tabel</option>
-                      <option value="jadwal_pelaksanaan">📅 Tabel Jadwal Pelaksanaan (Hari, Tanggal, Waktu, Tempat, Agenda)</option>
-                      <option value="sppd_resmi">🎖️ Tabel SPPD Resmi (8 Butir Standar Pemerintah)</option>
-                      <option value="daftar_siswa">🎓 Tabel Siswa / Rekomendasi Kolektif (Daftar Nama Siswa)</option>
-                      <option value="pengantar_berkas">📂 Tabel Pengantar Berkas Cabdin (No, Berkas, Jumlah, Keterangan)</option>
-                      <option value="outing_class">🚌 Tabel Outing Class Santri (Rute & Rundown)</option>
-                      <option value="rincian_catering">🍱 Tabel Rincian Anggaran / Catering Santri PKL</option>
-                    </select>
-                  </div>
-
-                  {/* TABEL TYPE A: JADWAL PELAKSANAAN */}
-                  {tipeTabel === "jadwal_pelaksanaan" && (
-                    <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-3 animate-in fade-in-50">
-                      <span className="text-xs font-bold text-brand-900 block">
-                        Isi Rincian Jadwal Pelaksanaan:
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">Hari:</label>
-                          <input
-                            type="text"
-                            value={jadwalData.hari}
-                            onChange={(e) => setJadwalData({ ...jadwalData, hari: e.target.value })}
-                            placeholder="Contoh: Sabtu"
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">Tanggal Pelaksanaan:</label>
-                          <input
-                            type="text"
-                            value={jadwalData.tanggal}
-                            onChange={(e) => setJadwalData({ ...jadwalData, tanggal: e.target.value })}
-                            placeholder="Contoh: 3 Januari 2026"
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">Pukul / Waktu:</label>
-                          <input
-                            type="text"
-                            value={jadwalData.waktu}
-                            onChange={(e) => setJadwalData({ ...jadwalData, waktu: e.target.value })}
-                            placeholder="Contoh: 09.00 WIB s.d selesai"
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">Tempat:</label>
-                          <input
-                            type="text"
-                            value={jadwalData.tempat}
-                            onChange={(e) => setJadwalData({ ...jadwalData, tempat: e.target.value })}
-                            placeholder="Contoh: Ruang Rapat Pimpinan SMK"
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div className="sm:col-span-2">
-                          <label className="block font-semibold text-gray-700 mb-1">Agenda / Acara:</label>
-                          <input
-                            type="text"
-                            value={jadwalData.agenda}
-                            onChange={(e) => setJadwalData({ ...jadwalData, agenda: e.target.value })}
-                            placeholder="Contoh: Pembekalan Peserta Praktik Kerja Lapangan (PKL)"
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TABEL TYPE B: SPPD RESMI 8 BUTIR */}
-                  {tipeTabel === "sppd_resmi" && (
-                    <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-3 animate-in fade-in-50 text-xs">
-                      <span className="text-xs font-bold text-brand-900 block">
-                        Isian Formulir SPPD Resmi (8 Butir Standar Cabdin & Kemdikbud):
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">1. Pejabat yang Berwenang:</label>
-                          <input
-                            type="text"
-                            value={sppdData.pejabat}
-                            onChange={(e) => setSppdData({ ...sppdData, pejabat: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">2. Pegawai yang Diperintahkan:</label>
-                          <input
-                            type="text"
-                            value={sppdData.pegawai}
-                            onChange={(e) => setSppdData({ ...sppdData, pegawai: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">3. Jabatan / Golongan:</label>
-                          <input
-                            type="text"
-                            value={sppdData.jabatanPegawai}
-                            onChange={(e) => setSppdData({ ...sppdData, jabatanPegawai: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">4. Perjalanan Dinas Dari & Ke:</label>
-                          <input
-                            type="text"
-                            value={sppdData.perjalanan}
-                            onChange={(e) => setSppdData({ ...sppdData, perjalanan: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">Transportasi Menggunakan:</label>
-                          <input
-                            type="text"
-                            value={sppdData.transportasi}
-                            onChange={(e) => setSppdData({ ...sppdData, transportasi: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">5. Lamanya Perjalanan Dinas:</label>
-                          <input
-                            type="text"
-                            value={sppdData.durasi}
-                            onChange={(e) => setSppdData({ ...sppdData, durasi: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div className="sm:col-span-2">
-                          <label className="block font-semibold text-gray-700 mb-1">6. Maksud Perjalanan Dinas:</label>
-                          <input
-                            type="text"
-                            value={sppdData.maksud}
-                            onChange={(e) => setSppdData({ ...sppdData, maksud: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">7. Pembebanan Biaya:</label>
-                          <input
-                            type="text"
-                            value={sppdData.beban}
-                            onChange={(e) => setSppdData({ ...sppdData, beban: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">8. Keterangan Lain-Lain:</label>
-                          <input
-                            type="text"
-                            value={sppdData.keterangan}
-                            onChange={(e) => setSppdData({ ...sppdData, keterangan: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TABEL TYPE C: DAFTAR SISWA DINAMIS */}
-                  {tipeTabel === "daftar_siswa" && (
-                    <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-3 animate-in fade-in-50 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-brand-900">Daftar Baris Siswa:</span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSiswaData([
-                              ...siswaData,
-                              {
-                                no: siswaData.length + 1,
-                                nama: "",
-                                nisn: "",
-                                kelas: "XII DKV",
-                                keahlian: "Desain Komunikasi Visual",
-                              },
-                            ])
-                          }
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-700 hover:text-brand-900 bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-200"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Tambah Siswa
-                        </button>
-                      </div>
-
-                      <div className="space-y-2">
-                        {siswaData.map((row, idx) => (
-                          <div key={idx} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-12 gap-2 items-center">
-                            <span className="col-span-1 font-bold text-center text-gray-500">{idx + 1}</span>
-                            <input
-                              type="text"
-                              value={row.nama}
-                              onChange={(e) => {
-                                const updated = [...siswaData];
-                                updated[idx].nama = e.target.value;
-                                setSiswaData(updated);
-                              }}
-                              placeholder="Nama Siswa"
-                              className="col-span-4 text-xs rounded border border-gray-300 p-1.5"
-                            />
-                            <input
-                              type="text"
-                              value={row.nisn}
-                              onChange={(e) => {
-                                const updated = [...siswaData];
-                                updated[idx].nisn = e.target.value;
-                                setSiswaData(updated);
-                              }}
-                              placeholder="NISN"
-                              className="col-span-3 text-xs rounded border border-gray-300 p-1.5"
-                            />
-                            <input
-                              type="text"
-                              value={row.kelas}
-                              onChange={(e) => {
-                                const updated = [...siswaData];
-                                updated[idx].kelas = e.target.value;
-                                setSiswaData(updated);
-                              }}
-                              placeholder="Kelas"
-                              className="col-span-2 text-xs rounded border border-gray-300 p-1.5"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setSiswaData(siswaData.filter((_, i) => i !== idx))}
-                              className="col-span-2 text-rose-600 hover:text-rose-800 p-1 flex justify-center"
-                              title="Hapus Baris"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TABEL TYPE D: PENGANTAR BERKAS DINAMIS */}
-                  {tipeTabel === "pengantar_berkas" && (
-                    <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-3 animate-in fade-in-50 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-brand-900">Daftar Berkas Pengantar:</span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPengantarData([
-                              ...pengantarData,
-                              {
-                                no: pengantarData.length + 1,
-                                jenisSurat: "",
-                                banyak: "1 (satu) Berkas",
-                                keterangan: "Dikirim dengan hormat untuk mendapatkan periksa.",
-                              },
-                            ])
-                          }
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-700 hover:text-brand-900 bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-200"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Tambah Berkas
-                        </button>
-                      </div>
-
-                      <div className="space-y-2">
-                        {pengantarData.map((row, idx) => (
-                          <div key={idx} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-gray-700">Berkas #{idx + 1}</span>
-                              <button
-                                type="button"
-                                onClick={() => setPengantarData(pengantarData.filter((_, i) => i !== idx))}
-                                className="text-rose-600 hover:text-rose-800 text-xs flex items-center gap-1"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" /> Hapus
-                              </button>
-                            </div>
-                            <input
-                              type="text"
-                              value={row.jenisSurat}
-                              onChange={(e) => {
-                                const updated = [...pengantarData];
-                                updated[idx].jenisSurat = e.target.value;
-                                setPengantarData(updated);
-                              }}
-                              placeholder="Nama/Jenis Dokumen..."
-                              className="w-full text-xs rounded border border-gray-300 p-1.5"
-                            />
-                            <div className="grid grid-cols-2 gap-2">
-                              <input
-                                type="text"
-                                value={row.banyak}
-                                onChange={(e) => {
-                                  const updated = [...pengantarData];
-                                  updated[idx].banyak = e.target.value;
-                                  setPengantarData(updated);
-                                }}
-                                placeholder="Jumlah (misal: 1 Bendel)"
-                                className="text-xs rounded border border-gray-300 p-1.5"
-                              />
-                              <input
-                                type="text"
-                                value={row.keterangan}
-                                onChange={(e) => {
-                                  const updated = [...pengantarData];
-                                  updated[idx].keterangan = e.target.value;
-                                  setPengantarData(updated);
-                                }}
-                                placeholder="Keterangan..."
-                                className="text-xs rounded border border-gray-300 p-1.5"
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TABEL TYPE E: OUTING CLASS */}
-                  {tipeTabel === "outing_class" && (
-                    <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-3 animate-in fade-in-50 text-xs">
-                      <span className="font-bold text-brand-900 block">Rincian Lokasi Outing Class & Pendamping:</span>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">Waktu Pelaksanaan:</label>
-                          <input
-                            type="text"
-                            value={outingData[0]?.waktu || ""}
-                            onChange={(e) => {
-                              const updated = [...outingData];
-                              updated[0].waktu = e.target.value;
-                              setOutingData(updated);
-                            }}
-                            className="w-full text-xs rounded border border-gray-300 p-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">Daftar Pendamping:</label>
-                          <textarea
-                            rows={3}
-                            value={outingData[0]?.pendamping || ""}
-                            onChange={(e) => {
-                              const updated = [...outingData];
-                              updated[0].pendamping = e.target.value;
-                              setOutingData(updated);
-                            }}
-                            className="w-full text-xs rounded border border-gray-300 p-2 font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-gray-700 mb-1">Tempat Tujuan (Putra / Putri):</label>
-                          <textarea
-                            rows={3}
-                            value={outingData[0]?.tempat || ""}
-                            onChange={(e) => {
-                              const updated = [...outingData];
-                              updated[0].tempat = e.target.value;
-                              setOutingData(updated);
-                            }}
-                            className="w-full text-xs rounded border border-gray-300 p-2 font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TABEL TYPE F: RINCIAN CATERING */}
-                  {tipeTabel === "rincian_catering" && (
-                    <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-3 animate-in fade-in-50 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-brand-900">Rincian Biaya Santri:</span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setCateringData([
-                              ...cateringData,
-                              {
-                                santriJk: "Putra",
-                                tglPkl: "Januari 2026",
-                                jmlSantri: "4",
-                                jmlHari: "6",
-                                volume: "3 kali @ Rp 4.800",
-                                nominal: "Rp 345.600",
-                                tglCatering: "11 Januari 2026",
-                              },
-                            ])
-                          }
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-700 hover:text-brand-900 bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-200"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Tambah Baris
-                        </button>
-                      </div>
-                      <div className="space-y-2">
-                        {cateringData.map((row, idx) => (
-                          <div key={idx} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-12 gap-2 items-center">
-                            <input
-                              type="text"
-                              value={row.santriJk}
-                              onChange={(e) => {
-                                const upd = [...cateringData];
-                                upd[idx].santriJk = e.target.value;
-                                setCateringData(upd);
-                              }}
-                              placeholder="Putra/Putri"
-                              className="col-span-2 text-xs rounded border border-gray-300 p-1"
-                            />
-                            <input
-                              type="text"
-                              value={row.tglPkl}
-                              onChange={(e) => {
-                                const upd = [...cateringData];
-                                upd[idx].tglPkl = e.target.value;
-                                setCateringData(upd);
-                              }}
-                              placeholder="Tgl PKL"
-                              className="col-span-3 text-xs rounded border border-gray-300 p-1"
-                            />
-                            <input
-                              type="text"
-                              value={row.volume}
-                              onChange={(e) => {
-                                const upd = [...cateringData];
-                                upd[idx].volume = e.target.value;
-                                setCateringData(upd);
-                              }}
-                              placeholder="Volume"
-                              className="col-span-3 text-xs rounded border border-gray-300 p-1"
-                            />
-                            <input
-                              type="text"
-                              value={row.nominal}
-                              onChange={(e) => {
-                                const upd = [...cateringData];
-                                upd[idx].nominal = e.target.value;
-                                setCateringData(upd);
-                              }}
-                              placeholder="Nominal"
-                              className="col-span-3 text-xs rounded border border-gray-300 p-1 font-bold"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setCateringData(cateringData.filter((_, i) => i !== idx))}
-                              className="col-span-1 text-rose-600 hover:text-rose-800 p-1 flex justify-center"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Section 4: Model Pengesahan & Tanda Tangan */}
-                <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-4">
-                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5 pb-2 border-b border-gray-100">
-                    <PenTool className="w-3.5 h-3.5 text-brand-600" />
-                    4. Model Tanda Tangan & Tembusan
-                  </h3>
-
-                  {/* Model TTD Selector */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">
-                      Format Penandatangan Dokumen:
+                    <label className="block font-semibold text-gray-700 mb-1">
+                      Penandatangan Surat:
                     </label>
                     <select
                       value={modelTtd}
                       onChange={(e) => setModelTtd(e.target.value as ModelTandaTangan)}
-                      className="w-full text-xs font-semibold rounded-xl border border-gray-300 p-2.5 bg-white focus:ring-2 focus:ring-brand-500"
+                      className="w-full text-xs rounded-lg border border-gray-300 p-2 bg-white"
                     >
-                      <option value="1_kepsek">1 Pihak: Kepala SMK Bayt Al-Hikmah (Standar Resmi)</option>
-                      <option value="2_cabdin">2 Pihak: Mengetahui Kepala Cabang Dinas Pendidikan (Kiri) + Kepala Sekolah (Kanan)</option>
-                      <option value="2_yayasan">2 Pihak: Mengetahui Direktur Pendidikan Yayasan (Kiri) + Kepala Sekolah (Kanan)</option>
-                      <option value="3_bank_jatim">3 Pihak: Surat Kuasa Bank Jatim (Penerima Kuasa + Kepala SMKS + Bendahara BOS)</option>
-                      <option value="sp_kedisiplinan">3 Pihak: Surat Peringatan SP (Penerima SP + Kepala Sekolah + Mengetahui Wadir)</option>
+                      <option value="1_kepsek">1 Pihak: Kepala SMK Bayt Al-Hikmah (Standar)</option>
+                      <option value="2_cabdin">2 Pihak: Mengetahui Cabdin Pasuruan</option>
+                      <option value="2_yayasan">2 Pihak: Mengetahui Direktur Yayasan</option>
+                      <option value="3_bank_jatim">3 Pihak: Surat Kuasa Bank Jatim BOS</option>
+                      <option value="sp_kedisiplinan">3 Pihak: Surat Peringatan (Wadir Pesantren)</option>
                     </select>
                   </div>
-
-                  {/* Salam Penutup Pilihan */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">
-                      Pilihan Kalimat Penutup & Doa:
-                    </label>
-                    <select
-                      value={jenisPenutup}
-                      onChange={(e) => setJenisPenutup(e.target.value)}
-                      className="w-full text-xs rounded-xl border border-gray-300 p-2 bg-white focus:ring-2 focus:ring-brand-500"
-                    >
-                      <option value="undangan">Format Surat Undangan ("Demikian undangan ini...")</option>
-                      <option value="permohonan">Format Permohonan ("Demikian surat permohonan dari kami...")</option>
-                      <option value="tugas">Format Surat Tugas ("Demikian surat tugas ini diberikan...")</option>
-                      <option value="keterangan">Format Keterangan / Rekomendasi ("Demikian surat keterangan ini...")</option>
-                      <option value="pemberitahuan">Format Pemberitahuan Umum</option>
-                      <option value="peringatan">Format Surat Peringatan / Evaluasi</option>
-                    </select>
-                  </div>
-
-                  {/* Tembusan Dinamis */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">
-                      Tembusan Surat (Opsional):
-                    </label>
-                    <div className="space-y-1.5 mb-2">
-                      {tembusanList.map((t, idx) => (
-                        <div key={idx} className="flex items-center justify-between bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-xs">
-                          <span className="text-gray-800">{t}</span>
-                          <button
-                            type="button"
-                            onClick={() => setTembusanList(tembusanList.filter((_, i) => i !== idx))}
-                            className="text-rose-500 hover:text-rose-700 p-0.5"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newTembusanInput}
-                        onChange={(e) => setNewTembusanInput(e.target.value)}
-                        placeholder="Tambah tembusan baru (Contoh: Arsip)"
-                        className="flex-1 text-xs rounded-xl border border-gray-300 px-3 py-1.5"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (newTembusanInput.trim()) {
-                            const prefix = `${tembusanList.length + 1}. `;
-                            setTembusanList([...tembusanList, prefix + newTembusanInput.trim()]);
-                            setNewTembusanInput("");
-                          }
-                        }}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-300"
-                      >
-                        Tambah
-                      </button>
-                    </div>
-                  </div>
                 </div>
+              )}
+            </div>
 
-                {/* Submission Status */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <span className="text-xs font-bold text-gray-800 block">
-                      Status Pengajuan Dokumen:
-                    </span>
-                    <span className="text-[11px] text-gray-500">
-                      Pilih "Menunggu Persetujuan" agar otomatis masuk ke antrean TTD Kepala Sekolah.
-                    </span>
-                  </div>
-
-                  <select
-                    value={statusTujuan}
-                    onChange={(e) => setStatusTujuan(e.target.value as StatusSuratKeluar)}
-                    className="text-xs font-semibold rounded-lg border border-gray-300 px-3 py-1.5 bg-white focus:ring-2 focus:ring-brand-500"
-                  >
-                    <option value="menunggu_persetujuan">Menunggu Persetujuan (Kepsek)</option>
-                    <option value="draft">Simpan Sebagai Draf Internal</option>
-                  </select>
-                </div>
-
-                {/* Submit Action Buttons */}
-                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setEditorMode("cepat")}
-                    className="text-[11px] font-semibold text-brand-700 hover:text-brand-900 hover:underline flex items-center gap-1"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-amber-500" />
-                    Beralih ke Mode Cepat (Rekomendasi 1 Menit)
-                  </button>
-
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href="/surat-keluar"
-                      className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-                    >
-                      Batal
-                    </Link>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="px-6 py-2.5 text-xs font-bold text-white bg-brand-700 hover:bg-brand-800 disabled:opacity-50 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
-                    >
-                      <Save className="w-4 h-4" />
-                      {isSubmitting ? "Menyimpan Dokumen..." : "Simpan & Ajukan Surat Keluar"}
-                    </button>
-                  </div>
-                </div>
+            {/* 7. Baris Simpan & Pengajuan */}
+            <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-600 font-medium">Status:</span>
+                <select
+                  value={statusTujuan}
+                  onChange={(e) => setStatusTujuan(e.target.value as StatusSuratKeluar)}
+                  className="text-xs font-semibold rounded-lg border border-gray-300 px-2.5 py-1.5 bg-slate-50 focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="menunggu_persetujuan">Ajukan ke Kepala Sekolah</option>
+                  <option value="draft">Simpan Sebagai Draf</option>
+                </select>
               </div>
-            )}
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/surat-keluar"
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  Batal
+                </Link>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2.5 text-xs font-bold text-white bg-brand-700 hover:bg-brand-800 disabled:opacity-50 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {isSubmitting ? "Menyimpan..." : "Simpan Surat"}
+                </button>
+              </div>
+            </div>
           </form>
         </div>
 
