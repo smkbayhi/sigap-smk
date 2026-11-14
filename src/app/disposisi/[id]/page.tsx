@@ -27,6 +27,7 @@ import {
   Eye,
   EyeOff,
   UserCheck,
+  Lock,
 } from "lucide-react";
 
 export default function DisposisiDetailPage() {
@@ -303,17 +304,28 @@ export default function DisposisiDetailPage() {
           /* TAMPILAN GURU / PENERIMA DISPOSISI: FORM UPDATE STATUS & LAPORAN TUGAS   */
           /* ========================================================================= */
           <form onSubmit={handleSaveUpdate} className="space-y-4 pt-2 border-t border-gray-100">
-            <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-              Pembaruan Status & Laporan Tindak Lanjut Penerima:
-            </h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Pembaruan Status & Laporan Tindak Lanjut Penerima:
+              </h3>
+              {disp.status === "selesai" && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  <Lock className="w-3 h-3 text-emerald-700" />
+                  Laporan Terkunci (Selesai)
+                </span>
+              )}
+            </div>
 
             {/* Status radio / buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
               <button
                 type="button"
+                disabled={disp.status === "selesai"}
                 onClick={() => setCurrentStatus("menunggu")}
                 className={`p-3 rounded-xl border text-center font-bold transition-all ${
-                  currentStatus === "menunggu"
+                  disp.status === "selesai"
+                    ? "bg-slate-50 border-slate-200 text-slate-400 opacity-50 cursor-not-allowed pointer-events-none"
+                    : currentStatus === "menunggu"
                     ? "bg-amber-100 border-amber-400 text-amber-900 ring-2 ring-amber-400/20 shadow-xs"
                     : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
@@ -322,9 +334,12 @@ export default function DisposisiDetailPage() {
               </button>
               <button
                 type="button"
+                disabled={disp.status === "selesai"}
                 onClick={() => setCurrentStatus("proses")}
                 className={`p-3 rounded-xl border text-center font-bold transition-all ${
-                  currentStatus === "proses"
+                  disp.status === "selesai"
+                    ? "bg-slate-50 border-slate-200 text-slate-400 opacity-50 cursor-not-allowed pointer-events-none"
+                    : currentStatus === "proses"
                     ? "bg-sky-100 border-sky-400 text-sky-900 ring-2 ring-sky-400/20 shadow-xs"
                     : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
@@ -333,9 +348,12 @@ export default function DisposisiDetailPage() {
               </button>
               <button
                 type="button"
+                disabled={disp.status === "selesai"}
                 onClick={() => setCurrentStatus("selesai")}
                 className={`p-3 rounded-xl border text-center font-bold transition-all ${
-                  currentStatus === "selesai"
+                  disp.status === "selesai"
+                    ? "bg-emerald-100 border-emerald-400 text-emerald-900 shadow-xs cursor-not-allowed pointer-events-none"
+                    : currentStatus === "selesai"
                     ? "bg-emerald-100 border-emerald-400 text-emerald-900 ring-2 ring-emerald-400/20 shadow-xs"
                     : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
@@ -351,12 +369,29 @@ export default function DisposisiDetailPage() {
               </label>
               <textarea
                 rows={4}
+                disabled={disp.status === "selesai"}
+                readOnly={disp.status === "selesai"}
                 value={tanggapan}
                 onChange={(e) => setTanggapan(e.target.value)}
-                placeholder="Jelaskan tindakan yang telah diambil, koordinasi yang telah dilakukan, atau hasil tindak lanjut pelaksanaan tugas..."
-                className="w-full text-xs rounded-xl border border-gray-300 p-3 leading-relaxed focus:ring-2 focus:ring-brand-500"
+                placeholder={
+                  disp.status === "selesai"
+                    ? "Laporan tugas telah diserahkan dan terkunci."
+                    : "Jelaskan tindakan yang telah diambil, koordinasi yang telah dilakukan, atau hasil tindak lanjut pelaksanaan tugas..."
+                }
+                className={`w-full text-xs rounded-xl p-3 leading-relaxed ${
+                  disp.status === "selesai"
+                    ? "border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed"
+                    : "border border-gray-300 focus:ring-2 focus:ring-brand-500"
+                }`}
               />
             </div>
+
+            {disp.status === "selesai" && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center gap-2 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Laporan penugasan disposisi ini telah selesai dilaporkan. Tombol status dan formulir laporan telah dinonaktifkan/dikunci secara otomatis.</span>
+              </div>
+            )}
 
             <div className="flex items-center justify-between pt-2">
               {isSaved && (
@@ -368,10 +403,24 @@ export default function DisposisiDetailPage() {
               <div className="ml-auto">
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-brand-700 hover:bg-brand-800 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all flex items-center gap-2"
+                  disabled={disp.status === "selesai"}
+                  className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    disp.status === "selesai"
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none pointer-events-none"
+                      : "bg-brand-700 hover:bg-brand-800 text-white shadow-xs hover:shadow"
+                  }`}
                 >
-                  <Save className="w-4 h-4" />
-                  Simpan Pembaharuan Status
+                  {disp.status === "selesai" ? (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      Laporan Selesai & Terkunci
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Simpan Pembaharuan Status
+                    </>
+                  )}
                 </button>
               </div>
             </div>
