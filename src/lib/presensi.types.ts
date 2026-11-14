@@ -5,7 +5,8 @@ export type StatusKehadiran =
   | "sakit" 
   | "alpha" 
   | "libur" 
-  | "tugas_luar";
+  | "tugas_luar"
+  | "lupa_finger";
 
 export interface DailyAttendanceRecord {
   tanggal: string; // e.g. "2026-10-26" or "26/10/2026"
@@ -37,6 +38,8 @@ export interface TeacherAttendanceSummary {
   totalIzin: number;
   totalSakit: number;
   totalAlpha: number;
+  totalLupaFinger?: number;
+  totalTugasLuar?: number;
   
   // Penilaian Dimensi Dokumen Sekolah
   skorKetaatan?: number; // 1 - 5

@@ -27,6 +27,7 @@ export function exportPresensiToExcel(report: PresensiPeriodReport, users?: User
       "IZIN",
       "SAKIT",
       "ALPHA",
+      "LUPA FINGER",
       "NILAI KETAATAN",
       "NILAI PRESTASI",
     ],
@@ -54,6 +55,7 @@ export function exportPresensiToExcel(report: PresensiPeriodReport, users?: User
       t.totalIzin,
       t.totalSakit,
       t.totalAlpha,
+      t.totalLupaFinger || 0,
       t.skorKetaatan || "-",
       t.totalNilaiKinerja || "-",
     ];

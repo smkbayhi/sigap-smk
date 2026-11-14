@@ -515,13 +515,17 @@ export async function parseFingerprintFile(
     let izin = 0;
     let sakit = 0;
     let alpha = 0;
+    let lupaFinger = 0;
+    let tugasLuar = 0;
 
     data.daily.forEach((d: DailyAttendanceRecord) => {
-      if (d.status === "hadir" || d.status === "terlambat") hadir++;
-      if (d.status === "terlambat" || d.terlambatMenit > 0) {
+      if (d.status === "hadir" || d.status === "terlambat" || d.status === "lupa_finger" || d.status === "tugas_luar") hadir++;
+      if (d.status === "terlambat" || (d.status !== "lupa_finger" && d.terlambatMenit > 0)) {
         terlambatHari++;
         terlambatMenitTotal += d.terlambatMenit;
       }
+      if (d.status === "lupa_finger") lupaFinger++;
+      if (d.status === "tugas_luar") tugasLuar++;
       if (d.status === "izin") izin++;
       if (d.status === "sakit") sakit++;
       if (d.status === "alpha") alpha++;
@@ -551,6 +555,8 @@ export async function parseFingerprintFile(
       totalIzin: izin,
       totalSakit: sakit,
       totalAlpha: alpha,
+      totalLupaFinger: lupaFinger,
+      totalTugasLuar: tugasLuar,
       skorKetaatan,
       skorAcara,
       nilaiKebiasaanKerja,

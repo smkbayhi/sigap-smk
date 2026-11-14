@@ -277,10 +277,16 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
 
     const updatedDaily = teacher.dailyDetails.map((d) => {
       if (d.tanggal === tanggal) {
+        let defaultKet = keterangan !== undefined ? keterangan : d.keterangan;
+        if (status === "lupa_finger" && (!defaultKet || defaultKet === "-")) {
+          defaultKet = "Lupa checklock (evaluasi pribadi)";
+        } else if (status === "tugas_luar" && (!defaultKet || defaultKet === "-")) {
+          defaultKet = "Tugas Luar / Dinas Sekolah";
+        }
         return {
           ...d,
           status,
-          keterangan: keterangan !== undefined ? keterangan : d.keterangan,
+          keterangan: defaultKet,
         };
       }
       return d;
@@ -293,13 +299,17 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
     let izin = 0;
     let sakit = 0;
     let alpha = 0;
+    let lupaFinger = 0;
+    let tugasLuar = 0;
 
     updatedDaily.forEach((d) => {
-      if (d.status === "hadir" || d.status === "terlambat") hadir++;
-      if (d.status === "terlambat" || d.terlambatMenit > 0) {
+      if (d.status === "hadir" || d.status === "terlambat" || d.status === "lupa_finger" || d.status === "tugas_luar") hadir++;
+      if (d.status === "terlambat" || (d.status !== "lupa_finger" && d.terlambatMenit > 0)) {
         telatHari++;
         telatMenit += d.terlambatMenit;
       }
+      if (d.status === "lupa_finger") lupaFinger++;
+      if (d.status === "tugas_luar") tugasLuar++;
       if (d.status === "izin") izin++;
       if (d.status === "sakit") sakit++;
       if (d.status === "alpha") alpha++;
@@ -317,6 +327,8 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
       totalIzin: izin,
       totalSakit: sakit,
       totalAlpha: alpha,
+      totalLupaFinger: lupaFinger,
+      totalTugasLuar: tugasLuar,
       dailyDetails: updatedDaily,
     });
   };

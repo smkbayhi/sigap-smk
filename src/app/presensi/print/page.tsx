@@ -171,6 +171,7 @@ export default function PrintPresensiPage() {
                     <th className="border border-black p-1.5">Izin</th>
                     <th className="border border-black p-1.5">Sakit</th>
                     <th className="border border-black p-1.5">Alpha</th>
+                    <th className="border border-black p-1.5">Lupa Finger</th>
                     <th className="border border-black p-1.5">Status KKM</th>
                   </tr>
                 </thead>
@@ -184,6 +185,7 @@ export default function PrintPresensiPage() {
                     <td className="border border-black p-1.5">{myTeacherRecord.totalIzin || 0}</td>
                     <td className="border border-black p-1.5">{myTeacherRecord.totalSakit || 0}</td>
                     <td className="border border-black p-1.5">{myTeacherRecord.totalAlpha || 0}</td>
+                    <td className="border border-black p-1.5 font-bold text-orange-950">{myTeacherRecord.totalLupaFinger || 0}</td>
                     <td className={`border border-black p-1.5 font-black ${myTeacherRecord.statusKkm === "TIDAK KKM" ? "text-red-700" : "text-emerald-800"}`}>
                       {myTeacherRecord.statusKkm}
                     </td>
@@ -219,7 +221,9 @@ export default function PrintPresensiPage() {
                       <td className="border border-black p-1 text-center">
                         {day.terlambatMenit > 0 ? `+${day.terlambatMenit} mnt` : "-"}
                       </td>
-                      <td className="border border-black p-1 text-center capitalize font-semibold">{day.status}</td>
+                      <td className="border border-black p-1 text-center font-semibold">
+                        {day.status === "lupa_finger" ? "Lupa Finger" : day.status === "tugas_luar" ? "Tugas Luar" : day.status}
+                      </td>
                       <td className="border border-black p-1">{day.keterangan || "-"}</td>
                     </tr>
                   ))}
@@ -235,6 +239,13 @@ export default function PrintPresensiPage() {
                   Ambang Batas KKM (Kriteria Ketuntasan Minimal): Persentase keterlambatan jam kerja{" "}
                   <strong>&lt; 50%</strong>.
                 </li>
+                {myTeacherRecord.totalLupaFinger && myTeacherRecord.totalLupaFinger > 0 ? (
+                  <li>
+                    <span className="text-orange-950 font-medium">
+                      Tercatat <strong>{myTeacherRecord.totalLupaFinger} hari Lupa Finger</strong> (tidak checklock masuk/pulang namun diakui hadir). Mohon evaluasi mandiri agar lebih tertib melakukan checklock fingerprint saat datang dan pulang.
+                    </span>
+                  </li>
+                ) : null}
                 <li>
                   {myTeacherRecord.statusKkm === "TIDAK KKM" ? (
                     <span className="text-red-700 font-semibold">
@@ -311,6 +322,7 @@ export default function PrintPresensiPage() {
                     <th className="border border-black p-1.5 w-8">IZIN</th>
                     <th className="border border-black p-1.5 w-8">SAKIT</th>
                     <th className="border border-black p-1.5 w-8">ALPHA</th>
+                    <th className="border border-black p-1.5 w-10">LUPA FINGER</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -346,6 +358,7 @@ export default function PrintPresensiPage() {
                         <td className="border border-black p-1 text-center">{t.totalIzin || "-"}</td>
                         <td className="border border-black p-1 text-center">{t.totalSakit || "-"}</td>
                         <td className="border border-black p-1 text-center">{t.totalAlpha || "-"}</td>
+                        <td className="border border-black p-1 text-center font-bold text-orange-950">{t.totalLupaFinger || "-"}</td>
                       </tr>
                     );
                   })}

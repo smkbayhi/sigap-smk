@@ -34,6 +34,7 @@ import {
   Edit3,
   Trash2,
   Cloud,
+  AlertCircle,
 } from "lucide-react";
 
 export default function PresensiPage() {
@@ -163,6 +164,18 @@ export default function PresensiPage() {
   const handleSendWaReminder = (teacher: TeacherAttendanceSummary) => {
     if (!currentReport) return;
     const bio = getTeacherBiodata(teacher);
+    const cleanPhone = bio.matchedUser?.phone ? bio.matchedUser.phone.replace(/\D/g, "") : "";
+    const waBase = cleanPhone ? `https://wa.me/${cleanPhone}` : `https://wa.me/`;
+
+    const lupaFingerRow = teacher.totalLupaFinger && teacher.totalLupaFinger > 0
+      ? `• Lupa Checklock (Finger): ${teacher.totalLupaFinger} Hari (Diakui Hadir, Alpha = 0)\n`
+      : "";
+
+    const lupaFingerNote = teacher.totalLupaFinger && teacher.totalLupaFinger > 0
+      ? `\n📌 CATATAN EVALUASI PRIBADI:
+Tercatat ada ${teacher.totalLupaFinger} hari di mana Anda hadir bertugas namun tidak melakukan checklock fingerprint (masuk dan/atau pulang). Meskipun kehadiran tetap diakui (bukan Alpha), mohon untuk melakukan evaluasi mandiri dan lebih tertib melakukan checklock pada mesin fingerprint saat datang & pulang demi ketertiban administrasi bersama.\n`
+      : "";
+
     const text = `Assalamu’alaikum Wr. Wb.
 Yth. Ust/Ustzh ${bio.displayName},
 Kami sampaikan rekapitulasi kehadiran Anda pada periode ${currentReport.rentangTanggal}:
@@ -170,19 +183,20 @@ Kami sampaikan rekapitulasi kehadiran Anda pada periode ${currentReport.rentangT
 • Total Hadir: ${teacher.totalHadir} Hari
 • Terlambat: ${teacher.totalTerlambatHari} Hari (${teacher.totalMenitTerlambat} menit)
 • Persentase Keterlambatan: ${teacher.persentaseTerlambat}%
-• Status Kedisiplinan: ${teacher.statusKkm}
-
+• Izin: ${teacher.totalIzin || 0} | Sakit: ${teacher.totalSakit || 0} | Alpha: ${teacher.totalAlpha || 0}
+${lupaFingerRow}• Status Kedisiplinan: ${teacher.statusKkm}
+${lupaFingerNote}
 ${
   teacher.statusKkm === "TIDAK KKM"
     ? "⚠️ PERINGATAN: Keterlambatan Anda mencapai/melebihi ambang batas 50%. Mohon untuk meningkatkan ketaatan jam kerja demi ketertiban bersama."
     : "Alhamdulillah, ketaatan jam kerja Anda telah memenuhi standar KKM. Pertahankan kedisiplinan ini."
 }
 
-Demikian kami sampaikan, terima kasih.
+Demikian kami sampaikan untuk evaluasi bersama, terima kasih.
 Wassalamu’alaikum Wr. Wb.
 - Bagian Tata Usaha SMK Bayt Al-Hikmah Pasuruan`;
 
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    const url = `${waBase}?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
 
@@ -449,7 +463,8 @@ Wassalamu’alaikum Wr. Wb.
               </div>
             </div>
           ) : myTeacherRecord ? (
-            /* 4 Personal Monitoring KPI Cards for regular teachers/kasubag */
+            <>
+            {/* 4 Personal Monitoring KPI Cards for regular teachers/kasubag */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Personal Card 1: Hari Kerja Efektif */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-sm transition-all flex items-center gap-4">
@@ -487,7 +502,7 @@ Wassalamu’alaikum Wr. Wb.
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 font-medium mt-0.5 truncate">
-                    {myTeacherRecord.totalIzin || 0} Izin • {myTeacherRecord.totalSakit || 0} Sakit • {myTeacherRecord.totalAlpha || 0} Alpha
+                    {myTeacherRecord.totalIzin || 0} Izin • {myTeacherRecord.totalSakit || 0} Sakit • {myTeacherRecord.totalAlpha || 0} Alpha{myTeacherRecord.totalLupaFinger ? ` • ${myTeacherRecord.totalLupaFinger} Lupa Finger` : ""}
                   </p>
                 </div>
               </div>
@@ -558,6 +573,32 @@ Wassalamu’alaikum Wr. Wb.
                 </div>
               </div>
             </div>
+
+            {/* Banner Evaluasi Pribadi: Lupa Checklock Fingerprint */}
+            {myTeacherRecord.totalLupaFinger && myTeacherRecord.totalLupaFinger > 0 ? (
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start gap-4 shadow-xs">
+                <div className="p-2.5 bg-amber-100 text-amber-900 rounded-xl shrink-0 border border-amber-200">
+                  <AlertCircle className="w-5 h-5 text-amber-700" />
+                </div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-bold text-sm text-amber-950">
+                      Catatan Evaluasi Pribadi: Lupa Checklock Fingerprint
+                    </h4>
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-900 font-extrabold text-[10px]">
+                      {myTeacherRecord.totalLupaFinger} Hari Terdeteksi
+                    </span>
+                  </div>
+                  <p className="text-amber-900 leading-relaxed">
+                    Sistem mendeteksi <strong>{myTeacherRecord.totalLupaFinger} hari</strong> di mana Anda hadir namun tidak terekam sidik jari mesin (lupa checklock jam masuk dan/atau jam pulang).
+                  </p>
+                  <p className="text-amber-800 text-[11px] leading-relaxed pt-0.5">
+                    💡 <strong>Status Tetap Diakui Hadir (Bukan Alpha):</strong> Jam kerja Anda tidak dianggap membolos dan hak kehadiran tetap dihitung. Namun demi ketertiban administrasi kepegawaian dan pelaporan sekolah, dimohon untuk melakukan evaluasi mandiri serta membiasakan checklock tepat waktu pada saat datang dan pulang.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            </>
           ) : (
             /* Unlinked User Notice */
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-amber-900 flex items-start gap-3.5 shadow-xs">
@@ -806,6 +847,7 @@ Wassalamu’alaikum Wr. Wb.
                   <th className="py-3 px-2 text-center text-blue-700">Izin</th>
                   <th className="py-3 px-2 text-center text-amber-700">Sakit</th>
                   <th className="py-3 px-2 text-center text-rose-700">Alpha</th>
+                  <th className="py-3 px-2 text-center text-orange-700" title="Tercatat hadir namun lupa checklock fingerprint (evaluasi mandiri)">Lupa Finger</th>
                   <th className="py-3 px-4 text-center">Aksi</th>
                 </tr>
               </thead>
@@ -925,6 +967,15 @@ Wassalamu’alaikum Wr. Wb.
                       </td>
                       <td className="py-3.5 px-2 text-center text-rose-700 font-bold">
                         {t.totalAlpha || "-"}
+                      </td>
+                      <td className="py-3.5 px-2 text-center text-orange-700 font-bold">
+                        {t.totalLupaFinger ? (
+                          <span className="bg-orange-100 text-orange-900 border border-orange-200 px-1.5 py-0.5 rounded text-[11px]">
+                            {t.totalLupaFinger}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
@@ -1049,6 +1100,28 @@ Wassalamu’alaikum Wr. Wb.
             );
           })()}
 
+          {/* Lupa Finger Notice for Selected Teacher */}
+          {selectedTeacher.totalLupaFinger && selectedTeacher.totalLupaFinger > 0 ? (
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-orange-200/90 rounded-2xl p-4 flex items-start sm:items-center justify-between gap-3 text-xs text-orange-950 shadow-xs">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="p-2 bg-orange-100 text-orange-800 rounded-xl shrink-0 mt-0.5 sm:mt-0 border border-orange-200">
+                  <AlertCircle className="w-4 h-4 text-orange-700" />
+                </div>
+                <div>
+                  <p className="font-bold text-orange-950">
+                    Guru memiliki {selectedTeacher.totalLupaFinger} hari dengan status &quot;Lupa Finger&quot;
+                  </p>
+                  <p className="text-[11px] text-orange-800 mt-0.5">
+                    Tercatat hadir di sekolah namun tidak terekam mesin sidik jari saat datang dan/atau pulang. Status ini tetap diakui Hadir (Alpha = 0) sebagai evaluasi mandiri guru.
+                  </p>
+                </div>
+              </div>
+              <span className="hidden sm:inline-block px-2.5 py-1 bg-orange-200/80 text-orange-900 font-extrabold text-[10px] rounded-lg shrink-0">
+                {selectedTeacher.totalLupaFinger} Hari Evaluasi
+              </span>
+            </div>
+          ) : null}
+
           {/* Daily Table */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
             <div className="p-4 bg-slate-50 border-b border-gray-100 flex items-center justify-between">
@@ -1087,10 +1160,16 @@ Wassalamu’alaikum Wr. Wb.
                         className={`hover:bg-slate-50 transition-colors ${
                           day.status === "terlambat"
                             ? "bg-amber-50/20"
+                            : day.status === "lupa_finger"
+                            ? "bg-orange-50/30"
+                            : day.status === "tugas_luar"
+                            ? "bg-sky-50/20"
                             : day.status === "izin"
                             ? "bg-blue-50/20"
                             : day.status === "sakit"
                             ? "bg-purple-50/20"
+                            : day.status === "alpha"
+                            ? "bg-rose-50/30"
                             : ""
                         }`}
                       >
@@ -1123,6 +1202,10 @@ Wassalamu’alaikum Wr. Wb.
                                 ? "bg-emerald-100 text-emerald-800"
                                 : day.status === "terlambat"
                                 ? "bg-amber-100 text-amber-800"
+                                : day.status === "lupa_finger"
+                                ? "bg-orange-100 text-orange-900 border border-orange-200 font-extrabold"
+                                : day.status === "tugas_luar"
+                                ? "bg-sky-100 text-sky-800 border border-sky-200 font-bold"
                                 : day.status === "izin"
                                 ? "bg-blue-100 text-blue-800"
                                 : day.status === "sakit"
@@ -1130,7 +1213,11 @@ Wassalamu’alaikum Wr. Wb.
                                 : "bg-rose-100 text-rose-800"
                             }`}
                           >
-                            {day.status}
+                            {day.status === "lupa_finger"
+                              ? "Lupa Finger"
+                              : day.status === "tugas_luar"
+                              ? "Tugas Luar"
+                              : day.status}
                           </span>
                         </td>
                         <td className="py-2.5 px-4 text-gray-600 text-[11px]">
@@ -1147,10 +1234,12 @@ Wassalamu’alaikum Wr. Wb.
                                   e.target.value as StatusKehadiran
                                 )
                               }
-                              className="text-[11px] py-1 px-1.5 bg-slate-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                              className="text-[11px] py-1 px-1.5 bg-slate-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600 font-medium"
                             >
                               <option value="hadir">Hadir</option>
                               <option value="terlambat">Terlambat</option>
+                              <option value="lupa_finger">Lupa Finger</option>
+                              <option value="tugas_luar">Tugas Luar</option>
                               <option value="izin">Izin</option>
                               <option value="sakit">Sakit</option>
                               <option value="alpha">Alpha</option>
