@@ -54,11 +54,24 @@ export function mapSuratKeluarToDb(item: SuratKeluar) {
 }
 
 export function mapDbToSuratKeluar(row: any): SuratKeluar {
+  let detectedJenis = row.jenis_surat;
+  const noSurat = String(row.nomor_surat || "").toUpperCase();
+  const perihal = String(row.perihal || "").toLowerCase();
+  const isi = String(row.isi_surat || "");
+
+  if (noSurat.includes("/SK/") || perihal.includes("surat keputusan") || isi.includes("SURAT KEPUTUSAN") || isi.includes("MEMUTUSKAN")) {
+    detectedJenis = "surat_keputusan";
+  } else if (perihal.includes("surat kuasa") || isi.includes("SURAT KUASA")) {
+    detectedJenis = "surat_kuasa";
+  } else if (perihal.includes("surat peringatan") || isi.includes("SURAT PERINGATAN")) {
+    detectedJenis = "surat_peringatan";
+  }
+
   return {
     id: row.id,
     no_urut: row.no_urut,
     nomor_surat: row.nomor_surat,
-    jenis_surat: row.jenis_surat,
+    jenis_surat: detectedJenis,
     bulan_romawi: row.bulan_romawi,
     tahun: row.tahun,
     tanggal_surat: row.tanggal_surat,

@@ -18,7 +18,8 @@ export type TipeTabelSurat =
   | "daftar_siswa"
   | "pengantar_berkas"
   | "outing_class"
-  | "rincian_catering";
+  | "rincian_catering"
+  | "sk_susunan_tim";
 
 export interface LetterMetaConfig {
   layout: LayoutFormatSurat;
@@ -31,7 +32,7 @@ export interface LetterMetaConfig {
 
 export interface LetterTemplateItem {
   id: string;
-  category: "undangan" | "permohonan" | "tugas_sppd" | "kesiswaan" | "pengantar_kuasa" | "peringatan";
+  category: "undangan" | "permohonan" | "tugas_sppd" | "kesiswaan" | "pengantar_kuasa" | "peringatan" | "sk_keputusan";
   label: string;
   perihal: string;
   tujuan: string;
@@ -473,5 +474,99 @@ Diberikan TEGURAN KERAS atas pelanggaran jam operasional sekolah yang berulang. 
     modelTtd: "sp_kedisiplinan",
     penutupJenis: "peringatan",
     tembusan: ["1. Wakil Direktur Pesantren", "2. Biro Kedisiplinan & HCD", "3. Arsip"],
+  },
+  {
+    id: "sk-tim-supervisi",
+    category: "sk_keputusan",
+    label: "Surat Keputusan (SK) Tim Supervisi & PKG",
+    perihal: "Pembentukan Tim Pelaksana Supervisi dan Penilaian Kinerja Pendidik dan Tenaga Kependidikan Tahun Pelajaran 2026/2027",
+    tujuan: "Seluruh Pendidik & Tenaga Kependidikan SMK Bayt Al-Hikmah",
+    jenis: "surat_keputusan",
+    layout: "judul_tengah",
+    judulSurat: "SURAT KEPUTUSAN KEPALA SMK BAYT AL-HIKMAH",
+    inti: "",
+    tipeTabel: "sk_susunan_tim",
+    modelTtd: "1_kepsek",
+    penutupJenis: "keterangan",
+    tembusan: [
+      "1. Ketua Yayasan Pondok Pesantren Bayt Al-Hikmah",
+      "2. Pengawas Pembina SMK Cabang Dinas Wilayah Pasuruan",
+      "3. Yang bersangkutan untuk diketahui dan dilaksanakan",
+      "4. Arsip Sekolah",
+    ],
+    tableData: {
+      tentang: "PEMBENTUKAN TIM PELAKSANA SUPERVISI DAN PENILAIAN KINERJA PENDIDIK DAN TENAGA KEPENDIDIKAN",
+      tahunAjaran: "2026/2027",
+      tanggalPenetapan: "20 Juli 2026",
+      tempatPenetapan: "Pasuruan",
+      menimbang: [
+        "Bahwa Kepala Sekolah karena kedudukan, fungsi, wewenang dan tugasnya bertanggung jawab penuh terhadap keberhasilan seluruh komponen pendidikan dan pelatihan dalam mencapai visi-misi SMK Bayt Al-Hikmah",
+        "Bahwa dalam rangka menciptakan manajemen dan mengembangkan mutu Sumber Daya Manusia (SDM) yang dapat meningkatkan dan mengembangkan mutu SDM yang sejalan dengan tuntutan kebutuhan IPTEK, profesi, perlu disusun suatu panduan secara terencana, terorganisir, terlaksana dengan baik serta dapat dievaluasi tingkat keberhasilan"
+      ],
+      mengingat: [
+        "Undang-Undang RI Nomor 20 Tahun 2003 tentang Sistem Pendidikan Nasional;",
+        "Peraturan Menteri Pendidikan dan Kebudayaan Republik Indonesia Nomor 34 Tahun 2018 tentang Standar Nasional Pendidikan Sekolah Menengah Kejuruan/Madrasah Aliyah Kejuruan;",
+        "Undang-Undang Nomor 14 Tahun 2005 tentang Guru dan Dosen;",
+        "Peraturan Pemerintah Nomor 19 Tahun 2017 tentang Perubahan atas Peraturan Pemerintah Nomor 74 Tahun 2008 tentang Guru;",
+        "Permendikdasmen Nomor 1 Tahun 2026 tentang Standar Proses pada Pendidikan Anak Usia Dini, Jenjang Pendidikan Dasar, dan Jenjang Pendidikan Menengah;",
+        "Permendikbud Nomor 15 Tahun 2018 tentang Pemenuhan Beban Kerja Guru, Kepala Sekolah, dan Pengawas Sekolah"
+      ],
+      memperhatikan: [
+        "Keputusan Kepala Dinas Pendidikan Provinsi Jawa Timur Nomor 400.3/2876/101.1/2026 Tentang Kalender Pendidikan Provinsi Jawa Timur",
+        "Keputusan Pendidikan SMK Bayt Al-Hikmah Tahun Ajaran 2026/2027",
+        "Hasil rapat struktural SMK Bayt Al-Hikmah Tahun Ajaran 2026/2027"
+      ],
+      diktum: [
+        {
+          poin: "Pertama",
+          teks: "Membentuk Tim Pelaksana Supervisi dan Penilai Kinerja Pendidik dan Tenaga Kependidikan Tingkat Satuan Pendidikan SMK Bayt Al-Hikmah Tahun Pelajaran 2026/2027 seperti dalam lampiran 1 surat keputusan ini;"
+        },
+        {
+          poin: "Kedua",
+          teks: "Bahwa Tim Pelaksana Supervisi dan Penilai Kinerja Pendidik dan Tenaga Kependidikan serta tugas dan tanggungjawab pada Tingkat Satuan Pendidikan yang terbentuk di lingkungan SMK Bayt Al-Hikmah sebagai penilai kinerja dalam setiap aktivitas Pendidik dan Tenaga Kependidikan Tahun Pelajaran 2026/2027 seperti dalam lampiran 2 surat keputusan ini;"
+        },
+        {
+          poin: "Ketiga",
+          teks: "Segala biaya yang timbul akibat keputusan ini dibebankan pada anggaran yang sesuai;"
+        },
+        {
+          poin: "Keempat",
+          teks: "Apabila terdapat kekeliruan pada surat keputusan ini di kemudian hari, maka akan ditinjau Kembali."
+        }
+      ],
+      lampiran1Title: "SUSUNAN TIM PELAKSANAAN SUPERVISI",
+      lampiran1Perihal: "Susunan, Tugas dan Tanggungjawab Tim Pelaksana Supervisi",
+      lampiran1Rows: [
+        { no: 1, nama: "Ratna Anggraini, M.Pd", jabatanDinas: "Pengawas SMK", jabatanTim: "Pembina" },
+        { no: 2, nama: "Mokhamat Ekhsan, S.Kom", jabatanDinas: "Kepala Sekolah", jabatanTim: "Penanggung jawab" },
+        { no: 3, nama: "Luluk Mamlu’atus Sholihah, S.S", jabatanDinas: "Wakil Kepala Sekolah", jabatanTim: "Koordinator dan Supervisor" },
+        { no: 4, nama: "Moh. Nasih Aminulloh, S.Mat, M.Si", jabatanDinas: "Waka Kurikulum", jabatanTim: "Supervisor/ Observer" },
+        { no: 5, nama: "Achmad Jabbar, S.Sn", jabatanDinas: "Kasubag Kesiswaan", jabatanTim: "Supervisor/ Observer" }
+      ],
+      lampiran2Title: "URAIAN TUGAS PANITIA PELAKSANA TIM SUPERVISI",
+      lampiran2Perihal: "Uraian Tugas Panitia Pelaksana Supervisi",
+      lampiran2Rows: [
+        {
+          no: 1,
+          jabatan: "Pembina",
+          uraianTugas: "Memberikan layanan pembinaan, bantuan dalam perencanaan, pengorganisasian, pelaksanaan dan evaluasi kegiatan supervisi akademik di sekolah binaan di lingkungan Cabang Dinas Pendidikan Pasuruan"
+        },
+        {
+          no: 2,
+          jabatan: "Penanggung Jawab",
+          uraianTugas: "1. Bertanggung jawab penuh atas seluruh perencanaan, pelaksanaan, evaluasi, dan tindak lanjut kegiatan supervisi serta Penilaian Kinerja Pendidik dan Tenaga Kependidikan.\n2. Menetapkan dan mengesahkan panduan, instrumen, jadwal pelaksanaan, serta susunan Tim Supervisi dan Penilaian Kinerja.\n3. Memberikan pengarahan dan kebijakan strategis terkait pelaksanaan supervisi akademik, supervisi manajerial, dan penilaian kinerja.\n4. Mengesahkan laporan akhir hasil supervisi dan Penilaian Kinerja Pendidik dan Tenaga Kependidikan.\n5. Memberikan pembinaan, umpan balik resmi, serta tindak lanjut (pengembangan keprofesian berkelanjutan/PKB atau penghargaan dan sanksi) berdasarkan hasil evaluasi kinerja."
+        },
+        {
+          no: 3,
+          jabatan: "Koordinator",
+          uraianTugas: "1. Menyusun perencanaan, pemetaan sasaran, jadwal pelaksanaan, dan pembagian tugas tim supervisi/penilai.\n2. Mengkoordinasikan persiapan dan distribusi instrumen supervisi serta penilaian kinerja sesuai dengan standar dan kriteria yang berlaku.\n3. Mengawasi dan memantau kelancaran serta ketepatan waktu pelaksanaan proses supervisi dan penilaian oleh para assessor/supervisor.\n4. Memimpin rapat koordinasi berkala tim pelaksanaan supervisi dan penilaian kinerja.\n5. Mengompilasi dan menganalisis hasil penilaian dari anggota tim untuk disusun menjadi draft Laporan Akhir Pelaksanaan Supervisi dan Penilaian Kinerja kepada Penanggung Jawab."
+        },
+        {
+          no: 4,
+          jabatan: "Supervisor",
+          uraianTugas: "1. Melaksanakan pra-observasi, observasi dan pasca observasi (mengevaluasi) menggunakan teknik coaching\n2. Menyerahkan seluruh instrumen yang telah diisi beserta dokumen pendukung kepada Koordinator tepat waktu sesuai jadwal yang ditetapkan."
+        }
+      ]
+    },
   },
 ];

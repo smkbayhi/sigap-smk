@@ -46,7 +46,8 @@ export type JenisSuratKeluar =
   | 'surat_pengantar'
   | 'surat_permohonan'
   | 'surat_kuasa'
-  | 'surat_peringatan';
+  | 'surat_peringatan'
+  | 'surat_keputusan';
 
 export type StatusSuratKeluar = 'draft' | 'menunggu_persetujuan' | 'disetujui' | 'ditolak';
 

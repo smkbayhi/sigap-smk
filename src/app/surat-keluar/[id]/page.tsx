@@ -11,7 +11,7 @@ import { OfficialFooterSurat } from "@/components/kop-surat/OfficialFooterSurat"
 import { DigitalSignatureModal } from "@/components/signature/DigitalSignatureModal";
 import { SuratSignatureBlock } from "@/components/surat/SuratSignatureBlock";
 import { parseLetterMeta } from "@/lib/letterTemplates";
-import { alignParagraphsWithKeyValueTables } from "@/lib/tableGenerators";
+import { alignParagraphsWithKeyValueTables, syncSkHtmlContent } from "@/lib/tableGenerators";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { mapDbToSuratKeluar } from "@/lib/supabaseSync";
 import { SuratKeluar } from "@/lib/database.types";
@@ -282,6 +282,36 @@ export default function SuratKeluarDetailPage() {
       )}
 
       {/* Document Sheet (Visual Paper Simulation matching official PDF) */}
+      <style jsx global>{`
+        .sk-page-lampiran {
+          margin-top: 36px !important;
+          padding-top: 24px !important;
+          border-top: 2px dashed #94a3b8 !important;
+          position: relative;
+        }
+        .sk-page-lampiran-1::before {
+          content: "--- HALAMAN 3: LAMPIRAN I (SUSUNAN TIM PELAKSANA SUPERVISI) ---";
+          display: block;
+          text-align: center;
+          font-size: 8.5pt;
+          font-weight: bold;
+          color: #64748b;
+          margin-bottom: 14px;
+          letter-spacing: 0.5px;
+          font-family: ui-sans-serif, system-ui, sans-serif;
+        }
+        .sk-page-lampiran-2::before {
+          content: "--- HALAMAN 4: LAMPIRAN II (URAIAN TUGAS KEPANITIAAN) ---";
+          display: block;
+          text-align: center;
+          font-size: 8.5pt;
+          font-weight: bold;
+          color: #64748b;
+          margin-bottom: 14px;
+          letter-spacing: 0.5px;
+          font-family: ui-sans-serif, system-ui, sans-serif;
+        }
+      `}</style>
       <div 
         className="max-w-4xl mx-auto bg-white border border-gray-300 rounded-2xl shadow-xl p-8 sm:p-14 surat-resmi text-gray-900 text-sm leading-relaxed"
         style={{ fontFamily: '"Times New Roman", Times, "Nimbus Roman No9 L", Georgia, serif' }}
@@ -311,6 +341,22 @@ export default function SuratKeluarDetailPage() {
 
           const displayNiy = schoolSettings?.niyKepsek || "14215094";
 
+          const isSk = meta.tipeTabel === "sk_susunan_tim" || surat.jenis_surat === "surat_keputusan";
+          const isSppd = meta.tipeTabel === "sppd_resmi";
+
+          const syncedHtml = isSk
+            ? syncSkHtmlContent(cleanHtml, {
+                isApprovedOrHasTtd,
+                isApprovedOrHasStempel,
+                displayTtd,
+                displayStamp,
+                namaKepsek: displayKepsek,
+                niyKepsek: displayNiy,
+                logoYayasan: surat.logo_yayasan_url || schoolSettings?.logoYayasanUrl || LOGO_YAYASAN_DATA_URL,
+                logoSmk: surat.logo_smk_url || schoolSettings?.logoSmkUrl || LOGO_SMK_CIRCULAR_DATA_URL,
+              })
+            : cleanHtml;
+
           return (
             <>
               {/* Kop Surat Resmi (Sesuai Pilihan Template: Tradisional vs Modern TP 2027/2028) */}
@@ -320,8 +366,8 @@ export default function SuratKeluarDetailPage() {
                 logoSmkOverride={surat.logo_smk_url || schoolSettings?.logoSmkUrl || LOGO_SMK_CIRCULAR_DATA_URL}
               />
 
-              {/* FORMAT B: JUDUL TENGAH (Kecuali SPPD yang telah memiliki header tabel lembar ke & judul sendiri) */}
-              {isJudulTengah && meta.tipeTabel !== "sppd_resmi" ? (
+              {/* FORMAT B: JUDUL TENGAH (Kecuali SPPD & SK yang telah memiliki header dan judul sendiri) */}
+              {isJudulTengah && !isSppd && !isSk ? (
                 <div className="text-center my-4 font-serif">
                   <h2 className="text-base sm:text-lg font-bold uppercase underline tracking-wider text-gray-950">
                     {meta.judul || surat.perihal}
@@ -330,7 +376,7 @@ export default function SuratKeluarDetailPage() {
                     Nomor: {surat.nomor_surat}
                   </p>
                 </div>
-              ) : meta.tipeTabel === "sppd_resmi" ? null : (
+              ) : isSppd || isSk ? null : (
                 /* FORMAT A: KORESPONDENSI DINAS (Nomor/Lampiran/Perihal di kiri, Kepada Yth.) */
                 <>
                   <div className="mb-6 font-serif text-xs sm:text-[13px]">
@@ -366,11 +412,11 @@ export default function SuratKeluarDetailPage() {
               {/* Letter Body (Clean HTML without metadata comment, aligned key-value tables) */}
               <div
                 className="prose prose-sm max-w-none text-gray-900 mb-8 leading-relaxed font-serif text-xs sm:text-[13px] text-justify space-y-2.5"
-                dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(cleanHtml, surat.nomor_surat) }}
+                dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(syncedHtml, surat.nomor_surat) }}
               />
 
               {/* Signature & Official Seal Block (1 Pihak, 2 Pihak Cabdin/Yayasan, 3 Pihak Bank Jatim/SP) */}
-              {meta.tipeTabel !== "sppd_resmi" && (
+              {!isSppd && !isSk && (
                 <SuratSignatureBlock
                   modelTtd={meta.modelTtd}
                   tanggalSurat={surat.tanggal_surat}
@@ -387,7 +433,7 @@ export default function SuratKeluarDetailPage() {
               )}
 
               {/* Official Footer Accent Bar (Aktif bila Template Kop Modern TP 2027/2028 dipilih) */}
-              <OfficialFooterSurat variant={meta.kopVariant} isPrint={false} />
+              {!isSk && <OfficialFooterSurat variant={meta.kopVariant} isPrint={false} />}
             </>
           );
         })()}

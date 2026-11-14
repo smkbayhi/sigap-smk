@@ -56,10 +56,13 @@ export function formatIndonesianDateTime(dateStr: string | Date): string {
   }
 }
 
-export function generateNomorSurat(noUrut: number, date: Date = new Date()): string {
+export function generateNomorSurat(noUrut: number, date: Date = new Date(), jenis?: string): string {
   const pad = String(noUrut).padStart(3, "0");
   const romawi = getBulanRomawi(date.getMonth() + 1);
   const tahun = date.getFullYear();
+  if (jenis === "surat_keputusan") {
+    return `${pad}/SMK-BAYHI/SK/${romawi}/${tahun}`;
+  }
   return `${pad}/SMK-BAYHI/${romawi}/${tahun}`;
 }
 
@@ -124,6 +127,7 @@ export function getJenisSuratKeluarLabel(jenis: JenisSuratKeluar | string): stri
     case "surat_permohonan": return "Surat Permohonan";
     case "surat_kuasa": return "Surat Kuasa";
     case "surat_peringatan": return "Surat Peringatan";
+    case "surat_keputusan": return "Surat Keputusan (SK)";
     default: return "Surat Keluar";
   }
 }

@@ -26,7 +26,7 @@ import {
   TTD_KEPSEK_DATA_URL,
   STEMPEL_SEKOLAH_DATA_URL,
 } from "@/lib/seedData";
-import { generateNomorSurat } from "@/lib/utils";
+import { generateNomorSurat, getBulanRomawi } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { cloudSync } from "@/lib/supabaseSync";
 import { getIndexedDBSettings, saveIndexedDBSettings } from "@/lib/indexedDb";
@@ -719,14 +719,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       .reduce((max, s) => Math.max(max, s.no_urut || 0), 0);
     const nextNoUrut = highestNoUrut + 1;
     const now = new Date();
-    const nomor = generateNomorSurat(nextNoUrut, now);
+    const romawi = getBulanRomawi(now.getMonth() + 1);
+    const nomor = generateNomorSurat(nextNoUrut, now, data.jenis_surat);
 
     const newItem: SuratKeluar = {
       ...data,
       id: "sk-" + Date.now(),
       no_urut: nextNoUrut,
       nomor_surat: nomor,
-      bulan_romawi: "XI",
+      bulan_romawi: romawi,
       tahun: currentYear,
       created_at: new Date().toISOString(),
     };

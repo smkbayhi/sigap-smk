@@ -30,6 +30,11 @@ import {
   generatePengantarBerkasHtml,
   generateOutingClassHtml,
   generateRincianCateringHtml,
+  generateSkHtml,
+  SkGeneratorData,
+  SkMemberRow,
+  SkTugasRow,
+  SkDiktumRow,
 } from "@/lib/tableGenerators";
 import {
   ArrowLeft,
@@ -84,6 +89,14 @@ const CATALOG_TEMPLATES: CatalogCardItem[] = [
     title: "SURAT PERINTAH PERJALANAN DINAS (SPPD)",
     description: "Format resmi Formulir SPPD 10 butir disertai lembar visum keberangkatan dan kedatangan tempat tujuan.",
     fields: "10 field + Visum",
+    category: "tugas_sppd",
+  },
+  {
+    id: "sk-tim-supervisi",
+    badge: "SK RESMI",
+    title: "Surat Keputusan (SK) Tim Supervisi & PKG",
+    description: "Format baku SK Kepala Sekolah multi-halaman F4: Konsiderans, Diktum Memutuskan, Lampiran I Susunan Tim, & Lampiran II Uraian Tugas.",
+    fields: "4 Lembar F4 Baku",
     category: "tugas_sppd",
   },
   {
@@ -186,6 +199,10 @@ export default function BuatSuratKeluarPage() {
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogCategory, setCatalogCategory] = useState("all");
 
+  // Form core states
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("undangan-pembekalan-pkl");
+  const [jenisSurat, setJenisSurat] = useState<JenisSuratKeluar>("surat_undangan");
+
   // Auto Number: [No_Urut]/SMK-BAYHI/[Bulan_Romawi]/[Tahun]
   const currentYear = new Date().getFullYear();
   const currentMonthRomawi = getBulanRomawi(new Date().getMonth() + 1);
@@ -193,11 +210,8 @@ export default function BuatSuratKeluarPage() {
     .filter((s) => s.tahun === currentYear)
     .reduce((max, s) => Math.max(max, s.no_urut || 0), 0);
   const nextNoUrut = highestNoUrut + 1;
-  const previewNomorSurat = generateNomorSurat(nextNoUrut, new Date());
+  const previewNomorSurat = generateNomorSurat(nextNoUrut, new Date(), jenisSurat);
 
-  // Form core states
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("undangan-pembekalan-pkl");
-  const [jenisSurat, setJenisSurat] = useState<JenisSuratKeluar>("surat_undangan");
   const [kopVariant, setKopVariant] = useState<TemplateKopSurat>("tradisional");
   const [layoutFormat, setLayoutFormat] = useState<LayoutFormatSurat>("korespondensi");
   const [judulSurat, setJudulSurat] = useState("");
@@ -302,6 +316,81 @@ export default function BuatSuratKeluarPage() {
     },
   ]);
 
+  // Surat Keputusan (SK) Multi-Lembar F4 State
+  const [skData, setSkData] = useState<SkGeneratorData>({
+    tentang: "PEMBENTUKAN TIM PELAKSANA SUPERVISI DAN PENILAIAN KINERJA PENDIDIK DAN TENAGA KEPENDIDIKAN",
+    tahunAjaran: "2026/2027",
+    tempatPenetapan: "Pasuruan",
+    menimbang: [
+      "Bahwa Kepala Sekolah karena kedudukan, fungsi, wewenang dan tugasnya bertanggung jawab penuh terhadap keberhasilan seluruh komponen pendidikan dan pelatihan dalam mencapai visi-misi SMK Bayt Al-Hikmah",
+      "Bahwa dalam rangka menciptakan manajemen dan mengembangkan mutu Sumber Daya Manusia (SDM) yang dapat meningkatkan dan mengembangkan mutu SDM yang sejalan dengan tuntutan kebutuhan IPTEK, profesi, perlu disusun suatu panduan secara terencana, terorganisir, terlaksana dengan baik serta dapat dievaluasi tingkat keberhasilan",
+    ],
+    mengingat: [
+      "Undang-Undang RI Nomor 20 Tahun 2003 tentang Sistem Pendidikan Nasional;",
+      "Peraturan Menteri Pendidikan dan Kebudayaan Republik Indonesia Nomor 34 Tahun 2018 tentang Standar Nasional Pendidikan Sekolah Menengah Kejuruan/Madrasah Aliyah Kejuruan;",
+      "Undang-Undang Nomor 14 Tahun 2005 tentang Guru dan Dosen;",
+      "Peraturan Pemerintah Nomor 19 Tahun 2017 tentang Perubahan atas Peraturan Pemerintah Nomor 74 Tahun 2008 tentang Guru;",
+      "Permendikdasmen Nomor 1 Tahun 2026 tentang Standar Proses pada Pendidikan Anak Usia Dini, Jenjang Pendidikan Dasar, dan Jenjang Pendidikan Menengah;",
+      "Permendikbud Nomor 15 Tahun 2018 tentang Pemenuhan Beban Kerja Guru, Kepala Sekolah, dan Pengawas Sekolah",
+    ],
+    memperhatikan: [
+      "Keputusan Kepala Dinas Pendidikan Provinsi Jawa Timur Nomor 400.3/2876/101.1/2026 Tentang Kalender Pendidikan Provinsi Jawa Timur",
+      "Keputusan Pendidikan SMK Bayt Al-Hikmah Tahun Ajaran 2026/2027",
+      "Hasil rapat struktural SMK Bayt Al-Hikmah Tahun Ajaran 2026/2027",
+    ],
+    diktum: [
+      {
+        poin: "Pertama",
+        teks: "Membentuk Tim Pelaksana Supervisi dan Penilai Kinerja Pendidik dan Tenaga Kependidikan Tingkat Satuan Pendidikan SMK Bayt Al-Hikmah Tahun Pelajaran 2026/2027 seperti dalam lampiran 1 surat keputusan ini;",
+      },
+      {
+        poin: "Kedua",
+        teks: "Bahwa Tim Pelaksana Supervisi dan Penilai Kinerja Pendidik dan Tenaga Kependidikan serta tugas dan tanggungjawab pada Tingkat Satuan Pendidikan yang terbentuk di lingkungan SMK Bayt Al-Hikmah sebagai penilai kinerja dalam setiap aktivitas Pendidik dan Tenaga Kependidikan Tahun Pelajaran 2026/2027 seperti dalam lampiran 2 surat keputusan ini;",
+      },
+      {
+        poin: "Ketiga",
+        teks: "Segala biaya yang timbul akibat keputusan ini dibebankan pada anggaran yang sesuai;",
+      },
+      {
+        poin: "Keempat",
+        teks: "Apabila terdapat kekeliruan pada surat keputusan ini di kemudian hari, maka akan ditinjau Kembali.",
+      },
+    ],
+    lampiran1Title: "SUSUNAN TIM PELAKSANAAN SUPERVISI",
+    lampiran1Perihal: "Susunan, Tugas dan Tanggungjawab Tim Pelaksana Supervisi",
+    lampiran1Rows: [
+      { no: 1, nama: "Ratna Anggraini, M.Pd", jabatanDinas: "Pengawas SMK", jabatanTim: "Pembina" },
+      { no: 2, nama: "Mokhamat Ekhsan, S.Kom", jabatanDinas: "Kepala Sekolah", jabatanTim: "Penanggung jawab" },
+      { no: 3, nama: "Luluk Mamlu’atus Sholihah, S.S", jabatanDinas: "Wakil Kepala Sekolah", jabatanTim: "Koordinator dan Supervisor" },
+      { no: 4, nama: "Moh. Nasih Aminulloh, S.Mat, M.Si", jabatanDinas: "Waka Kurikulum", jabatanTim: "Supervisor/ Observer" },
+      { no: 5, nama: "Achmad Jabbar, S.Sn", jabatanDinas: "Kasubag Kesiswaan", jabatanTim: "Supervisor/ Observer" },
+    ],
+    lampiran2Title: "URAIAN TUGAS PANITIA PELAKSANA TIM SUPERVISI",
+    lampiran2Perihal: "Uraian Tugas Panitia Pelaksana Supervisi",
+    lampiran2Rows: [
+      {
+        no: 1,
+        jabatan: "Pembina",
+        uraianTugas: "Memberikan layanan pembinaan, bantuan dalam perencanaan, pengorganisasian, pelaksanaan dan evaluasi kegiatan supervisi akademik di sekolah binaan di lingkungan Cabang Dinas Pendidikan Pasuruan",
+      },
+      {
+        no: 2,
+        jabatan: "Penanggung Jawab",
+        uraianTugas: "1. Bertanggung jawab penuh atas seluruh perencanaan, pelaksanaan, evaluasi, dan tindak lanjut kegiatan supervisi serta Penilaian Kinerja Pendidik dan Tenaga Kependidikan.\n2. Menetapkan dan mengesahkan panduan, instrumen, jadwal pelaksanaan, serta susunan Tim Supervisi dan Penilaian Kinerja.\n3. Memberikan pengarahan dan kebijakan strategis terkait pelaksanaan supervisi akademik, supervisi manajerial, dan penilaian kinerja.\n4. Mengesahkan laporan akhir hasil supervisi dan Penilaian Kinerja Pendidik dan Tenaga Kependidikan.\n5. Memberikan pembinaan, umpan balik resmi, serta tindak lanjut (pengembangan keprofesian berkelanjutan/PKB atau penghargaan dan sanksi) berdasarkan hasil evaluasi kinerja.",
+      },
+      {
+        no: 3,
+        jabatan: "Koordinator",
+        uraianTugas: "1. Menyusun perencanaan, pemetaan sasaran, jadwal pelaksanaan, dan pembagian tugas tim supervisi/penilai.\n2. Mengkoordinasikan persiapan dan distribusi instrumen supervisi serta penilaian kinerja sesuai dengan standar dan kriteria yang berlaku.\n3. Mengawasi dan memantau kelancaran serta ketepatan waktu pelaksanaan proses supervisi dan penilaian oleh para assessor/supervisor.\n4. Memimpin rapat koordinasi berkala tim pelaksanaan supervisi dan penilaian kinerja.\n5. Mengompilasi dan menganalisis hasil penilaian dari anggota tim untuk disusun menjadi draft Laporan Akhir Pelaksanaan Supervisi dan Penilaian Kinerja kepada Penanggung Jawab.",
+      },
+      {
+        no: 4,
+        jabatan: "Supervisor",
+        uraianTugas: "1. Melaksanakan pra-observasi, observasi dan pasca observasi (mengevaluasi) menggunakan teknik coaching\n2. Menyerahkan seluruh instrumen yang telah diisi beserta dokumen pendukung kepada Koordinator tepat waktu sesuai jadwal yang ditetapkan.",
+      },
+    ],
+  });
+
   // Signature & Closing choice
   const [modelTtd, setModelTtd] = useState<ModelTandaTangan>("1_kepsek");
   const [jenisPenutup, setJenisPenutup] = useState<string>("undangan");
@@ -338,12 +427,31 @@ export default function BuatSuratKeluarPage() {
       setOutingData(tmpl.tableData);
     } else if (tmpl.tipeTabel === "rincian_catering" && Array.isArray(tmpl.tableData)) {
       setCateringData(tmpl.tableData);
+    } else if (tmpl.tipeTabel === "sk_susunan_tim" && tmpl.tableData) {
+      setSkData(tmpl.tableData);
+      setPerihal(tmpl.perihal);
+      setJudulSurat(tmpl.judulSurat);
     }
   };
 
   // Helper to generate the Table HTML based on active selection
   const assembleTableHtml = () => {
     switch (tipeTabel) {
+      case "sk_susunan_tim":
+        return generateSkHtml({
+          ...skData,
+          nomorSurat: previewNomorSurat,
+          tanggalSurat: formatIndonesianDate(tanggalSurat),
+          namaKepsek: schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom",
+          niyKepsek: schoolSettings?.niyKepsek || "14215094",
+          kopVariant,
+          displayStamp: schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL,
+          displayTtd: schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL,
+          isApprovedOrHasTtd: statusTujuan === "disetujui",
+          isApprovedOrHasStempel: statusTujuan === "disetujui",
+          logoYayasanOverride: schoolSettings?.logoYayasanUrl,
+          logoSmkOverride: schoolSettings?.logoSmkUrl,
+        });
       case "jadwal_pelaksanaan":
         return generateJadwalPelaksanaanHtml(jadwalData);
       case "sppd_resmi":
@@ -372,8 +480,8 @@ export default function BuatSuratKeluarPage() {
 
   // Build the complete combined letter body (with SIGAP_META comment header)
   const assembleFullBodyHtml = () => {
-    // Untuk SPPD resmi: langsung render formulir 10 butir + visum tanpa teks pembuka/penutup tambahan
-    if (tipeTabel === "sppd_resmi") {
+    // Untuk SPPD resmi & SK Kepala Sekolah: langsung render formulir/dokumen lengkap tanpa narasi pembuka/penutup umum
+    if (tipeTabel === "sppd_resmi" || tipeTabel === "sk_susunan_tim") {
       return assembleTableHtml();
     }
 
@@ -453,7 +561,7 @@ export default function BuatSuratKeluarPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!perihal.trim() || (!intiSurat.trim() && tipeTabel !== "sppd_resmi")) {
+    if (!perihal.trim() || (!intiSurat.trim() && tipeTabel !== "sppd_resmi" && tipeTabel !== "sk_susunan_tim")) {
       alert("Harap lengkapi Perihal dan Inti Surat.");
       return;
     }
@@ -956,7 +1064,11 @@ export default function BuatSuratKeluarPage() {
                   <PenTool className="w-3.5 h-3.5 text-brand-600" />
                   2. Isi Utama Dokumen
                 </h3>
-                {tipeTabel === "sppd_resmi" ? (
+                {tipeTabel === "sk_susunan_tim" ? (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded">
+                    Format Resmi SK Kepala Sekolah 4 Halaman F4
+                  </span>
+                ) : tipeTabel === "sppd_resmi" ? (
                   <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded">
                     Format Formulir SPPD 10 Butir Baku
                   </span>
@@ -967,7 +1079,17 @@ export default function BuatSuratKeluarPage() {
                 ) : null}
               </div>
 
-              {tipeTabel === "sppd_resmi" ? (
+              {tipeTabel === "sk_susunan_tim" ? (
+                <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-xl p-3.5 text-xs text-emerald-950 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-800" />
+                    Format Baku Surat Keputusan (SK) Kepala Sekolah
+                  </div>
+                  <p className="text-[11px] text-emerald-900 leading-relaxed">
+                    Dokumen SK disusun dalam format multi-lembar F4 baku: <strong>Lembar Pokok SK</strong> (Konsiderans Menimbang, Mengingat, Memperhatikan, serta Diktum Putusan), <strong>Lampiran I</strong> (Susunan Tim Pelaksana), dan <strong>Lampiran II</strong> (Uraian Tugas Kepanitiaan). Silakan atur rinciannya pada Bagian 3 di bawah.
+                  </p>
+                </div>
+              ) : tipeTabel === "sppd_resmi" ? (
                 <div className="bg-amber-50/80 border border-amber-200/80 rounded-xl p-3.5 text-xs text-amber-950 space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-amber-800" />
@@ -1033,11 +1155,19 @@ export default function BuatSuratKeluarPage() {
                       setLayoutFormat("judul_tengah");
                       setJudulSurat("SURAT PERINTAH PERJALANAN DINAS (SPPD)");
                       setPerihal("Surat Perintah Perjalanan Dinas (SPPD)");
+                    } else if (val === "sk_susunan_tim") {
+                      setIntiSurat("");
+                      setLayoutFormat("judul_tengah");
+                      setJenisSurat("surat_keputusan");
+                      setJudulSurat("SURAT KEPUTUSAN KEPALA SMK BAYT AL-HIKMAH");
+                      setPerihal(skData.tentang || "Pembentukan Tim Pelaksana Supervisi dan Penilaian Kinerja Pendidik dan Tenaga Kependidikan");
+                      setTujuan("Seluruh Pendidik & Tenaga Kependidikan SMK Bayt Al-Hikmah");
                     }
                   }}
                   className="w-full text-xs font-semibold rounded-xl border border-gray-300 p-2.5 bg-white focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="none">Tanpa Tabel</option>
+                  <option value="sk_susunan_tim">📜 Surat Keputusan (SK) Resmi (4 Halaman F4: Konsiderans, Diktum, Lampiran I & II)</option>
                   <option value="jadwal_pelaksanaan">📅 Tabel Jadwal Pelaksanaan (Hari, Tanggal, Waktu, Tempat, Agenda)</option>
                   <option value="sppd_resmi">🎖️ Tabel SPPD Resmi (10 Butir Standar & Lembar Visum)</option>
                   <option value="daftar_siswa">🎓 Tabel Siswa / Rekomendasi Kolektif (Daftar Nama Siswa)</option>
@@ -1046,6 +1176,428 @@ export default function BuatSuratKeluarPage() {
                   <option value="rincian_catering">🍱 Tabel Rincian Anggaran / Catering Santri PKL</option>
                 </select>
               </div>
+
+              {/* TABEL TYPE SK: SURAT KEPUTUSAN RESMI MULTI-HALAMAN F4 */}
+              {tipeTabel === "sk_susunan_tim" && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4 animate-in fade-in-50">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                    <div>
+                      <span className="text-xs font-bold text-brand-900 block">
+                        Konfigurasi Surat Keputusan (SK) Kepala Sekolah
+                      </span>
+                      <span className="text-[11px] text-gray-500">
+                        Format resmi 4 lembar F4 baku sesuai dokumen SK SMK Bayt Al-Hikmah
+                      </span>
+                    </div>
+                    <span className="text-[10px] bg-brand-100 text-brand-800 font-bold px-2 py-0.5 rounded-full">
+                      4 Halaman Baku
+                    </span>
+                  </div>
+
+                  {/* Sub-Section 1: Data Pokok SK */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-3">
+                    <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-brand-600" />
+                      A. Ketentuan & Judul Surat Keputusan
+                    </span>
+                    <div className="space-y-2.5 text-xs">
+                      <div>
+                        <label className="block font-semibold text-gray-700 mb-1">
+                          Tentang / Hal yang Ditetapkan <span className="text-rose-500">*</span>:
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={skData.tentang}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSkData({ ...skData, tentang: val });
+                            setPerihal(val);
+                          }}
+                          placeholder="PEMBENTUKAN TIM PELAKSANA SUPERVISI DAN PENILAIAN KINERJA PENDIDIK DAN TENAGA KEPENDIDIKAN"
+                          className="w-full text-xs font-semibold rounded-lg border border-gray-300 p-2.5 uppercase focus:ring-2 focus:ring-brand-500 font-serif"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-semibold text-gray-700 mb-1">Tahun Pelajaran / Akademik:</label>
+                          <input
+                            type="text"
+                            value={skData.tahunAjaran || ""}
+                            onChange={(e) => setSkData({ ...skData, tahunAjaran: e.target.value })}
+                            placeholder="Contoh: 2026/2027"
+                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-semibold text-gray-700 mb-1">Tempat Penetapan:</label>
+                          <input
+                            type="text"
+                            value={skData.tempatPenetapan || "Pasuruan"}
+                            onChange={(e) => setSkData({ ...skData, tempatPenetapan: e.target.value })}
+                            placeholder="Pasuruan"
+                            className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sub-Section 2: Konsiderans (Menimbang, Mengingat, Memperhatikan) */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-4">
+                    <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-brand-600" />
+                      B. Konsiderans Surat Keputusan
+                    </span>
+
+                    {/* Menimbang */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-gray-800">
+                          Menimbang (Latar Belakang & Pertimbangan):
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setSkData({ ...skData, menimbang: [...skData.menimbang, ""] })}
+                          className="text-[11px] font-bold text-brand-700 hover:text-brand-900 flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Tambah Butir
+                        </button>
+                      </div>
+                      {skData.menimbang.map((item, idx) => {
+                        const letter = ["a", "b", "c", "d", "e", "f"][idx] || String(idx + 1);
+                        return (
+                          <div key={idx} className="flex items-start gap-2">
+                            <span className="w-5 text-xs font-bold text-gray-600 mt-2">{letter}.</span>
+                            <textarea
+                              rows={2}
+                              value={item}
+                              onChange={(e) => {
+                                const upd = [...skData.menimbang];
+                                upd[idx] = e.target.value;
+                                setSkData({ ...skData, menimbang: upd });
+                              }}
+                              className="flex-1 text-xs rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-brand-500 font-serif leading-relaxed"
+                              placeholder="Isi butir pertimbangan..."
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setSkData({ ...skData, menimbang: skData.menimbang.filter((_, i) => i !== idx) })}
+                              className="text-rose-500 hover:text-rose-700 p-1 mt-1.5"
+                              title="Hapus butir"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Mengingat */}
+                    <div className="space-y-2 pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-gray-800">
+                          Mengingat (Dasar Hukum & Peraturan Perundang-undangan):
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setSkData({ ...skData, mengingat: [...skData.mengingat, ""] })}
+                          className="text-[11px] font-bold text-brand-700 hover:text-brand-900 flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Tambah Dasar Hukum
+                        </button>
+                      </div>
+                      {skData.mengingat.map((item, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <span className="w-5 text-xs font-bold text-gray-600 mt-2">{idx + 1}.</span>
+                          <textarea
+                            rows={2}
+                            value={item}
+                            onChange={(e) => {
+                              const upd = [...skData.mengingat];
+                              upd[idx] = e.target.value;
+                              setSkData({ ...skData, mengingat: upd });
+                            }}
+                            className="flex-1 text-xs rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-brand-500 font-serif leading-relaxed"
+                            placeholder="Contoh: Undang-Undang RI Nomor 20 Tahun 2003 tentang Sistem Pendidikan Nasional;"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setSkData({ ...skData, mengingat: skData.mengingat.filter((_, i) => i !== idx) })}
+                            className="text-rose-500 hover:text-rose-700 p-1 mt-1.5"
+                            title="Hapus dasar hukum"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Memperhatikan */}
+                    <div className="space-y-2 pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-gray-800">
+                          Memperhatikan (Surat Keputusan / Notulen Rapat / Kalender):
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setSkData({ ...skData, memperhatikan: [...skData.memperhatikan, ""] })}
+                          className="text-[11px] font-bold text-brand-700 hover:text-brand-900 flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Tambah Butir
+                        </button>
+                      </div>
+                      {skData.memperhatikan.map((item, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <span className="w-5 text-xs font-bold text-gray-600 mt-2">{idx + 1}.</span>
+                          <input
+                            type="text"
+                            value={item}
+                            onChange={(e) => {
+                              const upd = [...skData.memperhatikan];
+                              upd[idx] = e.target.value;
+                              setSkData({ ...skData, memperhatikan: upd });
+                            }}
+                            className="flex-1 text-xs rounded-lg border border-gray-300 p-2 focus:ring-2 focus:ring-brand-500 font-serif"
+                            placeholder="Contoh: Keputusan Kepala Dinas Pendidikan Provinsi Jawa Timur..."
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setSkData({ ...skData, memperhatikan: skData.memperhatikan.filter((_, i) => i !== idx) })}
+                            className="text-rose-500 hover:text-rose-700 p-1 mt-1.5"
+                            title="Hapus butir"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Sub-Section 3: Diktum MEMUTUSKAN */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                        <CheckSquare className="w-3.5 h-3.5 text-brand-600" />
+                        C. Diktum Putusan (MEMUTUSKAN / Menetapkan)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const labels = ["Pertama", "Kedua", "Ketiga", "Keempat", "Kelima", "Keenam", "Ketujuh"];
+                          const nextLabel = labels[skData.diktum.length] || `Ke-${skData.diktum.length + 1}`;
+                          setSkData({
+                            ...skData,
+                            diktum: [...skData.diktum, { poin: nextLabel, teks: "" }],
+                          });
+                        }}
+                        className="text-[11px] font-bold text-brand-700 hover:text-brand-900 flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" /> Tambah Diktum
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {skData.diktum.map((item, idx) => (
+                        <div key={idx} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <input
+                              type="text"
+                              value={item.poin}
+                              onChange={(e) => {
+                                const upd = [...skData.diktum];
+                                upd[idx].poin = e.target.value;
+                                setSkData({ ...skData, diktum: upd });
+                              }}
+                              className="w-32 text-xs font-bold rounded-lg border border-gray-300 px-2 py-1 bg-white"
+                              placeholder="Poin"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setSkData({ ...skData, diktum: skData.diktum.filter((_, i) => i !== idx) })}
+                              className="text-rose-500 hover:text-rose-700 p-1"
+                              title="Hapus diktum"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <textarea
+                            rows={2}
+                            value={item.teks}
+                            onChange={(e) => {
+                              const upd = [...skData.diktum];
+                              upd[idx].teks = e.target.value;
+                              setSkData({ ...skData, diktum: upd });
+                            }}
+                            className="w-full text-xs rounded-lg border border-gray-300 p-2 bg-white focus:ring-2 focus:ring-brand-500 font-serif leading-relaxed"
+                            placeholder="Isi ketetapan putusan..."
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Sub-Section 4: Lampiran I (Susunan Tim) */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                          <TableIcon className="w-3.5 h-3.5 text-brand-600" />
+                          D. Lampiran I: Susunan Tim Pelaksana Supervisi
+                        </span>
+                        <span className="text-[11px] text-gray-500">
+                          Daftar personil, jabatan dinas, dan jabatan dalam tim supervisi
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextNo = skData.lampiran1Rows.length + 1;
+                          setSkData({
+                            ...skData,
+                            lampiran1Rows: [
+                              ...skData.lampiran1Rows,
+                              { no: nextNo, nama: "", jabatanDinas: "Guru", jabatanTim: "Anggota" },
+                            ],
+                          });
+                        }}
+                        className="text-[11px] font-bold text-brand-700 hover:text-brand-900 flex items-center gap-1 bg-brand-50 border border-brand-200 px-2.5 py-1 rounded-lg"
+                      >
+                        <Plus className="w-3 h-3" /> Tambah Personil
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-gray-600 px-1">
+                        <span className="col-span-1 text-center">No</span>
+                        <span className="col-span-4">Nama Lengkap & Gelar</span>
+                        <span className="col-span-3">Jabatan Dinas</span>
+                        <span className="col-span-3">Jabatan Tim</span>
+                        <span className="col-span-1 text-center">Aksi</span>
+                      </div>
+
+                      {skData.lampiran1Rows.map((row, idx) => (
+                        <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-slate-50/60 p-2 rounded-lg border border-slate-200">
+                          <span className="col-span-1 text-xs font-bold text-center text-gray-700">{idx + 1}</span>
+                          <input
+                            type="text"
+                            value={row.nama}
+                            onChange={(e) => {
+                              const upd = [...skData.lampiran1Rows];
+                              upd[idx].nama = e.target.value;
+                              setSkData({ ...skData, lampiran1Rows: upd });
+                            }}
+                            placeholder="Nama & Gelar"
+                            className="col-span-4 text-xs font-semibold rounded border border-gray-300 p-1.5 bg-white"
+                          />
+                          <input
+                            type="text"
+                            value={row.jabatanDinas}
+                            onChange={(e) => {
+                              const upd = [...skData.lampiran1Rows];
+                              upd[idx].jabatanDinas = e.target.value;
+                              setSkData({ ...skData, lampiran1Rows: upd });
+                            }}
+                            placeholder="Jabatan Dinas"
+                            className="col-span-3 text-xs rounded border border-gray-300 p-1.5 bg-white"
+                          />
+                          <input
+                            type="text"
+                            value={row.jabatanTim}
+                            onChange={(e) => {
+                              const upd = [...skData.lampiran1Rows];
+                              upd[idx].jabatanTim = e.target.value;
+                              setSkData({ ...skData, lampiran1Rows: upd });
+                            }}
+                            placeholder="Jabatan Tim"
+                            className="col-span-3 text-xs font-semibold rounded border border-gray-300 p-1.5 bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setSkData({ ...skData, lampiran1Rows: skData.lampiran1Rows.filter((_, i) => i !== idx) })}
+                            className="col-span-1 text-rose-500 hover:text-rose-700 p-1 flex justify-center"
+                            title="Hapus baris"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Sub-Section 5: Lampiran II (Uraian Tugas Kepanitiaan) */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-3.5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                          <Bookmark className="w-3.5 h-3.5 text-brand-600" />
+                          E. Lampiran II: Uraian Tugas Kepanitiaan
+                        </span>
+                        <span className="text-[11px] text-gray-500">
+                          Rincian tugas dan fungsi tiap jabatan dalam tim supervisi
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextNo = skData.lampiran2Rows.length + 1;
+                          setSkData({
+                            ...skData,
+                            lampiran2Rows: [
+                              ...skData.lampiran2Rows,
+                              { no: nextNo, jabatan: "", uraianTugas: "" },
+                            ],
+                          });
+                        }}
+                        className="text-[11px] font-bold text-brand-700 hover:text-brand-900 flex items-center gap-1 bg-brand-50 border border-brand-200 px-2.5 py-1 rounded-lg"
+                      >
+                        <Plus className="w-3 h-3" /> Tambah Uraian Tugas
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {skData.lampiran2Rows.map((row, idx) => (
+                        <div key={idx} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-gray-700">{idx + 1}.</span>
+                              <input
+                                type="text"
+                                value={row.jabatan}
+                                onChange={(e) => {
+                                  const upd = [...skData.lampiran2Rows];
+                                  upd[idx].jabatan = e.target.value;
+                                  setSkData({ ...skData, lampiran2Rows: upd });
+                                }}
+                                className="text-xs font-bold rounded-lg border border-gray-300 px-2.5 py-1 bg-white w-56"
+                                placeholder="Jabatan dalam Kepanitiaan"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setSkData({ ...skData, lampiran2Rows: skData.lampiran2Rows.filter((_, i) => i !== idx) })}
+                              className="text-rose-500 hover:text-rose-700 p-1"
+                              title="Hapus jabatan"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <textarea
+                            rows={3}
+                            value={row.uraianTugas}
+                            onChange={(e) => {
+                              const upd = [...skData.lampiran2Rows];
+                              upd[idx].uraianTugas = e.target.value;
+                              setSkData({ ...skData, lampiran2Rows: upd });
+                            }}
+                            className="w-full text-xs rounded-lg border border-gray-300 p-2.5 bg-white focus:ring-2 focus:ring-brand-500 font-serif leading-relaxed"
+                            placeholder="Rincian uraian tugas (gunakan nomor 1., 2., dst bila banyak butir)..."
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* TABEL TYPE A: JADWAL PELAKSANAAN */}
               {tipeTabel === "jadwal_pelaksanaan" && (
@@ -1602,6 +2154,15 @@ export default function BuatSuratKeluarPage() {
                 4. Model Tanda Tangan & Tembusan
               </h3>
 
+              {tipeTabel === "sk_susunan_tim" && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                  <p className="text-[11px] leading-relaxed">
+                    <strong>Format Tanda Tangan Resmi SK:</strong> Tanda tangan dan stempel resmi Kepala Sekolah secara otomatis disematkan pada setiap lembar (Lembar Pokok SK, Lampiran I, dan Lampiran II) sesuai ketentuan resmi surat keputusan.
+                  </p>
+                </div>
+              )}
+
               {/* Model TTD Selector */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">
@@ -1738,6 +2299,34 @@ export default function BuatSuratKeluarPage() {
           </div>
 
           {/* Letter Sheet Simulation */}
+          <style jsx global>{`
+            .sk-page-lampiran {
+              margin-top: 24px !important;
+              padding-top: 14px !important;
+              border-top: 2px dashed #94a3b8 !important;
+              position: relative;
+            }
+            .sk-page-lampiran-1::before {
+              content: "--- HALAMAN 3: LAMPIRAN I (SUSUNAN TIM) ---";
+              display: block;
+              text-align: center;
+              font-size: 8pt;
+              font-weight: bold;
+              color: #64748b;
+              margin-bottom: 10px;
+              font-family: ui-sans-serif, system-ui, sans-serif;
+            }
+            .sk-page-lampiran-2::before {
+              content: "--- HALAMAN 4: LAMPIRAN II (URAIAN TUGAS) ---";
+              display: block;
+              text-align: center;
+              font-size: 8pt;
+              font-weight: bold;
+              color: #64748b;
+              margin-bottom: 10px;
+              font-family: ui-sans-serif, system-ui, sans-serif;
+            }
+          `}</style>
           <div
             className="bg-white border border-gray-300 rounded-xl p-5 shadow-sm surat-resmi text-[11px] text-gray-900 leading-relaxed overflow-hidden"
             style={{ fontFamily: '"Times New Roman", Times, "Nimbus Roman No9 L", Georgia, serif' }}
@@ -1745,8 +2334,8 @@ export default function BuatSuratKeluarPage() {
             {/* Kop Surat Resmi (Sesuai Pilihan: Tradisional atau Modern TP 2027/2028) */}
             <OfficialKopSurat variant={kopVariant} />
 
-            {/* FORMAT B: JUDUL TENGAH (Kecuali SPPD yang telah memiliki header tabel lembar ke & judul sendiri) */}
-            {layoutFormat === "judul_tengah" && tipeTabel !== "sppd_resmi" && (
+            {/* FORMAT B: JUDUL TENGAH (Kecuali SPPD & SK yang telah memiliki header tabel lembar ke & judul sendiri) */}
+            {layoutFormat === "judul_tengah" && tipeTabel !== "sppd_resmi" && tipeTabel !== "sk_susunan_tim" && (
               <div className="text-center my-3">
                 <h2 className="text-[13pt] font-bold uppercase underline tracking-wider text-black">
                   {judulSurat || perihal || "SURAT RESMI"}
@@ -1757,8 +2346,8 @@ export default function BuatSuratKeluarPage() {
               </div>
             )}
 
-            {/* FORMAT A: KORESPONDENSI DINAS (Kecuali SPPD Resmi) */}
-            {layoutFormat === "korespondensi" && tipeTabel !== "sppd_resmi" && (
+            {/* FORMAT A: KORESPONDENSI DINAS (Kecuali SPPD & SK Resmi) */}
+            {layoutFormat === "korespondensi" && tipeTabel !== "sppd_resmi" && tipeTabel !== "sk_susunan_tim" && (
               <>
                 <div className="mb-3 text-[11px]">
                   <table className="border-collapse">
@@ -1797,8 +2386,8 @@ export default function BuatSuratKeluarPage() {
               dangerouslySetInnerHTML={{ __html: alignParagraphsWithKeyValueTables(currentPreviewBody, previewNomorSurat) }}
             />
 
-            {/* Signature Block Simulation (Hanya untuk selain SPPD, karena SPPD telah memiliki blok TTD Muka & Belakang Visum tersendiri) */}
-            {tipeTabel !== "sppd_resmi" && (
+            {/* Signature Block Simulation (Hanya untuk selain SPPD dan SK) */}
+            {tipeTabel !== "sppd_resmi" && tipeTabel !== "sk_susunan_tim" && (
               <SuratSignatureBlock
                 modelTtd={modelTtd}
                 tanggalSurat={tanggalSurat}
@@ -1814,8 +2403,8 @@ export default function BuatSuratKeluarPage() {
               />
             )}
 
-            {/* Official Footer Accent Bar (Aktif bila Template Kop Modern TP 2027/2028 dipilih) */}
-            <OfficialFooterSurat variant={kopVariant} isPrint={false} />
+            {/* Official Footer Accent Bar (Aktif bila Template Kop Modern TP 2027/2028 dipilih dan bukan SK) */}
+            {tipeTabel !== "sk_susunan_tim" && <OfficialFooterSurat variant={kopVariant} isPrint={false} />}
           </div>
         </div>
       </div>
