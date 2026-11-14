@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
   PresensiPeriodReport,
@@ -65,6 +65,11 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
     return "";
   });
 
+  const currentReportIdRef = useRef(currentReportId);
+  useEffect(() => {
+    currentReportIdRef.current = currentReportId;
+  }, [currentReportId]);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isCloudSynced, setIsCloudSynced] = useState(false);
@@ -76,8 +81,9 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
   // Save to both LocalStorage and Supabase Cloud
   const saveReportsState = async (list: PresensiPeriodReport[], activeId?: string) => {
     setAllReports(list);
-    const targetActiveId = activeId !== undefined ? activeId : (list[0]?.id || "");
+    const targetActiveId = activeId !== undefined ? activeId : (currentReportIdRef.current || list[0]?.id || "");
     setCurrentReportId(targetActiveId);
+    currentReportIdRef.current = targetActiveId;
 
     // 1. LocalStorage
     if (typeof window !== "undefined") {
@@ -138,8 +144,20 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
           const parsed = JSON.parse(data.deskripsi);
           if (parsed && Array.isArray(parsed.reports)) {
             setAllReports(parsed.reports);
-            const active = parsed.activeId || (parsed.reports[0]?.id || "");
+            
+            // Respect the user's currently selected period if it still exists in the reports
+            const storedActive = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY_CURRENT_ID) : "";
+            const candidateActive = currentReportIdRef.current || storedActive;
+            const candidateStillExists = candidateActive && parsed.reports.some((r: any) => r.id === candidateActive);
+
+            const active = candidateStillExists
+              ? candidateActive
+              : parsed.activeId && parsed.reports.some((r: any) => r.id === parsed.activeId)
+              ? parsed.activeId
+              : (parsed.reports[0]?.id || "");
+
             setCurrentReportId(active);
+            currentReportIdRef.current = active;
             if (typeof window !== "undefined") {
               localStorage.setItem(STORAGE_KEY_PRESENSI, JSON.stringify(parsed.reports));
               if (active) {
@@ -262,7 +280,7 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
     };
 
     const updatedList = allReports.map((r) => (r.id === updatedReport.id ? updatedReport : r));
-    saveReportsState(updatedList);
+    saveReportsState(updatedList, currentReport.id);
   };
 
   const updateDailyStatus = (
