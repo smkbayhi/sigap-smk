@@ -64,7 +64,7 @@ interface AppDataContextType {
   approveSuratKeluar: (
     id: string,
     kepsekName: string,
-    options?: { customTtd?: string; includeStamp?: boolean }
+    options?: { customTtd?: string; includeStamp?: boolean; includeTtd?: boolean }
   ) => void;
   rejectSuratKeluar: (id: string, catatanRevisi: string) => void;
   deleteSuratKeluar: (id: string) => void;
@@ -753,11 +753,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const approveSuratKeluar = (
     id: string,
     kepsekName: string,
-    options?: { customTtd?: string; includeStamp?: boolean }
+    options?: { customTtd?: string; includeStamp?: boolean; includeTtd?: boolean }
   ) => {
     const activeTtd = options?.customTtd || schoolSettings.ttdKepsekUrl || TTD_KEPSEK_DATA_URL;
     const activeStempel = schoolSettings.stempelUrl || STEMPEL_SEKOLAH_DATA_URL;
     const shouldIncludeStamp = options?.includeStamp !== undefined ? options.includeStamp : true;
+    const shouldIncludeTtd = options?.includeTtd !== undefined ? options.includeTtd : true;
     const activeKepsekName = schoolSettings.namaKepsek || kepsekName;
 
     const updated = suratKeluar.map((item) => {
@@ -768,9 +769,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           approved_by: "user-kepsek",
           approver_name: activeKepsekName,
           approved_at: new Date().toISOString(),
-          has_ttd: true,
+          has_ttd: shouldIncludeTtd,
           has_stempel: shouldIncludeStamp,
-          ttd_image_url: activeTtd,
+          ttd_image_url: shouldIncludeTtd ? activeTtd : undefined,
           stempel_image_url: shouldIncludeStamp ? activeStempel : undefined,
           catatan_revisi: undefined,
         };
@@ -783,8 +784,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     if (target) cloudSync.saveSuratKeluar(target);
     addToast(
       "success",
-      "Surat Telah Disetujui & Diberi TTD Digital",
-      "Tanda Tangan dan Stempel resmi sekolah telah tersemat secara sah."
+      "Surat Telah Disetujui",
+      shouldIncludeTtd && shouldIncludeStamp
+        ? "Tanda Tangan dan Stempel resmi sekolah telah tersemat secara sah."
+        : shouldIncludeTtd
+        ? "Tanda Tangan digital resmi sekolah telah tersemat."
+        : shouldIncludeStamp
+        ? "Stempel resmi sekolah telah tersemat."
+        : "Surat telah disetujui (ruang tanda tangan & cap basah fisik siap digunakan)."
     );
   };
 

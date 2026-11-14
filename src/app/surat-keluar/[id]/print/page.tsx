@@ -123,8 +123,8 @@ export default function SuratKeluarPrintPage() {
   }
 
   const isApproved = surat.status === "disetujui";
-  const isApprovedOrHasTtd = surat.has_ttd || isApproved;
-  const isApprovedOrHasStempel = (surat.has_stempel || isApproved) && surat.has_stempel !== false;
+  const isApprovedOrHasTtd = surat.has_ttd !== undefined ? surat.has_ttd : isApproved;
+  const isApprovedOrHasStempel = surat.has_stempel !== undefined ? surat.has_stempel : isApproved;
   
   // Prefer active schoolSettings if letter still uses seeder defaults
   const displayStamp =

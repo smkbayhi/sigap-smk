@@ -182,10 +182,25 @@ export default function SuratKeluarPage() {
                         >
                           {badge.label}
                         </span>
-                        {surat.has_ttd && (
-                          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-emerald-700 font-semibold">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>TTD & Stempel Sah</span>
+                        {surat.status === "disetujui" && (
+                          <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] font-semibold">
+                            {surat.has_ttd && (
+                              <div className="flex items-center gap-1 text-emerald-700">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>TTD Digital Sah</span>
+                              </div>
+                            )}
+                            {surat.has_stempel && (
+                              <div className="flex items-center gap-1 text-indigo-700">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>Stempel Lembaga Sah</span>
+                              </div>
+                            )}
+                            {!surat.has_ttd && !surat.has_stempel && (
+                              <div className="flex items-center gap-1 text-amber-700">
+                                <span>Disetujui (TTD/Cap Fisik)</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </td>

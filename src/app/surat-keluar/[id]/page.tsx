@@ -291,8 +291,8 @@ export default function SuratKeluarDetailPage() {
           const isJudulTengah = meta.layout === "judul_tengah";
 
           const isApproved = surat.status === "disetujui";
-          const isApprovedOrHasTtd = surat.has_ttd || isApproved;
-          const isApprovedOrHasStempel = (surat.has_stempel || isApproved) && surat.has_stempel !== false;
+          const isApprovedOrHasTtd = surat.has_ttd !== undefined ? surat.has_ttd : isApproved;
+          const isApprovedOrHasStempel = surat.has_stempel !== undefined ? surat.has_stempel : isApproved;
 
           const displayStamp =
             surat.stempel_image_url && surat.stempel_image_url !== STEMPEL_SEKOLAH_DATA_URL

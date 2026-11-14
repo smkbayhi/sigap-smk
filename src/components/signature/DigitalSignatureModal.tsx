@@ -11,7 +11,7 @@ interface DigitalSignatureModalProps {
   surat: SuratKeluar;
   isOpen: boolean;
   onClose: () => void;
-  onApprove: (id: string, options?: { customTtd?: string; includeStamp?: boolean }) => void;
+  onApprove: (id: string, options?: { customTtd?: string; includeStamp?: boolean; includeTtd?: boolean }) => void;
   onReject: (id: string, notes: string) => void;
   kepsekName?: string;
 }
@@ -26,6 +26,7 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
 }) => {
   const { schoolSettings } = useAppData();
   const [signatureMode, setSignatureMode] = useState<"preset" | "draw">("preset");
+  const [includeTtd, setIncludeTtd] = useState(true);
   const [includeStamp, setIncludeStamp] = useState(true);
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectNotes, setRejectNotes] = useState("");
@@ -106,13 +107,15 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
     }
 
     let customTtd: string | undefined = undefined;
-    if (signatureMode === "draw" && canvasRef.current) {
-      customTtd = canvasRef.current.toDataURL("image/png");
-    } else {
-      customTtd = activeTtd;
+    if (includeTtd) {
+      if (signatureMode === "draw" && canvasRef.current) {
+        customTtd = canvasRef.current.toDataURL("image/png");
+      } else {
+        customTtd = activeTtd;
+      }
     }
 
-    onApprove(surat.id, { customTtd, includeStamp });
+    onApprove(surat.id, { customTtd, includeStamp, includeTtd });
     onClose();
   };
 
@@ -178,7 +181,7 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
                   Pilihan Tanda Tangan Digital:
                 </label>
-                <div className="flex gap-2 mb-3">
+                <div className={`flex gap-2 mb-3 transition-opacity ${!includeTtd ? "opacity-40 pointer-events-none" : ""}`}>
                   <button
                     type="button"
                     onClick={() => setSignatureMode("preset")}
@@ -224,36 +227,44 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
                     )}
 
                     {/* Signature */}
-                    {signatureMode === "preset" ? (
-                      <div className="relative z-10 left-8 -top-1">
-                        <img
-                          src={activeTtd}
-                          alt={`Tanda Tangan ${activeKepsek}`}
-                          className="h-36 max-w-[230px] w-auto object-contain drop-shadow-sm mix-blend-multiply"
-                        />
-                      </div>
+                    {includeTtd ? (
+                      signatureMode === "preset" ? (
+                        <div className="relative z-10 left-8 -top-1">
+                          <img
+                            src={activeTtd}
+                            alt={`Tanda Tangan ${activeKepsek}`}
+                            className="h-36 max-w-[230px] w-auto object-contain drop-shadow-sm mix-blend-multiply"
+                          />
+                        </div>
+                      ) : (
+                        <div className="relative z-10 w-full flex flex-col items-center">
+                          <canvas
+                            ref={canvasRef}
+                            width={320}
+                            height={120}
+                            className="border border-gray-300 bg-white rounded-lg cursor-crosshair shadow-inner"
+                            onMouseDown={handleStartDraw}
+                            onMouseMove={handleDraw}
+                            onMouseUp={handleEndDraw}
+                            onMouseLeave={handleEndDraw}
+                            onTouchStart={handleStartDraw}
+                            onTouchMove={handleDraw}
+                            onTouchEnd={handleEndDraw}
+                          />
+                          <button
+                            type="button"
+                            onClick={clearCanvas}
+                            className="mt-1 text-[11px] text-gray-500 hover:text-red-600 underline"
+                          >
+                            Hapus & Gores Ulang
+                          </button>
+                        </div>
+                      )
                     ) : (
-                      <div className="relative z-10 w-full flex flex-col items-center">
-                        <canvas
-                          ref={canvasRef}
-                          width={320}
-                          height={120}
-                          className="border border-gray-300 bg-white rounded-lg cursor-crosshair shadow-inner"
-                          onMouseDown={handleStartDraw}
-                          onMouseMove={handleDraw}
-                          onMouseUp={handleEndDraw}
-                          onMouseLeave={handleEndDraw}
-                          onTouchStart={handleStartDraw}
-                          onTouchMove={handleDraw}
-                          onTouchEnd={handleEndDraw}
-                        />
-                        <button
-                          type="button"
-                          onClick={clearCanvas}
-                          className="mt-1 text-[11px] text-gray-500 hover:text-red-600 underline"
-                        >
-                          Hapus & Gores Ulang
-                        </button>
+                      <div className="relative z-10 w-full h-32 flex items-center justify-center text-center">
+                        <span className="text-[11px] text-gray-400 italic bg-gray-50/80 px-3 py-1.5 rounded-lg border border-dashed border-gray-200">
+                          (Tanda tangan tidak dibubuhkan — ruang kosong putih untuk TTD basah fisik)
+                        </span>
                       </div>
                     )}
                   </div>
@@ -265,18 +276,33 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
                 </div>
               </div>
 
-              {/* Stamp Checkbox */}
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="includeStamp"
-                  checked={includeStamp}
-                  onChange={(e) => setIncludeStamp(e.target.checked)}
-                  className="rounded text-brand-600 focus:ring-brand-500 h-4 w-4"
-                />
-                <label htmlFor="includeStamp" className="text-xs font-medium text-gray-700 select-none">
-                  Bubuhkan juga <strong>Stempel Resmi Sekolah</strong> (Warna Tinta Ungu Lembaga)
-                </label>
+              {/* Options Checkboxes */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="includeTtd"
+                    checked={includeTtd}
+                    onChange={(e) => setIncludeTtd(e.target.checked)}
+                    className="rounded text-brand-600 focus:ring-brand-500 h-4 w-4 cursor-pointer"
+                  />
+                  <label htmlFor="includeTtd" className="text-xs font-medium text-gray-800 select-none cursor-pointer">
+                    Bubuhkan juga <strong>Tanda Tangan Digital</strong> Kepala Sekolah
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="includeStamp"
+                    checked={includeStamp}
+                    onChange={(e) => setIncludeStamp(e.target.checked)}
+                    className="rounded text-brand-600 focus:ring-brand-500 h-4 w-4 cursor-pointer"
+                  />
+                  <label htmlFor="includeStamp" className="text-xs font-medium text-gray-800 select-none cursor-pointer">
+                    Bubuhkan juga <strong>Stempel Resmi Sekolah</strong> (Warna Tinta Ungu Lembaga)
+                  </label>
+                </div>
               </div>
             </>
           ) : (
@@ -334,7 +360,7 @@ export const DigitalSignatureModal: React.FC<DigitalSignatureModalProps> = ({
                   className="px-5 py-2 text-xs font-bold text-white bg-brand-700 hover:bg-brand-800 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2 border border-brand-800"
                 >
                   <Check className="w-4 h-4" />
-                  Setujui & Tanda Tangani Dokumen
+                  {includeTtd ? "Setujui & Tanda Tangani Dokumen" : "Setujui Dokumen (Tanpa TTD Digital)"}
                 </button>
               </div>
             </>
