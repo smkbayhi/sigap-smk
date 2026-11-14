@@ -84,6 +84,15 @@ export function cleanSppdHtmlLegacy(html: string, fallbackNomor?: string): strin
 export function alignParagraphsWithKeyValueTables(html: string, fallbackNomor?: string): string {
   if (!html) return "";
 
+  // If SK document, preserve as-is without re-wrapping into tables
+  if (
+    html.includes("sk-document-container") ||
+    html.includes("sk-page-lampiran") ||
+    html.includes("sk-lembar-pokok")
+  ) {
+    return html;
+  }
+
   // Always sanitize legacy SPPD patterns first
   const sanitized = cleanSppdHtmlLegacy(html, fallbackNomor);
 
@@ -780,31 +789,45 @@ export function getSkSignatureBlockHtml(options: {
   } = options;
 
   return `
-<div class="sk-sig-block" style="display: flex; justify-content: flex-end; margin-top: 22px; font-family: 'Times New Roman', Times, serif; font-size: 10.5pt; line-height: 1.35; break-inside: avoid; page-break-inside: avoid;">
-  <div style="width: 250px; text-align: left;">
-    <p style="margin: 0;">Ditetapkan di : ${tempatPenetapan}</p>
-    <p style="margin: 0;">Tanggal : ${tanggalSurat}</p>
-    <p style="margin: 4px 0 0 0; font-weight: bold;">Kepala SMK Bayt Al-Hikmah,</p>
-    <div style="position: relative; height: 75px; margin: 4px 0;">
-      <div data-sk-stamp-container="1" style="position: absolute; left: -18px; top: 0px; z-index: 1; pointer-events: none;">
-        ${
-          displayStamp && isApprovedOrHasStempel
-            ? `<img src="${displayStamp}" alt="Stempel" style="height: 75px; width: auto; object-fit: contain; mix-blend-mode: multiply; opacity: 0.92;" />`
-            : ""
-        }
-      </div>
-      <div data-sk-ttd-container="1" style="position: relative; z-index: 2; left: 18px; top: -4px;">
-        ${
-          displayTtd && isApprovedOrHasTtd
-            ? `<img src="${displayTtd}" alt="TTD" style="height: 75px; max-width: 160px; object-fit: contain; mix-blend-mode: multiply;" />`
-            : `<div style="height: 55px;"></div>`
-        }
-      </div>
-    </div>
-    <p data-sk-kepsek-name="1" style="margin: 0; font-weight: bold; text-decoration: underline; font-size: 10.5pt;">${namaKepsek}</p>
-    <p data-sk-kepsek-niy="1" style="margin: 0; font-size: 9.5pt;">NIY. ${niyKepsek}</p>
-  </div>
-</div>`;
+<table data-sk-sig-table="1" class="sk-sig-table" style="width: 100%; border: none; border-collapse: collapse; margin-top: 24px; margin-bottom: 6px; page-break-inside: avoid; break-inside: avoid;" border="0">
+  <tbody>
+    <tr>
+      <td style="border: none; width: 52%; padding: 0;"></td>
+      <td style="border: none; width: 48%; padding: 0; text-align: left; vertical-align: top; font-family: 'Times New Roman', Times, serif; font-size: 10.5pt; line-height: 1.35; color: #000;">
+        <div style="margin: 0 0 2px 0;">Ditetapkan di : ${tempatPenetapan}</div>
+        <div style="margin: 0 0 3px 0;">Tanggal : ${tanggalSurat}</div>
+        <div style="margin: 0 0 4px 0; font-weight: bold;">Kepala SMK Bayt Al-Hikmah,</div>
+        
+        <!-- Area Tanda Tangan & Stempel Resmi -->
+        <div style="position: relative; height: 80px; margin: 4px 0; min-width: 200px;">
+          <!-- Stempel Container -->
+          <div data-sk-stamp-container="1" style="position: absolute; left: -22px; top: -6px; z-index: 1; pointer-events: none;">
+            ${
+              displayStamp && isApprovedOrHasStempel
+                ? `<img src="${displayStamp}" alt="Stempel Resmi" style="height: 85px; width: auto; object-fit: contain; mix-blend-mode: multiply; opacity: 0.92;" />`
+                : ""
+            }
+          </div>
+          <!-- TTD Container -->
+          <div data-sk-ttd-container="1" style="position: relative; z-index: 2; left: 16px; top: 0px;">
+            ${
+              displayTtd && isApprovedOrHasTtd
+                ? `<img src="${displayTtd}" alt="Tanda Tangan" style="height: 75px; max-width: 170px; object-fit: contain; mix-blend-mode: multiply;" />`
+                : `<div style="height: 60px;"></div>`
+            }
+          </div>
+        </div>
+
+        <div data-sk-kepsek-name="1" style="margin: 0; font-weight: bold; text-decoration: underline; font-size: 10.5pt; letter-spacing: 0.3px;">
+          ${namaKepsek}
+        </div>
+        <div data-sk-kepsek-niy="1" style="margin: 2px 0 0 0; font-size: 9.5pt;">
+          NIY. ${niyKepsek}
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>`;
 }
 
 export function generateSkHtml(data: SkGeneratorData): string {
@@ -1144,7 +1167,14 @@ export function syncSkHtmlContent(
     logoSmk?: string;
   }
 ): string {
-  if (!html || !html.includes("sk-page-lampiran")) return html;
+  if (
+    !html ||
+    (!html.includes("sk-page-lampiran") &&
+      !html.includes("sk-document-container") &&
+      !html.includes("sk-lembar-pokok"))
+  ) {
+    return html;
+  }
 
   let result = html;
   const {
@@ -1152,51 +1182,38 @@ export function syncSkHtmlContent(
     isApprovedOrHasStempel,
     displayTtd,
     displayStamp,
-    namaKepsek,
-    niyKepsek,
+    namaKepsek = "Mokhamat Ekhsan, S.Kom",
+    niyKepsek = "14215094",
     logoYayasan,
     logoSmk,
   } = options;
 
-  // 1. Sync Stempel containers
-  const stampMarkup =
-    displayStamp && isApprovedOrHasStempel
-      ? `<div data-sk-stamp-container="1" style="position: absolute; left: -18px; top: 0px; z-index: 1; pointer-events: none;"><img src="${displayStamp}" alt="Stempel" style="height: 75px; width: auto; object-fit: contain; mix-blend-mode: multiply; opacity: 0.92;" /></div>`
-      : `<div data-sk-stamp-container="1" style="position: absolute; left: -18px; top: 0px; z-index: 1; pointer-events: none;"></div>`;
+  // Extract tempatPenetapan & tanggalSurat from existing document if present
+  const tempatMatch = result.match(/Ditetapkan di\s*:\s*([^<\r\n]+)/i);
+  const tempatPenetapan = tempatMatch ? tempatMatch[1].trim() : "Pasuruan";
 
-  result = result.replace(
-    /<div data-sk-stamp-container="1"[\s\S]*?<\/div>/g,
-    stampMarkup
-  );
+  const tglMatch = result.match(/Tanggal\s*:\s*([^<\r\n]+)/i);
+  const tanggalSurat = tglMatch ? tglMatch[1].trim() : "20 Juli 2026";
 
-  // 2. Sync TTD containers
-  const ttdMarkup =
-    displayTtd && isApprovedOrHasTtd
-      ? `<div data-sk-ttd-container="1" style="position: relative; z-index: 2; left: 18px; top: -4px;"><img src="${displayTtd}" alt="TTD" style="height: 75px; max-width: 160px; object-fit: contain; mix-blend-mode: multiply;" /></div>`
-      : `<div data-sk-ttd-container="1" style="position: relative; z-index: 2; left: 18px; top: -4px;"><div style="height: 55px;"></div></div>`;
+  const newSigTable = getSkSignatureBlockHtml({
+    tempatPenetapan,
+    tanggalSurat,
+    namaKepsek,
+    niyKepsek,
+    displayStamp,
+    displayTtd,
+    isApprovedOrHasTtd,
+    isApprovedOrHasStempel,
+  });
 
-  result = result.replace(
-    /<div data-sk-ttd-container="1"[\s\S]*?<\/div>/g,
-    ttdMarkup
-  );
+  // Replace any existing signature block:
+  // - New format: <table data-sk-sig-table="1" ...>...</table>
+  // - Old format: <div class="sk-sig-block" ...>...</div>
+  const sigRegex = /(?:<table data-sk-sig-table="1"[\s\S]*?<\/table>|<div class="sk-sig-block"[\s\S]*?NIY\.[^<]*<\/p>\s*<\/div>\s*<\/div>|<div class="sk-sig-block"[\s\S]*?NIY\.[^<]*<\/div>\s*<\/div>\s*<\/div>|<div class="sk-sig-block"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>)/gi;
 
-  // 3. Sync Kepsek name
-  if (namaKepsek) {
-    result = result.replace(
-      /<p data-sk-kepsek-name="1"[^>]*>[\s\S]*?<\/p>/g,
-      `<p data-sk-kepsek-name="1" style="margin: 0; font-weight: bold; text-decoration: underline; font-size: 10.5pt;">${namaKepsek}</p>`
-    );
-  }
+  result = result.replace(sigRegex, newSigTable);
 
-  // 4. Sync Kepsek NIY
-  if (niyKepsek) {
-    result = result.replace(
-      /<p data-sk-kepsek-niy="1"[^>]*>[\s\S]*?<\/p>/g,
-      `<p data-sk-kepsek-niy="1" style="margin: 0; font-size: 9.5pt;">NIY. ${niyKepsek}</p>`
-    );
-  }
-
-  // 5. Sync Logos if present
+  // Sync Logos if present
   if (logoYayasan) {
     result = result.replace(
       /data-sk-logo-yayasan="1" src="[^"]*"/g,
