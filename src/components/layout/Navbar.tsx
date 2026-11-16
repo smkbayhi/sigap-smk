@@ -2,8 +2,10 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
+import { usePresence } from "@/context/PresenceContext";
 import { LOGO_SMK_DATA_URL } from "@/lib/seedData";
 import { getBidangLabel } from "@/lib/utils";
 import {
@@ -32,6 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
   const router = useRouter();
   const { currentUser, updateUser, logout } = useAuth();
   const { suratKeluar, rkt, resetAllData, isCloudConnected, schoolSettings, updateSchoolSettings, addToast } = useAppData();
+  const { onlineCount } = usePresence();
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -181,6 +184,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                     </span>
                   )}
                 </div>
+              )}
+
+              {/* Live Presence Indicator for Management */}
+              {(currentUser.role === "kepala_sekolah" || currentUser.role === "tata_usaha") && (
+                <Link
+                  href="/"
+                  title={`${onlineCount} Guru/Staf sedang online membuka webapp saat ini`}
+                  className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition-colors shadow-2xs"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span>{onlineCount} Guru Online</span>
+                </Link>
               )}
 
               {/* Supabase Cloud Indicator */}

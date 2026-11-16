@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
+import { usePresence } from "@/context/PresenceContext";
 import {
   formatIndonesianDate,
   getStatusDisposisiBadge,
@@ -45,6 +46,13 @@ export default function DisposisiDetailPage() {
   const [tanggapan, setTanggapan] = useState(disp?.tanggapan || "");
   const [isSaved, setIsSaved] = useState(false);
   const [showAttachmentViewer, setShowAttachmentViewer] = useState(false);
+  const { recordDisposisiOpened } = usePresence();
+
+  useEffect(() => {
+    if (id) {
+      recordDisposisiOpened(id as string);
+    }
+  }, [id, recordDisposisiOpened]);
 
   if (!disp || !surat) {
     return (

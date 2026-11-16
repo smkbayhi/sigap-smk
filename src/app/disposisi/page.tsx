@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
+  AlertCircle,
   User,
   ExternalLink,
   Edit3,
@@ -26,11 +27,13 @@ import {
   X,
   Save,
 } from "lucide-react";
+import { usePresence } from "@/context/PresenceContext";
 import { StatusDisposisi, TingkatUrgensi } from "@/lib/database.types";
 
 export default function DisposisiPage() {
   const { currentUser, users, isKepsek, isTU } = useAuth();
   const { disposisi, suratMasuk, updateDisposisi, updateDisposisiStatus, deleteDisposisi, addToast } = useAppData();
+  const { isUserOnline, hasUserEverOpened, hasUserOpenedDisposisi } = usePresence();
 
   const isManagement = isKepsek || isTU;
   const [tabFilter, setTabFilter] = useState<"semua" | "saya">(isManagement ? "semua" : "saya");
@@ -264,6 +267,31 @@ export default function DisposisiPage() {
                       <p className="text-[11px] text-gray-500">
                         Pemberi Disposisi: <strong>{disp.pemberi_nama || "Kepala Sekolah"}</strong>
                       </p>
+
+                      {/* Tracer / Digital Status Badge */}
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        {isUserOnline(disp.penerima_id) || (targetUser?.niy && isUserOnline(targetUser.niy)) ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                            Sedang Online di Webapp
+                          </span>
+                        ) : hasUserOpenedDisposisi(disp.penerima_id, disp.id) || (targetUser?.niy && hasUserOpenedDisposisi(targetUser.niy, disp.id)) ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200">
+                            <Eye className="w-3 h-3 text-sky-600" />
+                            Sudah Dibuka di Webapp
+                          </span>
+                        ) : hasUserEverOpened(disp.penerima_id) || (targetUser?.niy && hasUserEverOpened(targetUser.niy)) ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                            <Clock className="w-3 h-3 text-slate-500" />
+                            Pernah Login (Belum Buka Tugas Ini)
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200">
+                            <AlertCircle className="w-3 h-3 text-rose-600" />
+                            Belum Pernah Buka Webapp
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 

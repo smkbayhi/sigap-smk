@@ -38,6 +38,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { DigitalSignatureModal } from "@/components/signature/DigitalSignatureModal";
+import { PresenceTrackerCard } from "@/components/dashboard/PresenceTrackerCard";
 import { SuratKeluar } from "@/lib/database.types";
 
 export default function DashboardPage() {
@@ -339,6 +340,9 @@ export default function DashboardPage() {
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
+
+          {/* Radar Kehadiran Digital Staf & Guru */}
+          <PresenceTrackerCard />
 
           {/* TU Main Sections */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -919,6 +923,9 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+          {/* Radar Kehadiran Digital Staf & Guru (Live Tracer) */}
+          <PresenceTrackerCard />
 
           {/* Executive Row: Approvals & Evaluasi 4 Bidang */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

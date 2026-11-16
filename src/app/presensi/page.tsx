@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { usePresensi } from "@/context/PresensiContext";
+import { usePresence } from "@/context/PresenceContext";
 import { exportPresensiToExcel } from "@/lib/presensiExport";
 import { matchUserWithTeacher, findTeacherRecordForUser } from "@/lib/presensiParser";
 import { getBidangLabel } from "@/lib/utils";
@@ -56,6 +57,13 @@ export default function PresensiPage() {
     resetToSample,
     syncFromCloud,
   } = usePresensi();
+  const { recordPresensiOpened, isUserOnline, hasUserEverOpened } = usePresence();
+
+  useEffect(() => {
+    if (currentReport?.id) {
+      recordPresensiOpened(currentReport.id);
+    }
+  }, [currentReport?.id, recordPresensiOpened]);
 
   // Helper to dynamically resolve official teacher biodata from Master Pengguna & Hak Akses
   const getTeacherBiodata = (t: TeacherAttendanceSummary) => {
@@ -961,11 +969,36 @@ Wassalamu’alaikum Wr. Wb.
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[11px] text-gray-500 truncate">
-                                  PIN: <span className="font-mono">{bio.displayPin}</span> • {bio.displayJabatan}
+                                <div className="text-[11px] text-gray-500 truncate flex items-center gap-1.5 flex-wrap">
+                                  <span>PIN: <span className="font-mono">{bio.displayPin}</span> • {bio.displayJabatan}</span>
                                   {bio.displayBidang && (
                                     <span className="text-blue-600 font-medium"> ({bio.displayBidang})</span>
                                   )}
+                                  {/* Webapp Digital Presence Indicator */}
+                                  {(() => {
+                                    const online = isUserOnline(t.id) || (t.pin && isUserOnline(t.pin));
+                                    const hasEver = hasUserEverOpened(t.id) || (t.pin && hasUserEverOpened(t.pin));
+                                    if (online) {
+                                      return (
+                                        <span className="inline-flex items-center gap-1 text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                                          Online
+                                        </span>
+                                      );
+                                    }
+                                    if (hasEver) {
+                                      return (
+                                        <span className="inline-flex items-center gap-1 text-[9.5px] font-medium px-1.5 py-0.2 rounded bg-sky-50 text-sky-700 border border-sky-200">
+                                          Pantau Mandiri
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <span className="inline-flex items-center gap-1 text-[9.5px] font-medium px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200">
+                                        Belum Buka Webapp
+                                      </span>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             </div>

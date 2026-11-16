@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { AppDataProvider } from "@/context/AppDataContext";
 import { PresensiProvider } from "@/context/PresensiContext";
+import { PresenceProvider } from "@/context/PresenceContext";
 import { ToastContainer } from "@/components/common/Toast";
 import { AppShell } from "@/components/layout/AppShell";
 
@@ -29,8 +30,10 @@ export default function RootLayout({
         <AuthProvider>
           <AppDataProvider>
             <PresensiProvider>
-              <AppShell>{children}</AppShell>
-              <ToastContainer />
+              <PresenceProvider>
+                <AppShell>{children}</AppShell>
+                <ToastContainer />
+              </PresenceProvider>
             </PresensiProvider>
           </AppDataProvider>
         </AuthProvider>
