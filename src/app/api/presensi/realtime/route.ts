@@ -80,25 +80,30 @@ function generateDateRangeDays(startDateStr: string, endDateStr: string): DailyA
   let idx = 1;
 
   while (curr <= end) {
+    // Hari Minggu libur (tidak perlu ditampilkan dalam presensi guru)
+    if (curr.getDay() === 0) {
+      curr.setDate(curr.getDate() + 1);
+      continue;
+    }
+
     const y = curr.getFullYear();
     const m = pad(curr.getMonth() + 1);
     const d = pad(curr.getDate());
     const dateIso = `${y}-${m}-${d}`;
     const hari = new Intl.DateTimeFormat("id-ID", { weekday: "long" }).format(curr);
-    const isSunday = curr.getDay() === 0;
 
     days.push({
       tanggal: dateIso,
       tanggalNum: idx++,
       hari: hari,
-      jadwalMasuk: isSunday ? "-" : "06:50",
-      jadwalPulang: isSunday ? "-" : hari === "Jumat" ? "11:30" : "13:30",
+      jadwalMasuk: "06:50",
+      jadwalPulang: hari === "Jumat" ? "11:30" : "13:30",
       jamMasuk: "-",
       jamPulang: "-",
       terlambatMenit: 0,
       pulangAwalMenit: 0,
-      status: isSunday ? "libur" : "alpha",
-      keterangan: isSunday ? "Libur Akhir Pekan" : "-",
+      status: "alpha",
+      keterangan: "Tidak ada keterangan (Alpha)",
     });
 
     curr.setDate(curr.getDate() + 1);
@@ -377,6 +382,10 @@ export async function POST(req: NextRequest) {
 
       // Match either ISO date (2026-11-16) or slash date (16/11/2026)
       const dayDate = new Date(dateStr);
+      if (dayDate.getDay() === 0) {
+        // Hari Minggu libur guru, abaikan log scan
+        continue;
+      }
       const pad = (n: number) => String(n).padStart(2, "0");
       const slashDate = isNaN(dayDate.getTime())
         ? ""

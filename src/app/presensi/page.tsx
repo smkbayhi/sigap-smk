@@ -1217,7 +1217,9 @@ Wassalamu’alaikum Wr. Wb.
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-medium">
-                  {selectedTeacher.dailyDetails.map((day, idx) => {
+                  {selectedTeacher.dailyDetails
+                    .filter((day) => day.hari !== "Minggu")
+                    .map((day, idx) => {
                     const isLate = day.terlambatMenit > 0;
                     return (
                       <tr

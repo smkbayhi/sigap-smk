@@ -211,7 +211,9 @@ export default function PrintPresensiPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {myTeacherRecord.dailyDetails.map((day, idx) => (
+                  {myTeacherRecord.dailyDetails
+                    .filter((day) => day.hari !== "Minggu")
+                    .map((day, idx) => (
                     <tr key={idx} className="border-b border-black">
                       <td className="border border-black p-1 text-center">{idx + 1}</td>
                       <td className="border border-black p-1 font-semibold">{day.hari}, {day.tanggal}</td>
