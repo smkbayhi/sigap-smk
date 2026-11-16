@@ -14,6 +14,7 @@ const STATE_PATH = path.join(__dirname, "last-sync.json");
 let config = {
   machineIp: "192.168.1.201",
   machinePort: 4370,
+  commKey: 313,
   timeout: 8000,
   sigapApiUrl: "https://sigap-smk.vercel.app/api/presensi/realtime",
   secretToken: "sigap-smk-fingerprint-2026",
@@ -27,29 +28,69 @@ if (fs.existsSync(CONFIG_PATH)) {
 
 const TEACHER_NAMES = {
   "11556022": "Nur Faizah, S.Kom",
+  "11550622": "Nur Faizah, S.Kom",
+  "16": "Nur Faizah, S.Kom",
   "11861027": "AINIYATUL FITRIYAH, S.S",
   "12616042": "Luluk Mamlu'atus S., S.S",
+  "21610624": "Luluk Mamlu'atus S., S.S",
   "13559090": "Yudha Prihantanto, S.Pd, M.Pd",
+  "1355099": "Yudha Prihantanto, S.Pd, M.Pd",
   "142908": "Mokhamat Ekhsan, S.Kom",
+  "142980": "Mokhamat Ekhsan, S.Kom",
   "14215094": "Mokhamat Ekhsan, S.Kom",
   "16402178": "Nur Afandi, S.Pd",
+  "16041287": "Nur Afandi, S.Pd",
   "18076236": "Akhmad Khoiron, Lc",
+  "8170263": "Akhmad Khoiron, Lc",
   "2563": "Achmad Jabbar, S. Sn",
+  "5236": "Achmad Jabbar, S. Sn",
   "19070265": "Achmad Jabbar, S. Sn",
   "3": "Moh. Nasih Aminulloh, S.Mat, M.Si",
+  "3239": "Moh. Nasih Aminulloh, S.Mat, M.Si",
   "23060333": "Moh. Nasih Aminulloh, S.Mat, M.Si",
   "5399": "Muhammad Fajarul Afthon, S.Pd",
+  "5939": "Muhammad Fajarul Afthon, S.Pd",
   "22060315": "Muhammad Fajarul Afthon, S.Pd",
   "4432": "ISHANANI, S.Pd",
+  "1432": "ISHANANI, S.Pd",
 };
 
 const USHRT_MAX = 65535;
 const COMMANDS = {
   CMD_CONNECT: 1000,
   CMD_REG_EVENT: 500,
+  CMD_AUTH: 1102,
   CMD_ACK_OK: 2000,
+  CMD_ACK_UNAUTH: 2005,
   EF_ATTLOG: 1,
 };
+
+function makeCommkey(key, sessionId, ticks = 50) {
+  key = parseInt(key) || 0;
+  sessionId = parseInt(sessionId) || 0;
+  let k = 0;
+  for (let i = 0; i < 32; i++) {
+    if (key & (1 << i)) k = ((k << 1) | 1) >>> 0;
+    else k = (k << 1) >>> 0;
+  }
+  k = (k + sessionId) >>> 0;
+  const buf = Buffer.alloc(4);
+  buf.writeUInt32LE(k, 0);
+  buf[0] ^= "Z".charCodeAt(0);
+  buf[1] ^= "K".charCodeAt(0);
+  buf[2] ^= "S".charCodeAt(0);
+  buf[3] ^= "O".charCodeAt(0);
+  const w0 = buf.readUInt16LE(0);
+  const w1 = buf.readUInt16LE(2);
+  buf.writeUInt16LE(w1, 0);
+  buf.writeUInt16LE(w0, 2);
+  const B = 0xff & ticks;
+  buf[0] ^= B;
+  buf[1] ^= B;
+  buf[2] = B;
+  buf[3] ^= B;
+  return buf;
+}
 
 function createChkSum(buf) {
   let chksum = 0;
@@ -186,7 +227,7 @@ function connectToMachine() {
   });
 
   socket.connect(config.machinePort, config.machineIp, () => {
-    console.log("🔌 Terhubung ke port soket mesin. Mengirim jabat tangan (handshake)...");
+    console.log("🔌 Terhubung ke port soket mesin. Mengirim jabat tangan (CMD_CONNECT)...");
     const connectPacket = createTCPHeader(COMMANDS.CMD_CONNECT, 0, 0, "");
     socket.write(connectPacket);
   });
@@ -197,13 +238,29 @@ function connectToMachine() {
       if (!payload || payload.length < 8) return;
       const cmd = payload.readUInt16LE(0);
 
-      if (cmd === COMMANDS.CMD_ACK_OK && sessionId === 0) {
+      // 1. Respon UNAUTH (2005) -> Kirim CMD_AUTH dengan CommKey
+      if (cmd === COMMANDS.CMD_ACK_UNAUTH) {
         sessionId = payload.readUInt16LE(4);
+        replyId = payload.readUInt16LE(6);
+        console.log(`🔐 Mesin meminta autentikasi (2005). Mengirim CommKey ${config.commKey || 313}...`);
+        const authPacket = createTCPHeader(
+          COMMANDS.CMD_AUTH,
+          sessionId,
+          replyId,
+          makeCommkey(config.commKey || 313, sessionId)
+        );
+        socket.write(authPacket);
+        return;
+      }
+
+      // 2. Respon ACK_OK (2000) saat handshake atau setelah auth
+      if (cmd === COMMANDS.CMD_ACK_OK && !isConnected) {
+        sessionId = payload.readUInt16LE(4);
+        replyId = payload.readUInt16LE(6);
         isConnected = true;
-        console.log(`✅ BERHASIL TERKONEKSI PENUH! Session ID: ${sessionId}`);
+        console.log(`✅ BERHASIL TERKONEKSI & TERAUTENTIKASI! Session ID: ${sessionId}`);
         console.log("🟢 MODE REALTIME AKTIF: Menunggu tap sidik jari guru di mesin...");
 
-        replyId++;
         const eventPacket = createTCPHeader(
           COMMANDS.CMD_REG_EVENT,
           sessionId,
@@ -214,6 +271,7 @@ function connectToMachine() {
         return;
       }
 
+      // 3. Tangkap Event Scan Sidik Jari Realtime
       if (cmd === COMMANDS.CMD_REG_EVENT) {
         const recvData = payload.subarray(8);
         let userId = "";

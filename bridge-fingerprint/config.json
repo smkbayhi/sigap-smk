@@ -1,11 +1,11 @@
 {
   "machineIp": "192.168.1.201",
   "machinePort": 4370,
-  "commKey": 0,
+  "commKey": 313,
   "protocol": "tcp",
-  "timeout": 8000,
+  "timeout": 35000,
   "sigapApiUrl": "https://sigap-smk.vercel.app/api/presensi/realtime",
   "secretToken": "sigap-smk-fingerprint-2026",
-  "syncIntervalSeconds": 15,
+  "syncIntervalSeconds": 30,
   "enableRealtimeListener": true
 }
