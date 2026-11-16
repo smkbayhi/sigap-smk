@@ -296,11 +296,28 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
     const updatedDaily = teacher.dailyDetails.map((d) => {
       if (d.tanggal === tanggal) {
         let defaultKet = keterangan !== undefined ? keterangan : d.keterangan;
-        if (status === "lupa_finger" && (!defaultKet || defaultKet === "-")) {
-          defaultKet = "Lupa checklock (evaluasi pribadi)";
-        } else if (status === "tugas_luar" && (!defaultKet || defaultKet === "-")) {
-          defaultKet = "Tugas Luar / Dinas Sekolah";
+
+        // Auto-update keterangan to a clean sensible label if not explicitly overridden
+        if (keterangan === undefined || keterangan === "" || d.keterangan?.includes("Tidak ada rekaman")) {
+          if (status === "lupa_finger") {
+            defaultKet = "Lupa checklock (konfirmasi TU)";
+          } else if (status === "tugas_luar") {
+            defaultKet = "Tugas Luar / Dinas Sekolah";
+          } else if (status === "izin") {
+            defaultKet = "Izin (konfirmasi TU)";
+          } else if (status === "sakit") {
+            defaultKet = "Sakit (surat dokter/keterangan)";
+          } else if (status === "alpha") {
+            defaultKet = "Tidak hadir tanpa keterangan (Alpha)";
+          } else if (status === "libur") {
+            defaultKet = "Libur";
+          } else if (status === "hadir") {
+            defaultKet = d.jamMasuk !== "-" ? "Tepat waktu" : "Hadir manual (konfirmasi TU)";
+          } else if (status === "terlambat") {
+            defaultKet = d.terlambatMenit > 0 ? `Terlambat ${d.terlambatMenit} menit` : "Terlambat";
+          }
         }
+
         return {
           ...d,
           status,
@@ -322,7 +339,7 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
 
     updatedDaily.forEach((d) => {
       if (d.status === "hadir" || d.status === "terlambat" || d.status === "lupa_finger" || d.status === "tugas_luar") hadir++;
-      if (d.status === "terlambat" || (d.status !== "lupa_finger" && d.terlambatMenit > 0)) {
+      if (d.status === "terlambat") {
         telatHari++;
         telatMenit += d.terlambatMenit;
       }
@@ -335,8 +352,10 @@ export function PresensiProvider({ children }: { children: React.ReactNode }) {
 
     const persentase = hadir > 0 ? Number(((telatHari / hadir) * 100).toFixed(1)) : 0;
     const statusKkm = persentase >= 50.0 ? "TIDAK KKM" : "KKM";
+    const totalHariKerja = updatedDaily.filter((d) => d.status !== "libur" && d.hari !== "Minggu").length;
 
     updateTeacherAttendance(teacherId, {
+      totalHariKerja,
       totalHadir: hadir,
       totalTerlambatHari: telatHari,
       totalMenitTerlambat: telatMenit,

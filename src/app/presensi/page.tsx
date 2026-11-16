@@ -1233,6 +1233,8 @@ Wassalamu’alaikum Wr. Wb.
                             ? "bg-blue-50/20"
                             : day.status === "sakit"
                             ? "bg-purple-50/20"
+                            : day.status === "libur"
+                            ? "bg-slate-50/70 text-slate-500"
                             : day.status === "alpha"
                             ? "bg-rose-50/30"
                             : ""
@@ -1275,6 +1277,8 @@ Wassalamu’alaikum Wr. Wb.
                                 ? "bg-blue-100 text-blue-800"
                                 : day.status === "sakit"
                                 ? "bg-purple-100 text-purple-800"
+                                : day.status === "libur"
+                                ? "bg-slate-100 text-slate-600 border border-slate-200 font-medium"
                                 : "bg-rose-100 text-rose-800"
                             }`}
                           >
@@ -1282,11 +1286,38 @@ Wassalamu’alaikum Wr. Wb.
                               ? "Lupa Finger"
                               : day.status === "tugas_luar"
                               ? "Tugas Luar"
+                              : day.status === "libur"
+                              ? "Libur"
                               : day.status}
                           </span>
                         </td>
-                        <td className="py-2.5 px-4 text-gray-600 text-[11px]">
-                          {day.keterangan || "-"}
+                        <td className="py-2 px-3 text-gray-600 text-[11px]">
+                          {canManageAllPresensi ? (
+                            <input
+                              type="text"
+                              defaultValue={day.keterangan || ""}
+                              key={`${day.tanggal}-${day.keterangan}`}
+                              placeholder="Tambah catatan/alasan..."
+                              onBlur={(e) => {
+                                if (e.target.value !== (day.keterangan || "")) {
+                                  updateDailyStatus(
+                                    selectedTeacher.id,
+                                    day.tanggal,
+                                    day.status,
+                                    e.target.value
+                                  );
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  (e.target as HTMLInputElement).blur();
+                                }
+                              }}
+                              className="w-full text-[11px] py-1 px-2 bg-transparent hover:bg-slate-100 focus:bg-white border border-transparent hover:border-gray-200 focus:border-emerald-500 rounded focus:outline-none transition-colors"
+                            />
+                          ) : (
+                            <span>{day.keterangan || "-"}</span>
+                          )}
                         </td>
                         {canManageAllPresensi && (
                           <td className="py-2.5 px-3 text-center">
@@ -1308,6 +1339,7 @@ Wassalamu’alaikum Wr. Wb.
                               <option value="izin">Izin</option>
                               <option value="sakit">Sakit</option>
                               <option value="alpha">Alpha</option>
+                              <option value="libur">Libur</option>
                             </select>
                           </td>
                         )}

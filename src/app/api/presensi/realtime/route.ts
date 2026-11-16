@@ -231,6 +231,14 @@ export async function POST(req: NextRequest) {
 
       if (reportIndex >= 0) {
         currentReport = payloadData.reports[reportIndex];
+        const templateDays = generateDateRangeDays(reqStartDate, reqEndDate);
+        currentReport.teachers.forEach((t) => {
+          const map = new Map(t.dailyDetails.map((d) => [d.tanggal, d]));
+          t.dailyDetails = templateDays.map((td) => {
+            const existing = map.get(td.tanggal);
+            return existing ? { ...existing, hari: td.hari, tanggalNum: td.tanggalNum } : { ...td };
+          });
+        });
       } else {
         // Create a new dedicated period for this date range!
         const startD = new Date(reqStartDate);
