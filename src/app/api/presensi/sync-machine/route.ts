@@ -51,6 +51,9 @@ function createTCPHeader(command: number, sessionId: number, replyId: number, da
   const chksum = createChkSum(buf);
   buf.writeUInt16LE(chksum, 2);
 
+  replyId = (replyId + 1) % USHRT_MAX;
+  buf.writeUInt16LE(replyId, 6);
+
   const prefix = Buffer.from([0x50, 0x50, 0x82, 0x7d, 0x00, 0x00, 0x00, 0x00]);
   prefix.writeUInt16LE(buf.length, 4);
   return Buffer.concat([prefix, buf]);
