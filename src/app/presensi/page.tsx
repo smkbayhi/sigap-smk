@@ -106,12 +106,30 @@ export default function PresensiPage() {
   const [uploadTahun, setUploadTahun] = useState(2026);
   const [dragActive, setDragActive] = useState(false);
   const [isPullingMachine, setIsPullingMachine] = useState(false);
+  const [showMachineModal, setShowMachineModal] = useState(false);
+  const [machineStartDate, setMachineStartDate] = useState(() => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  });
+  const [machineEndDate, setMachineEndDate] = useState(() => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  });
 
   const handlePullFromMachine = async () => {
     setIsPullingMachine(true);
-    addToast("info", "Menghubungi Mesin...", "Sedang menyambungkan ke mesin fingerprint 192.168.1.201...");
+    addToast("info", "Menghubungi Mesin...", `Sedang menarik data presensi (${machineStartDate} s.d. ${machineEndDate}) dari mesin 192.168.1.201...`);
     try {
-      const res = await fetch("/api/presensi/sync-machine", { method: "POST" });
+      const res = await fetch("/api/presensi/sync-machine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startDate: machineStartDate,
+          endDate: machineEndDate,
+        }),
+      });
       const data = await res.json();
       if (res.ok && data.success) {
         await syncFromCloud();
@@ -120,6 +138,7 @@ export default function PresensiPage() {
           "Tarik Mesin Berhasil",
           data.message || `Berhasil menarik ${data.todayPunchesCount || 0} presensi dari mesin fingerprint!`
         );
+        setShowMachineModal(false);
       } else {
         addToast(
           "warning",
@@ -333,9 +352,9 @@ Wassalamu’alaikum Wr. Wb.
           {/* Direct Pull from Physical Fingerprint Machine */}
           {canManageAllPresensi && (
             <button
-              onClick={handlePullFromMachine}
+              onClick={() => setShowMachineModal(true)}
               disabled={isPullingMachine}
-              title="Tarik log sidik jari hari ini langsung dari Mesin InterActive X 1800 (192.168.1.201:4370)"
+              title="Tarik log sidik jari dari Mesin InterActive X 1800 (192.168.1.201:4370) berdasarkan rentang tanggal"
               className="py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Fingerprint className={`w-3.5 h-3.5 text-amber-700 ${isPullingMachine ? "animate-pulse" : ""}`} />
@@ -1609,6 +1628,145 @@ Wassalamu’alaikum Wr. Wb.
             >
               Kembali ke Rekapitulasi
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tarik Data Mesin Fingerprint */}
+      {showMachineModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                  <Fingerprint className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">Tarik Data Mesin Fingerprint</h3>
+                  <p className="text-xs text-gray-500">InterActive X 1800 (192.168.1.201:4370)</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowMachineModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick Presets */}
+            <div className="mt-4">
+              <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider block mb-2">
+                Pilihan Cepat Rentang Waktu:
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                    setMachineStartDate(today);
+                    setMachineEndDate(today);
+                  }}
+                  className="py-1.5 px-2.5 text-xs font-semibold rounded-lg border border-gray-200 hover:border-amber-400 hover:bg-amber-50 text-gray-700 text-left transition-all cursor-pointer"
+                >
+                  📅 Hari Ini Saja
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                    const threeDaysAgo = new Date();
+                    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+                    const start = `${threeDaysAgo.getFullYear()}-${pad(threeDaysAgo.getMonth() + 1)}-${pad(threeDaysAgo.getDate())}`;
+                    setMachineStartDate(start);
+                    setMachineEndDate(today);
+                  }}
+                  className="py-1.5 px-2.5 text-xs font-semibold rounded-lg border border-gray-200 hover:border-amber-400 hover:bg-amber-50 text-gray-700 text-left transition-all cursor-pointer"
+                >
+                  ⏮️ 3 Hari Terakhir
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    const start = `${weekAgo.getFullYear()}-${pad(weekAgo.getMonth() + 1)}-${pad(weekAgo.getDate())}`;
+                    setMachineStartDate(start);
+                    setMachineEndDate(today);
+                  }}
+                  className="py-1.5 px-2.5 text-xs font-semibold rounded-lg border border-gray-200 hover:border-amber-400 hover:bg-amber-50 text-gray-700 text-left transition-all cursor-pointer"
+                >
+                  🗓️ 1 Minggu Terakhir
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentReport?.cutOffStart && currentReport?.cutOffEnd) {
+                      setMachineStartDate(currentReport.cutOffStart);
+                      setMachineEndDate(currentReport.cutOffEnd);
+                    }
+                  }}
+                  className="py-1.5 px-2.5 text-xs font-semibold rounded-lg border border-gray-200 hover:border-amber-400 hover:bg-amber-50 text-gray-700 text-left transition-all truncate cursor-pointer"
+                >
+                  📑 Periode Aktif
+                </button>
+              </div>
+            </div>
+
+            {/* Custom Date Range */}
+            <div className="mt-4 space-y-3 bg-slate-50 p-3.5 rounded-xl border border-gray-200/80">
+              <div>
+                <label className="text-xs font-bold text-gray-700 block mb-1">Mulai Tanggal:</label>
+                <input
+                  type="date"
+                  value={machineStartDate}
+                  onChange={(e) => setMachineStartDate(e.target.value)}
+                  className="w-full text-xs font-medium bg-white px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700 block mb-1">Sampai Tanggal:</label>
+                <input
+                  type="date"
+                  value={machineEndDate}
+                  onChange={(e) => setMachineEndDate(e.target.value)}
+                  className="w-full text-xs font-medium bg-white px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+            </div>
+
+            <div className="mt-3.5 p-2.5 bg-amber-50/70 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed">
+              💡 Mesin akan memfilter rekaman absensi guru dalam rentang tanggal di atas dan otomatis menyinkronkannya ke Cloud SIGAP-SMK.
+            </div>
+
+            {/* Actions */}
+            <div className="mt-5 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowMachineModal(false)}
+                disabled={isPullingMachine}
+                className="py-2 px-4 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handlePullFromMachine}
+                disabled={isPullingMachine}
+                className="py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <Fingerprint className={`w-4 h-4 ${isPullingMachine ? "animate-pulse" : ""}`} />
+                <span>{isPullingMachine ? "Menarik Data..." : "Mulai Tarik Data"}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

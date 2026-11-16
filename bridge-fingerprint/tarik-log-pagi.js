@@ -373,11 +373,19 @@ async function main() {
   const pad = (n) => String(n).padStart(2, "0");
   const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
+  const args = process.argv.slice(2);
+  let startDate = todayStr;
+  let endDate = todayStr;
+
+  if (args[0]) startDate = args[0];
+  if (args[1]) endDate = args[1];
+  else if (args[0]) endDate = args[0];
+
   console.log("================================================================");
-  console.log("   🌟 SIGAP-SMK | TARIK DATA PRESENSI HARI INI DARI MESIN");
-  console.log("   Model Mesin : InterActive X 1800");
-  console.log(`   Target Mesin: ${config.machineIp}:${config.machinePort}`);
-  console.log(`   Tanggal Cek : ${todayStr}`);
+  console.log("   🌟 SIGAP-SMK | TARIK DATA PRESENSI DARI MESIN");
+  console.log("   Model Mesin    : InterActive X 1800");
+  console.log(`   Target Mesin   : ${config.machineIp}:${config.machinePort}`);
+  console.log(`   Rentang Tanggal: ${startDate} s/d ${endDate}`);
   console.log("================================================================\n");
 
   const client = new NativeZkLogPuller(config.machineIp, config.machinePort, 8000);
@@ -397,14 +405,17 @@ async function main() {
 
     console.log(`📊 Ditemukan total ${allLogs.length} rekaman absensi di memori mesin.`);
 
-    // Filter logs for today
-    const todayLogs = allLogs.filter((l) => l.attTime && l.attTime.startsWith(todayStr));
+    // Filter logs for selected date range
+    const targetLogs = allLogs.filter((l) => {
+      if (!l.attTime) return false;
+      const logDate = l.attTime.split(" ")[0];
+      return logDate >= startDate && logDate <= endDate;
+    });
 
-    console.log(`\n🔍 [3/4] Rekaman presensi untuk HARI INI (${todayStr}): ${todayLogs.length} scan terdeteksi.`);
+    console.log(`\n🔍 [3/4] Rekaman presensi untuk rentang ${startDate} s/d ${endDate}: ${targetLogs.length} scan terdeteksi.`);
 
-    if (todayLogs.length === 0) {
-      console.log("\n⚠️ Belum ada scan sidik jari yang tercatat dengan tanggal hari ini (" + todayStr + ").");
-      console.log("   (Kemungkinan jam/tanggal di layar mesin berbeda atau belum ada tap hari ini).");
+    if (targetLogs.length === 0) {
+      console.log("\n⚠️ Belum ada scan sidik jari yang tercatat pada rentang tanggal " + startDate + " s/d " + endDate + ".");
       if (allLogs.length > 0) {
         console.log("\n📋 5 Rekaman Terakhir yang ada di mesin saat ini:");
         allLogs.slice(-5).forEach((l, idx) => {
@@ -414,28 +425,30 @@ async function main() {
       }
     } else {
       console.log("\n----------------------------------------------------------------");
-      console.log("📋 DAFTAR GURU YANG SUDAH ABSEN TADI PAGI:");
+      console.log(`📋 DAFTAR PRESENSI GURU (${startDate} s/d ${endDate}):`);
       console.log("----------------------------------------------------------------");
 
-      // Group by user to find earliest punch (check-in)
-      const teacherPunches = {};
-      for (const log of todayLogs) {
-        if (!teacherPunches[log.userId]) {
-          teacherPunches[log.userId] = [];
+      // Group by user and date
+      const teacherDailyPunches = {};
+      for (const log of targetLogs) {
+        const logDate = log.attTime.split(" ")[0];
+        const key = `${log.userId}_${logDate}`;
+        if (!teacherDailyPunches[key]) {
+          teacherDailyPunches[key] = { userId: log.userId, date: logDate, times: [] };
         }
-        teacherPunches[log.userId].push(log.attTime);
+        teacherDailyPunches[key].times.push(log.attTime);
       }
 
       let counter = 1;
       const punchesToSync = [];
 
-      for (const [userId, punchTimes] of Object.entries(teacherPunches)) {
-        const teacherName = TEACHER_NAMES[userId] || `Guru PIN [${userId}]`;
-        punchTimes.sort();
-        const checkInTime = punchTimes[0];
+      for (const item of Object.values(teacherDailyPunches)) {
+        const teacherName = TEACHER_NAMES[item.userId] || `Guru PIN [${item.userId}]`;
+        item.times.sort();
+        const checkInTime = item.times[0];
         const timeOnly = checkInTime.split(" ")[1] || checkInTime;
 
-        // Calculate late status (School starts 06:50)
+        // Calculate late status
         const [hh, mm] = timeOnly.split(":").map(Number);
         const totalMinutes = hh * 60 + mm;
         const targetMinutes = 6 * 60 + 50; // 06:50
@@ -444,25 +457,36 @@ async function main() {
 
         const statusLabel = isLate ? `TERLAMBAT (+${diff} menit)` : "HADIR TEPAT WAKTU";
 
-        console.log(`\n${counter}. 👤 ${teacherName} (PIN: ${userId})`);
+        console.log(`\n${counter}. 👤 ${teacherName} (PIN: ${item.userId}) - Tanggal: ${item.date}`);
         console.log(`   ⏰ Jam Scan : ${timeOnly} WIB`);
         console.log(`   📌 Status   : ${statusLabel}`);
 
-        punchesToSync.push({ userId, attTime: checkInTime });
+        // If checkout exists (last punch > 11:30)
+        if (item.times.length > 1) {
+          const lastPunch = item.times[item.times.length - 1];
+          const lastTimeOnly = lastPunch.split(" ")[1];
+          const [lastH, lastM] = lastTimeOnly.split(":").map(Number);
+          if (lastH * 60 + lastM >= 11 * 60 + 30) {
+            console.log(`   🚪 Jam Pulang: ${lastTimeOnly} WIB`);
+            punchesToSync.push({ userId: item.userId, attTime: lastPunch });
+          }
+        }
+
+        punchesToSync.push({ userId: item.userId, attTime: checkInTime });
         counter++;
       }
 
       console.log("\n----------------------------------------------------------------");
-      console.log(`\n⏳ [4/4] Menyinkronkan ${punchesToSync.length} data presensi pagi ke Cloud SIGAP-SMK...`);
+      console.log(`\n⏳ [4/4] Menyinkronkan ${punchesToSync.length} data presensi ke Cloud SIGAP-SMK...`);
 
       const syncResult = await sendToSigapApi(punchesToSync);
       if (syncResult && syncResult.success) {
         console.log(`✅ SEMUA DATA SUDAH 100% TERSINKRONISASI KE DATABASE SIGAP-SMK!`);
         console.log(`   Jumlah data berhasil diproses: ${syncResult.processedCount || punchesToSync.length}`);
         console.log(`\n👉 Silakan buka halaman Presensi di Webapp:`);
-        console.log(`   http://localhost:3000/presensi`);
+        console.log(`   https://sigap-smk.vercel.app/presensi`);
       } else {
-        console.log(`⚠️ Gagal simpan ke server:`, syncResult?.error || "Koneksi web server lokal tidak merespon");
+        console.log(`⚠️ Respon server:`, syncResult?.error || "Gagal menghubungi server web");
       }
     }
 

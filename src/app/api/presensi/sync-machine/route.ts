@@ -267,24 +267,34 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Filter logs for TODAY
+    // 2. Filter logs based on date range (startDate & endDate)
+    const body = await req.json().catch(() => ({}));
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
     const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
-    const todayLogs = machineLogs.filter((l) => l.attTime && l.attTime.startsWith(todayStr));
+    const startDate = body.startDate || todayStr;
+    const endDate = body.endDate || todayStr;
 
-    if (todayLogs.length === 0) {
+    const filteredLogs = machineLogs.filter((l) => {
+      if (!l.attTime) return false;
+      const logDate = l.attTime.split(" ")[0] || l.attTime.substring(0, 10);
+      return logDate >= startDate && logDate <= endDate;
+    });
+
+    if (filteredLogs.length === 0) {
       return NextResponse.json({
         success: true,
-        message: `Mesin terhubung (${machineLogs.length} total rekaman), namun belum ada scan sidik jari hari ini (${todayStr}).`,
+        message: `Mesin terhubung (${machineLogs.length} total rekaman di memori), namun tidak ditemukan rekaman scan pada rentang ${startDate} s/d ${endDate}.`,
         totalLogs: machineLogs.length,
         todayLogs: 0,
+        startDate,
+        endDate,
         results: [],
       });
     }
 
-    // 3. Forward today's logs to /api/presensi/realtime to process & store into Supabase
+    // 3. Forward filtered logs to /api/presensi/realtime to process & store into Supabase
     const host = req.headers.get("host") || "localhost:3000";
     const protocol = req.headers.get("x-forwarded-proto") || "http";
     const apiUrl = `${protocol}://${host}/api/presensi/realtime`;
@@ -294,7 +304,7 @@ export async function POST(req: NextRequest) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         secret: "sigap-smk-fingerprint-2026",
-        logs: todayLogs,
+        logs: filteredLogs,
       }),
     });
 
@@ -302,10 +312,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Berhasil menarik ${todayLogs.length} rekaman presensi hari ini langsung dari mesin!`,
+      message: `Berhasil menarik ${filteredLogs.length} rekaman presensi (${startDate} s.d. ${endDate}) langsung dari mesin!`,
       totalLogsInMachine: machineLogs.length,
-      todayPunchesCount: todayLogs.length,
-      processedCount: realtimeData.processedCount || todayLogs.length,
+      todayPunchesCount: filteredLogs.length,
+      processedCount: realtimeData.processedCount || filteredLogs.length,
+      startDate,
+      endDate,
       results: realtimeData.results || [],
     });
   } catch (err: any) {
