@@ -1,0 +1,13 @@
+{
+  "name": "sigap-fingerprint-bridge",
+  "version": "1.0.0",
+  "description": "Bridge penghubung mesin fingerprint InterActive X 1800 (192.168.1.202) ke SIGAP-SMK",
+  "main": "sync-service.js",
+  "scripts": {
+    "test": "node test-koneksi.js",
+    "start": "node sync-service.js"
+  },
+  "dependencies": {
+    "zklib-js": "^1.3.5"
+  }
+}
