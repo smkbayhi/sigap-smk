@@ -140,11 +140,11 @@ export default function PresensiPage() {
         );
         setShowMachineModal(false);
       } else {
-        addToast(
-          "warning",
-          "Mesin Fingerprint",
-          data.error || data.message || "Gagal terhubung ke mesin 192.168.1.201. Pastikan kabel LAN terhubung."
-        );
+        const isVercel = typeof window !== "undefined" && window.location.hostname.includes("vercel.app");
+        const msg = isVercel
+          ? "Server Cloud Vercel tidak terhubung kabel ke mesin sekolah. Silakan jalankan TARIK-RENTANG-TANGGAL.bat di laptop Anda, lalu klik tombol 'Sinkron Cloud'!"
+          : data.error || data.message || "Gagal terhubung ke mesin 192.168.1.201. Pastikan kabel LAN terhubung.";
+        addToast("warning", "Mesin Fingerprint", msg);
       }
     } catch (err: any) {
       addToast(
@@ -1743,8 +1743,16 @@ Wassalamu’alaikum Wr. Wb.
               </div>
             </div>
 
-            <div className="mt-3.5 p-2.5 bg-amber-50/70 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed">
-              💡 Mesin akan memfilter rekaman absensi guru dalam rentang tanggal di atas dan otomatis menyinkronkannya ke Cloud SIGAP-SMK.
+            <div className="mt-3.5 p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-[11px] text-amber-950 leading-relaxed space-y-1">
+              <div className="font-bold flex items-center gap-1 text-amber-900">
+                <span>💡 Cara Kerja Penarikan Data:</span>
+              </div>
+              <p>
+                Kabel LAN mesin terhubung langsung ke <strong>Laptop HCD di sekolah</strong>.
+              </p>
+              <p className="text-amber-800">
+                👉 Di laptop Anda, jalankan <strong>TARIK-RENTANG-TANGGAL.bat</strong> untuk menyedot data dari mesin dan mengirimkannya ke Vercel Cloud, lalu klik tombol <strong>[🔄 Sinkron Cloud]</strong> di atas!
+              </p>
             </div>
 
             {/* Actions */}
