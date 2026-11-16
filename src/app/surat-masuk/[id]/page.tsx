@@ -258,9 +258,9 @@ export default function SuratMasukDetailPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Left Column (2 Cols): Surat Masuk Detail & Scan Preview */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 min-w-0">
           {/* Metadata Card */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-gray-100">
@@ -310,40 +310,53 @@ export default function SuratMasukDetailPage() {
                 className="hidden"
               />
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-gray-200 text-xs gap-3 transition-colors">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-lg bg-brand-100 text-brand-800 flex items-center justify-center flex-shrink-0">
+              <div className="bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-gray-200 p-4 transition-colors space-y-3">
+                {/* File Information */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-800 flex items-center justify-center shrink-0">
                     <FileText className="w-5 h-5 text-brand-700" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-gray-900 truncate">{surat.file_name}</p>
-                    <p className="text-[10px] text-gray-500">{surat.file_size} • Berkas Asli Surat Masuk</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-gray-900 text-xs truncate" title={surat.file_name}>
+                      {surat.file_name}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5 text-[10.5px] text-gray-500">
+                      <span>{surat.file_size}</span>
+                      <span>•</span>
+                      <span className="text-brand-700 font-medium">Berkas Asli Surat Masuk</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Upload / Ganti file PDF button (Hanya untuk Pimpinan & TU) */}
-                  {(isKepsek || isTU) && (
-                    <label
-                      htmlFor="replacement-file"
-                      className="cursor-pointer px-3 py-1.5 bg-gold-500 hover:bg-gold-600 text-gray-950 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-xs"
-                    >
-                      <UploadCloud className="w-3.5 h-3.5" />
-                      {isUploadingReplacement
-                        ? "Menyimpan..."
-                        : surat.file_url && !surat.file_url.includes("unsplash.com")
-                        ? "Ganti Berkas PDF"
-                        : "Pilih File PDF Asli"}
-                    </label>
-                  )}
+                {/* File Action Buttons */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-gray-200/80">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Upload / Ganti file PDF button (Hanya untuk Pimpinan & TU) */}
+                    {(isKepsek || isTU) && (
+                      <label
+                        htmlFor="replacement-file"
+                        className="cursor-pointer px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>
+                          {isUploadingReplacement
+                            ? "Menyimpan..."
+                            : surat.file_url && !surat.file_url.includes("unsplash.com")
+                            ? "Ganti Berkas PDF"
+                            : "Pilih File PDF Asli"}
+                        </span>
+                      </label>
+                    )}
 
-                  <button
-                    type="button"
-                    onClick={() => setShowInlineViewer(!showInlineViewer)}
-                    className="px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 font-semibold border border-gray-300 rounded-lg text-xs transition-colors"
-                  >
-                    {showInlineViewer ? "Sembunyikan Viewer" : "Tampilkan Viewer"}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowInlineViewer(!showInlineViewer)}
+                      className="px-3.5 py-1.5 bg-white hover:bg-gray-50 text-gray-700 font-semibold border border-gray-300 rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-gray-500" />
+                      <span>{showInlineViewer ? "Sembunyikan Viewer" : "Tampilkan Viewer"}</span>
+                    </button>
+                  </div>
 
                   {effectiveFileUrl && !effectiveFileUrl.includes("unsplash.com") && (
                     <button
@@ -351,7 +364,7 @@ export default function SuratMasukDetailPage() {
                       onClick={() => openPdfInNewTab(effectiveFileUrl)}
                       className="px-3.5 py-1.5 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-lg text-xs shadow-xs transition-all flex items-center gap-1.5"
                     >
-                      Buka di Tab Baru
+                      <span>Buka di Tab Baru</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -361,12 +374,14 @@ export default function SuratMasukDetailPage() {
               {/* Embedded PDF/Document Inline Viewer */}
               {showInlineViewer && (
                 <div className="border border-gray-300 rounded-xl overflow-hidden shadow-inner bg-slate-100">
-                  <div className="bg-slate-800 text-white px-4 py-2 flex items-center justify-between text-[11px]">
-                    <span className="font-medium flex items-center gap-1.5 truncate">
-                      <FileText className="w-3.5 h-3.5 text-gold-400" />
-                      Pratinjau Dokumen: {surat.file_name}
-                    </span>
-                    <span className="text-gray-400 text-[10px]">
+                  <div className="bg-slate-800 text-white px-4 py-2.5 flex items-center justify-between gap-3 text-[11px]">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="font-semibold text-slate-200 truncate" title={surat.file_name}>
+                        Pratinjau Dokumen: {surat.file_name}
+                      </span>
+                    </div>
+                    <span className="text-slate-400 text-[10px] shrink-0 font-medium px-2 py-0.5 bg-slate-700/60 rounded">
                       PDF / Digital Document View
                     </span>
                   </div>
@@ -922,7 +937,7 @@ export default function SuratMasukDetailPage() {
         </div>
 
         {/* Right Column: AI Insights & Recommendation Widget */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-6 self-start min-w-0">
           {/* AI Analysis Card */}
           <div className="bg-gradient-to-br from-[#064e3b] via-[#055a43] to-brand-900 text-white rounded-2xl p-6 shadow-md border border-emerald-700/60">
             <div className="flex items-center gap-2 text-gold-400 mb-3">
