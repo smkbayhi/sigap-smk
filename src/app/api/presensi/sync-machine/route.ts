@@ -307,6 +307,9 @@ export async function POST(req: NextRequest) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         secret: "sigap-smk-fingerprint-2026",
+        startDate,
+        endDate,
+        createSeparatePeriod: true,
         logs: filteredLogs,
       }),
     });

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { KNOWN_TEACHERS } from "@/lib/presensiParser";
-import { PresensiPeriodReport, DailyAttendanceRecord, StatusKehadiran } from "@/lib/presensi.types";
+import { PresensiPeriodReport, DailyAttendanceRecord, StatusKehadiran, TeacherAttendanceSummary } from "@/lib/presensi.types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,32 +23,43 @@ const JAM_MASUK_STANDAR_MENIT = 6 * 60 + 50; // 410 menit (06:50)
 const MACHINE_PIN_MAPPING: Record<string, string> = {
   "11556022": "11556022", // Nurfaizah
   "nurfaizah": "11556022",
+  "11550622": "11556022",
+  "16": "11556022",
   "11861027": "11861027", // Ainiyatulfit...
   "ainiyatulfit": "11861027",
   "ainiyatulfitriyah": "11861027",
   "12616042": "12616042", // Lulukms
   "lulukms": "12616042",
+  "21610624": "12616042",
   "13559090": "13559090", // Yudha
   "yudha": "13559090",
+  "1355099": "13559090",
   "142908": "14215094",   // Ekhsan (Kepala Sekolah)
   "ekhsan": "14215094",
+  "142980": "14215094",
   "14215094": "14215094",
   "16402178": "16402178", // Nurafandi
   "nurafandi": "16402178",
+  "16041287": "16402178",
   "18076236": "18076236", // Khoiron
   "khoiron": "18076236",
+  "8170263": "18076236",
   "2563": "19070265",     // Achmadjab...
   "achmadjab": "19070265",
   "achmadjabbar": "19070265",
+  "5236": "19070265",
   "19070265": "19070265",
   "3": "23060333",        // mohnasih
   "mohnasih": "23060333",
+  "3239": "23060333",
   "23060333": "23060333",
   "5399": "22060315",     // Fajar
   "fajar": "22060315",
+  "5939": "22060315",
   "22060315": "22060315",
   "4432": "4432",         // Ishanani
   "ishanani": "4432",
+  "1432": "4432",
 };
 
 function timeToMinutes(timeStr: string): number {
@@ -57,6 +68,71 @@ function timeToMinutes(timeStr: string): number {
   const h = parseInt(parts[0] || "0", 10);
   const m = parseInt(parts[1] || "0", 10);
   return h * 60 + m;
+}
+
+function generateDateRangeDays(startDateStr: string, endDateStr: string): DailyAttendanceRecord[] {
+  const days: DailyAttendanceRecord[] = [];
+  const start = new Date(startDateStr);
+  const end = new Date(endDateStr);
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  const curr = new Date(start);
+  let idx = 1;
+
+  while (curr <= end) {
+    const y = curr.getFullYear();
+    const m = pad(curr.getMonth() + 1);
+    const d = pad(curr.getDate());
+    const dateIso = `${y}-${m}-${d}`;
+    const hari = new Intl.DateTimeFormat("id-ID", { weekday: "long" }).format(curr);
+    const isSunday = curr.getDay() === 0;
+
+    days.push({
+      tanggal: dateIso,
+      tanggalNum: idx++,
+      hari: hari,
+      jadwalMasuk: isSunday ? "-" : "06:50",
+      jadwalPulang: isSunday ? "-" : hari === "Jumat" ? "11:30" : "13:30",
+      jamMasuk: "-",
+      jamPulang: "-",
+      terlambatMenit: 0,
+      pulangAwalMenit: 0,
+      status: isSunday ? "libur" : "alpha",
+      keterangan: isSunday ? "Libur Akhir Pekan" : "-",
+    });
+
+    curr.setDate(curr.getDate() + 1);
+  }
+  return days;
+}
+
+function createTeacherSummary(
+  km: (typeof KNOWN_TEACHERS)[0],
+  days: DailyAttendanceRecord[]
+): TeacherAttendanceSummary {
+  const totalHariKerja = days.filter((d) => d.hari !== "Minggu").length;
+  return {
+    id: km.id,
+    pin: km.pin,
+    nama: km.nama,
+    jabatan: km.jabatan,
+    totalHariKerja,
+    totalHadir: 0,
+    totalTerlambatHari: 0,
+    totalMenitTerlambat: 0,
+    persentaseTerlambat: 0,
+    statusKkm: "KKM",
+    totalIzin: 0,
+    totalSakit: 0,
+    totalAlpha: 0,
+    totalLupaFinger: 0,
+    totalTugasLuar: 0,
+    skorKetaatan: 4.0,
+    skorAcara: 4.0,
+    nilaiKebiasaanKerja: 4.0,
+    totalNilaiKinerja: 4.5,
+    dailyDetails: JSON.parse(JSON.stringify(days)),
+  };
 }
 
 export async function GET() {
@@ -113,18 +189,108 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!payloadData.reports || payloadData.reports.length === 0) {
-      return NextResponse.json(
-        { error: "Belum ada periode presensi aktif di database. Silakan buat/buka periode presensi terlebih dahulu di webapp." },
-        { status: 404 }
-      );
+    if (!payloadData.reports) {
+      payloadData.reports = [];
     }
 
-    const activeReportIndex = payloadData.reports.findIndex(
-      (r) => r.id === payloadData.activeId
+    // Determine requested date range
+    let reqStartDate = typeof body.startDate === "string" ? body.startDate.trim() : "";
+    let reqEndDate = typeof body.endDate === "string" ? body.endDate.trim() : "";
+
+    // If not supplied in body, scan rawLogs for min and max date
+    if (!reqStartDate || !reqEndDate) {
+      for (const log of rawLogs) {
+        const rawTime = String(log.attTime || log.recordTime || "").trim();
+        const dStr = rawTime.includes("T") ? rawTime.split("T")[0] : rawTime.split(" ")[0];
+        if (dStr) {
+          if (!reqStartDate || dStr < reqStartDate) reqStartDate = dStr;
+          if (!reqEndDate || dStr > reqEndDate) reqEndDate = dStr;
+        }
+      }
+    }
+
+    // Target report: Should we create a separate dedicated period?
+    const isCustomDateRange = Boolean(
+      body.createSeparatePeriod ||
+      body.separatePeriod ||
+      (reqStartDate && reqEndDate && (reqStartDate !== reqEndDate || body.createSeparatePeriod !== false))
     );
-    const reportIndex = activeReportIndex >= 0 ? activeReportIndex : 0;
-    const currentReport = payloadData.reports[reportIndex];
+
+    let currentReport: PresensiPeriodReport;
+    let reportIndex = -1;
+
+    if (isCustomDateRange && reqStartDate && reqEndDate) {
+      // Find if an exact period for this date range already exists
+      const targetId = `presensi-tarik-${reqStartDate}-${reqEndDate}`;
+      reportIndex = payloadData.reports.findIndex(
+        (r) =>
+          r.id === targetId ||
+          (r.cutOffStart === reqStartDate && r.cutOffEnd === reqEndDate) ||
+          r.rentangTanggal === `${reqStartDate} s.d ${reqEndDate}`
+      );
+
+      if (reportIndex >= 0) {
+        currentReport = payloadData.reports[reportIndex];
+      } else {
+        // Create a new dedicated period for this date range!
+        const startD = new Date(reqStartDate);
+        const endD = new Date(reqEndDate);
+        const startDay = String(startD.getDate()).padStart(2, "0");
+        const endDay = String(endD.getDate()).padStart(2, "0");
+        const startMonth = new Intl.DateTimeFormat("id-ID", { month: "short" }).format(startD);
+        const endMonth = new Intl.DateTimeFormat("id-ID", { month: "short" }).format(endD);
+        const year = endD.getFullYear() || 2026;
+
+        let bulanLabel = `${startDay} - ${endDay} ${endMonth}`;
+        if (startMonth !== endMonth) {
+          bulanLabel = `${startDay} ${startMonth} - ${endDay} ${endMonth}`;
+        }
+        if (reqStartDate === reqEndDate) {
+          bulanLabel = `${startDay} ${endMonth}`;
+        }
+
+        const days = generateDateRangeDays(reqStartDate, reqEndDate);
+        const totalEffective = days.filter((d) => d.hari !== "Minggu").length;
+
+        currentReport = {
+          id: targetId,
+          judul: `Rekapitulasi Presensi Guru & Karyawan`,
+          bulan: bulanLabel,
+          tahun: year,
+          rentangTanggal: `${reqStartDate} s.d ${reqEndDate}`,
+          cutOffStart: reqStartDate,
+          cutOffEnd: reqEndDate,
+          totalHariEfektif: totalEffective,
+          totalGuru: KNOWN_TEACHERS.length,
+          guruTidakKkmCount: 0,
+          rataRataKehadiran: 100,
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: "Mesin Fingerprint (Tarik Mandiri)",
+          teachers: KNOWN_TEACHERS.map((km) => createTeacherSummary(km, days)),
+        };
+
+        // Insert at the front so it appears as the newest period
+        payloadData.reports.unshift(currentReport);
+        reportIndex = 0;
+      }
+
+      // Automatically set this newly created/selected period as the active one
+      payloadData.activeId = currentReport.id;
+    } else {
+      // Normal fallback to active report
+      const activeReportIndex = payloadData.reports.findIndex(
+        (r) => r.id === payloadData.activeId
+      );
+      reportIndex = activeReportIndex >= 0 ? activeReportIndex : 0;
+      currentReport = payloadData.reports[reportIndex];
+    }
+
+    if (!currentReport) {
+      return NextResponse.json(
+        { error: "Gagal menginisialisasi periode presensi target." },
+        { status: 500 }
+      );
+    }
 
     const results: Array<{
       userId: string;
@@ -148,8 +314,9 @@ export async function POST(req: NextRequest) {
 
       if (rawAttTime.includes("T")) {
         const d = new Date(rawAttTime);
-        dateStr = d.toISOString().split("T")[0];
-        timeStr = d.toTimeString().substring(0, 5); // HH:mm
+        const pad = (n: number) => String(n).padStart(2, "0");
+        dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
       } else {
         const parts = rawAttTime.split(" ");
         dateStr = parts[0] || "";
@@ -193,23 +360,31 @@ export async function POST(req: NextRequest) {
       }
 
       if (!teacher) {
-        console.warn(`[API Realtime Presensi] Unknown machine User ID: "${rawUserId}" at ${rawAttTime}`);
+        // Not an SMK teacher, safely ignore
         continue;
       }
 
       const punchMinutes = timeToMinutes(timeStr);
       const isMorning = punchMinutes < 11 * 60 + 30; // before 11:30
 
-      // Find or create daily detail for this date
-      let daily = teacher.dailyDetails.find((d) => d.tanggal === dateStr);
+      // Match either ISO date (2026-11-16) or slash date (16/11/2026)
       const dayDate = new Date(dateStr);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const slashDate = isNaN(dayDate.getTime())
+        ? ""
+        : `${pad(dayDate.getDate())}/${pad(dayDate.getMonth() + 1)}/${dayDate.getFullYear()}`;
+
+      let daily = teacher.dailyDetails.find(
+        (d) => d.tanggal === dateStr || (slashDate && d.tanggal === slashDate)
+      );
+
       const tanggalNum = isNaN(dayDate.getDate()) ? 1 : dayDate.getDate();
 
       if (!daily) {
         daily = {
           tanggal: dateStr,
           tanggalNum,
-          hari: new Intl.DateTimeFormat("id-ID", { weekday: "long" }).format(dayDate),
+          hari: isNaN(dayDate.getTime()) ? "Hari" : new Intl.DateTimeFormat("id-ID", { weekday: "long" }).format(dayDate),
           jadwalMasuk: "06:50",
           jadwalPulang: "13:30",
           jamMasuk: "-",
@@ -247,14 +422,22 @@ export async function POST(req: NextRequest) {
       }
 
       // Recalculate teacher summary totals
-      const hadirCount = teacher.dailyDetails.filter((d) => d.status === "hadir" || d.status === "terlambat").length;
-      const telatCount = teacher.dailyDetails.filter((d) => d.status === "terlambat").length;
-      const totalLateMins = teacher.dailyDetails.reduce((sum, d) => sum + (d.terlambatMenit || 0), 0);
+      const hadirCount = teacher.dailyDetails.filter(
+        (d) => d.status === "hadir" || d.status === "terlambat"
+      ).length;
+      const telatCount = teacher.dailyDetails.filter(
+        (d) => d.status === "terlambat"
+      ).length;
+      const totalLateMins = teacher.dailyDetails.reduce(
+        (sum, d) => sum + (d.terlambatMenit || 0),
+        0
+      );
 
       teacher.totalHadir = hadirCount;
       teacher.totalTerlambatHari = telatCount;
       teacher.totalMenitTerlambat = totalLateMins;
-      teacher.persentaseTerlambat = hadirCount > 0 ? Number(((telatCount / hadirCount) * 100).toFixed(1)) : 0;
+      teacher.persentaseTerlambat =
+        hadirCount > 0 ? Number(((telatCount / hadirCount) * 100).toFixed(1)) : 0;
       teacher.statusKkm = teacher.persentaseTerlambat >= 50.0 ? "TIDAK KKM" : "KKM";
 
       results.push({
@@ -269,9 +452,46 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Recalculate overall period report statistics
-    currentReport.guruTidakKkmCount = currentReport.teachers.filter((t) => t.statusKkm === "TIDAK KKM").length;
+    currentReport.guruTidakKkmCount = currentReport.teachers.filter(
+      (t) => t.statusKkm === "TIDAK KKM"
+    ).length;
+    const totalSemuaHadir = currentReport.teachers.reduce(
+      (sum, t) => sum + t.totalHadir,
+      0
+    );
+    const totalPossibleAttendance = currentReport.teachers.length * currentReport.totalHariEfektif;
+    currentReport.rataRataKehadiran = totalPossibleAttendance > 0
+      ? Number(((totalSemuaHadir / totalPossibleAttendance) * 100).toFixed(1))
+      : 100;
 
     payloadData.reports[reportIndex] = currentReport;
+
+    // Clean up older reports if we just created a separate period:
+    // Remove accidentally merged November dates from older reports
+    if (isCustomDateRange) {
+      payloadData.reports.forEach((rep) => {
+        if (rep.id !== currentReport.id && rep.cutOffEnd < reqStartDate) {
+          rep.teachers.forEach((t) => {
+            t.dailyDetails = t.dailyDetails.filter((d) => {
+              const dIso = d.tanggal.includes("/")
+                ? d.tanggal.split("/").reverse().join("-")
+                : d.tanggal;
+              return dIso < reqStartDate;
+            });
+            // Recount totals for the old report
+            const hCount = t.dailyDetails.filter((d) => d.status === "hadir" || d.status === "terlambat").length;
+            const tCount = t.dailyDetails.filter((d) => d.status === "terlambat").length;
+            const tLate = t.dailyDetails.reduce((sum, d) => sum + (d.terlambatMenit || 0), 0);
+            t.totalHadir = hCount;
+            t.totalTerlambatHari = tCount;
+            t.totalMenitTerlambat = tLate;
+            t.persentaseTerlambat = hCount > 0 ? Number(((tCount / hCount) * 100).toFixed(1)) : 0;
+            t.statusKkm = t.persentaseTerlambat >= 50.0 ? "TIDAK KKM" : "KKM";
+          });
+          rep.guruTidakKkmCount = rep.teachers.filter((t) => t.statusKkm === "TIDAK KKM").length;
+        }
+      });
+    }
 
     // 4. Save updated reports back to Supabase Cloud
     const { error: updateErr } = await supabase.from("master_perspektif").upsert({
@@ -292,10 +512,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Berhasil memproses ${results.length} rekaman presensi.`,
+      message: `Berhasil membuat/memperbarui periode presensi: ${currentReport.bulan} ${currentReport.tahun}`,
       processedCount: results.length,
       results,
-      activePeriod: currentReport.judul || currentReport.bulan,
+      activePeriodId: currentReport.id,
+      activePeriod: `${currentReport.bulan} ${currentReport.tahun}`,
       syncedAt: new Date().toISOString(),
     });
   } catch (err: any) {
