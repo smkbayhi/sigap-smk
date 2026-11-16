@@ -11,7 +11,7 @@ const CONFIG_PATH = path.join(__dirname, "config.json");
 const STATE_PATH = path.join(__dirname, "last-sync.json");
 
 let config = {
-  machineIp: "192.168.1.202",
+  machineIp: "192.168.1.201",
   machinePort: 4370,
   commKey: 0,
   timeout: 8000,

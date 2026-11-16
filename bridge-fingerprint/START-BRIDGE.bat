@@ -1,11 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
-title SIGAP-SMK - Fingerprint Auto-Sync Daemon
+title SIGAP-SMK - Fingerprint Auto-Sync Daemon (192.168.1.201)
 color 0a
 
 echo ================================================================
 echo    SIGAP-SMK - DAEMON SINKRONISASI FINGERPRINT OTOMATIS
-echo    Mesin : InterActive X 1800 (192.168.1.202)
+echo    Mesin : InterActive X 1800 (192.168.1.201)
 echo ================================================================
 echo.
 

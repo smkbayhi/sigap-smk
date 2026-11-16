@@ -9,7 +9,7 @@ const os = require("os");
 const { execSync } = require("child_process");
 
 let config = {
-  machineIp: "192.168.1.202",
+  machineIp: "192.168.1.201",
   machinePort: 4370,
   commKey: 0,
   timeout: 10000,

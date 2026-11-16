@@ -1,11 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
-title SIGAP-SMK - Tes Mesin Fingerprint (192.168.1.202)
+title SIGAP-SMK - Tes Mesin Fingerprint (192.168.1.201)
 color 0b
 
 echo =======================================================
 echo    SIGAP-SMK - TES KONEKSI MESIN FINGERPRINT
-echo    Mesin: InterActive X 1800 (192.168.1.202)
+echo    Mesin: InterActive X 1800 (192.168.1.201)
 echo =======================================================
 echo.
 
