@@ -15,7 +15,7 @@ let config = {
   machineIp: "192.168.1.201",
   machinePort: 4370,
   timeout: 10000,
-  sigapApiUrl: "http://localhost:3000/api/presensi/realtime",
+  sigapApiUrl: "https://sigap-smk.vercel.app/api/presensi/realtime",
   secretToken: "sigap-smk-fingerprint-2026",
 };
 

@@ -4,7 +4,7 @@
   "commKey": 0,
   "protocol": "tcp",
   "timeout": 8000,
-  "sigapApiUrl": "http://localhost:3000/api/presensi/realtime",
+  "sigapApiUrl": "https://sigap-smk.vercel.app/api/presensi/realtime",
   "secretToken": "sigap-smk-fingerprint-2026",
   "syncIntervalSeconds": 15,
   "enableRealtimeListener": true
