@@ -5,7 +5,7 @@ color 0a
 
 echo ================================================================
 echo    SIGAP-SMK - DAEMON SINKRONISASI FINGERPRINT OTOMATIS
-echo    Mesin : InterActive X 1800 (192.168.1.201)
+echo    Mesin : InterActive X 1800 (192.168.1.201:4370)
 echo ================================================================
 echo.
 
@@ -22,8 +22,7 @@ if %errorlevel% neq 0 (
         set "PATH=%LOCALAPPDATA%\Programs\node;%PATH%"
     ) else (
         echo [ERROR] Node.js belum terdeteksi di sistem PATH!
-        echo Jika Anda baru saja menginstal Node.js, silakan restart komputer Anda,
-        echo atau pastikan Node.js terpasang di C:\Program Files\nodejs.
+        echo Pastikan Node.js terpasang di C:\Program Files\nodejs.
         echo.
         pause
         exit /b 1
@@ -34,13 +33,8 @@ echo [OK] Node.js terdeteksi:
 node -v
 echo.
 
-if not exist "node_modules\zklib-js" (
-    echo Menginstal pustaka zklib-js otomatis...
-    call npm install
-)
-
-echo Memulai sinkronisasi otomatis ke SIGAP-SMK...
-echo Biarkan jendela ini tetap terbuka saat jam kerja sekolah.
+echo Memulai daemon sinkronisasi realtime ke SIGAP-SMK...
+echo Biarkan jendela ini tetap terbuka selama jam operasional sekolah.
 echo.
 node sync-service.js
 

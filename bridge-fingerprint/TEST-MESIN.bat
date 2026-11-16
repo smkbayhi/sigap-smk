@@ -22,8 +22,7 @@ if %errorlevel% neq 0 (
         set "PATH=%LOCALAPPDATA%\Programs\node;%PATH%"
     ) else (
         echo [ERROR] Node.js belum terdeteksi di sistem PATH!
-        echo Jika Anda baru saja menginstal Node.js, silakan restart komputer Anda,
-        echo atau pastikan Node.js terpasang di C:\Program Files\nodejs.
+        echo Silakan pastikan Node.js terinstal di laptop Anda.
         echo.
         pause
         exit /b 1
@@ -34,14 +33,7 @@ echo [OK] Node.js terdeteksi:
 node -v
 echo.
 
-echo 1. Memeriksa ketersediaan pustaka ZKLib...
-if not exist "node_modules\zklib-js" (
-    echo Menginstal pustaka zklib-js otomatis...
-    call npm install
-)
-
-echo.
-echo 2. Menghubungkan ke mesin 192.168.1.202:4370...
+echo Menjalankan diagnostik dan tes koneksi mesin...
 echo.
 node test-koneksi.js
 
