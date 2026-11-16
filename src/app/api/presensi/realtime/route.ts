@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { KNOWN_TEACHERS } from "@/lib/presensiParser";
-import { PresensiPeriodReport, TeacherAttendanceSummary, DailyAttendanceRecord, StatusKehadiran } from "@/lib/presensi.types";
+import { PresensiPeriodReport, DailyAttendanceRecord, StatusKehadiran } from "@/lib/presensi.types";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://anmnxwalcohmssaaaocx.supabase.co";
 const supabaseAnonKey =
@@ -17,8 +20,7 @@ const SECRET_TOKEN = process.env.FINGERPRINT_SECRET_TOKEN || "sigap-smk-fingerpr
 const JAM_MASUK_STANDAR_MENIT = 6 * 60 + 50; // 410 menit (06:50)
 
 // Pemetaan Resmi ID & Nama Panggilan Mesin Fingerprint InterActive X 1800
-export const MACHINE_PIN_MAPPING: Record<string, string> = {
-  // Sesuai data mesin absensi resmi SMK Bayt Al-Hikmah:
+const MACHINE_PIN_MAPPING: Record<string, string> = {
   "11556022": "11556022", // Nurfaizah
   "nurfaizah": "11556022",
   "11861027": "11861027", // Ainiyatulfit...
@@ -61,7 +63,7 @@ export async function GET() {
   return NextResponse.json({
     status: "online",
     message: "SIGAP-SMK Realtime Fingerprint API Endpoint is active.",
-    targetMachine: "192.168.1.202:4370",
+    targetMachine: "192.168.1.201:4370",
     standardCheckInTime: "06:50 WIB",
     timestamp: new Date().toISOString(),
   });
@@ -71,7 +73,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Basic token validation (optional safety)
+    // Basic token validation
     if (body.secret && body.secret !== SECRET_TOKEN) {
       return NextResponse.json({ error: "Invalid secret token" }, { status: 401 });
     }
@@ -113,7 +115,7 @@ export async function POST(req: NextRequest) {
 
     if (!payloadData.reports || payloadData.reports.length === 0) {
       return NextResponse.json(
-        { error: "No active presensi report found in Supabase. Please generate/upload period first." },
+        { error: "Belum ada periode presensi aktif di database. Silakan buat/buka periode presensi terlebih dahulu di webapp." },
         { status: 404 }
       );
     }
@@ -141,7 +143,6 @@ export async function POST(req: NextRequest) {
 
       if (!rawUserId || !rawAttTime) continue;
 
-      // Parse Date & Time: format can be "YYYY-MM-DD HH:mm:ss" or ISO string
       let dateStr = "";
       let timeStr = "";
 
@@ -158,7 +159,6 @@ export async function POST(req: NextRequest) {
       if (!dateStr || !timeStr) continue;
 
       // Find teacher in currentReport:
-      // Priority 1: Check MACHINE_PIN_MAPPING (accurate mapping from official machine)
       const mappedPin =
         MACHINE_PIN_MAPPING[rawUserId] ||
         MACHINE_PIN_MAPPING[rawUserId.toLowerCase()];
@@ -167,7 +167,6 @@ export async function POST(req: NextRequest) {
         ? currentReport.teachers.find((t) => String(t.pin).trim() === mappedPin)
         : null;
 
-      // Priority 2: Direct match by PIN or User ID
       if (!teacher) {
         teacher = currentReport.teachers.find(
           (t) =>
@@ -176,7 +175,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Priority 3: Check KNOWN_TEACHERS aliases
       if (!teacher) {
         const knownMaster = KNOWN_TEACHERS.find(
           (km) =>
@@ -194,27 +192,30 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // If still not matched, log warning
       if (!teacher) {
         console.warn(`[API Realtime Presensi] Unknown machine User ID: "${rawUserId}" at ${rawAttTime}`);
         continue;
       }
 
-      // Determine Check-in vs Check-out
-      // Morning punch (< 11:30 WIB) -> Check-In
-      // Afternoon punch (>= 11:30 WIB) -> Check-Out
       const punchMinutes = timeToMinutes(timeStr);
       const isMorning = punchMinutes < 11 * 60 + 30; // before 11:30
 
       // Find or create daily detail for this date
       let daily = teacher.dailyDetails.find((d) => d.tanggal === dateStr);
+      const dayDate = new Date(dateStr);
+      const tanggalNum = isNaN(dayDate.getDate()) ? 1 : dayDate.getDate();
+
       if (!daily) {
         daily = {
           tanggal: dateStr,
-          hari: new Intl.DateTimeFormat("id-ID", { weekday: "long" }).format(new Date(dateStr)),
-          checkIn: "-",
-          checkOut: "-",
-          menitKeterlambatan: 0,
+          tanggalNum,
+          hari: new Intl.DateTimeFormat("id-ID", { weekday: "long" }).format(dayDate),
+          jadwalMasuk: "06:50",
+          jadwalPulang: "13:30",
+          jamMasuk: "-",
+          jamPulang: "-",
+          terlambatMenit: 0,
+          pulangAwalMenit: 0,
           status: "alpha",
           keterangan: "-",
         };
@@ -223,35 +224,32 @@ export async function POST(req: NextRequest) {
 
       let logType: "checkIn" | "checkOut" = "checkIn";
       let statusResult: StatusKehadiran = daily.status;
-      let lateMinutes = daily.menitKeterlambatan;
+      let lateMinutes = daily.terlambatMenit;
 
       if (isMorning) {
         logType = "checkIn";
-        // If checkIn was "-" or new punch is earlier, update checkIn
-        if (daily.checkIn === "-" || timeToMinutes(timeStr) < timeToMinutes(daily.checkIn)) {
-          daily.checkIn = timeStr;
+        if (daily.jamMasuk === "-" || timeToMinutes(timeStr) < timeToMinutes(daily.jamMasuk)) {
+          daily.jamMasuk = timeStr;
           lateMinutes = Math.max(0, punchMinutes - JAM_MASUK_STANDAR_MENIT);
-          daily.menitKeterlambatan = lateMinutes;
+          daily.terlambatMenit = lateMinutes;
           statusResult = lateMinutes > 0 ? "terlambat" : "hadir";
           daily.status = statusResult;
           daily.keterangan = lateMinutes > 0 ? `Terlambat ${lateMinutes} menit` : "Tepat waktu";
         }
       } else {
         logType = "checkOut";
-        // Afternoon punch: check-out
-        if (daily.checkOut === "-" || timeToMinutes(timeStr) > timeToMinutes(daily.checkOut)) {
-          daily.checkOut = timeStr;
-          if (daily.status === "alpha" && daily.checkIn !== "-") {
-            daily.status = daily.menitKeterlambatan > 0 ? "terlambat" : "hadir";
+        if (daily.jamPulang === "-" || timeToMinutes(timeStr) > timeToMinutes(daily.jamPulang)) {
+          daily.jamPulang = timeStr;
+          if (daily.status === "alpha" && daily.jamMasuk !== "-") {
+            daily.status = daily.terlambatMenit > 0 ? "terlambat" : "hadir";
           }
         }
       }
 
       // Recalculate teacher summary totals
-      const validDaily = teacher.dailyDetails.filter((d) => d.checkIn !== "-" || d.status !== "alpha");
       const hadirCount = teacher.dailyDetails.filter((d) => d.status === "hadir" || d.status === "terlambat").length;
       const telatCount = teacher.dailyDetails.filter((d) => d.status === "terlambat").length;
-      const totalLateMins = teacher.dailyDetails.reduce((sum, d) => sum + (d.menitKeterlambatan || 0), 0);
+      const totalLateMins = teacher.dailyDetails.reduce((sum, d) => sum + (d.terlambatMenit || 0), 0);
 
       teacher.totalHadir = hadirCount;
       teacher.totalTerlambatHari = telatCount;
@@ -271,7 +269,6 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Recalculate overall period report statistics
-    currentReport.totalHadir = currentReport.teachers.reduce((sum, t) => sum + t.totalHadir, 0);
     currentReport.guruTidakKkmCount = currentReport.teachers.filter((t) => t.statusKkm === "TIDAK KKM").length;
 
     payloadData.reports[reportIndex] = currentReport;
@@ -295,10 +292,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully processed ${results.length} punch log(s)`,
+      message: `Berhasil memproses ${results.length} rekaman presensi.`,
       processedCount: results.length,
       results,
-      activePeriod: currentReport.namaPeriode || currentReport.bulan,
+      activePeriod: currentReport.judul || currentReport.bulan,
       syncedAt: new Date().toISOString(),
     });
   } catch (err: any) {

@@ -35,6 +35,7 @@ import {
   Trash2,
   Cloud,
   AlertCircle,
+  Fingerprint,
 } from "lucide-react";
 
 export default function PresensiPage() {
@@ -104,6 +105,38 @@ export default function PresensiPage() {
   const [uploadBulan, setUploadBulan] = useState("Oktober - November");
   const [uploadTahun, setUploadTahun] = useState(2026);
   const [dragActive, setDragActive] = useState(false);
+  const [isPullingMachine, setIsPullingMachine] = useState(false);
+
+  const handlePullFromMachine = async () => {
+    setIsPullingMachine(true);
+    addToast("info", "Menghubungi Mesin...", "Sedang menyambungkan ke mesin fingerprint 192.168.1.201...");
+    try {
+      const res = await fetch("/api/presensi/sync-machine", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        await syncFromCloud();
+        addToast(
+          "success",
+          "Tarik Mesin Berhasil",
+          data.message || `Berhasil menarik ${data.todayPunchesCount || 0} presensi dari mesin fingerprint!`
+        );
+      } else {
+        addToast(
+          "warning",
+          "Mesin Fingerprint",
+          data.error || data.message || "Gagal terhubung ke mesin 192.168.1.201. Pastikan kabel LAN terhubung."
+        );
+      }
+    } catch (err: any) {
+      addToast(
+        "error",
+        "Koneksi Gagal",
+        "Tidak dapat menjangkau mesin. Pastikan kabel LAN terpasang ke port Ethernet laptop."
+      );
+    } finally {
+      setIsPullingMachine(false);
+    }
+  };
 
   // If regular teacher, locked strictly to their personal record; if admin, allow switching
   const selectedTeacher = !canManageAllPresensi && myTeacherRecord
@@ -296,6 +329,19 @@ Wassalamu’alaikum Wr. Wb.
               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block ml-0.5" title="Tersambung Cloud" />
             )}
           </button>
+
+          {/* Direct Pull from Physical Fingerprint Machine */}
+          {canManageAllPresensi && (
+            <button
+              onClick={handlePullFromMachine}
+              disabled={isPullingMachine}
+              title="Tarik log sidik jari hari ini langsung dari Mesin InterActive X 1800 (192.168.1.201:4370)"
+              className="py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <Fingerprint className={`w-3.5 h-3.5 text-amber-700 ${isPullingMachine ? "animate-pulse" : ""}`} />
+              <span className="hidden sm:inline">{isPullingMachine ? "Menarik Mesin..." : "Tarik Data Mesin"}</span>
+            </button>
+          )}
 
           {canManageAllPresensi && (
             <button
