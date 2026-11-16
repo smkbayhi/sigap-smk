@@ -218,6 +218,7 @@ export default function PresensiPage() {
     const bio = getTeacherBiodata(teacher);
     const cleanPhone = bio.matchedUser?.phone ? bio.matchedUser.phone.replace(/\D/g, "") : "";
     const waBase = cleanPhone ? `https://wa.me/${cleanPhone}` : `https://wa.me/`;
+    const niyUser = bio.matchedUser?.niy || bio.displayPin || teacher.pin;
 
     const lupaFingerRow = teacher.totalLupaFinger && teacher.totalLupaFinger > 0
       ? `• Lupa Checklock (Finger): ${teacher.totalLupaFinger} Hari (Diakui Hadir, Alpha = 0)\n`
@@ -230,7 +231,8 @@ Tercatat ada ${teacher.totalLupaFinger} hari di mana Anda hadir bertugas namun t
 
     const text = `Assalamu’alaikum Wr. Wb.
 Yth. Ust/Ustzh ${bio.displayName},
-Kami sampaikan rekapitulasi kehadiran Anda pada periode ${currentReport.rentangTanggal}:
+
+Berikut kami sampaikan rekapitulasi kehadiran Anda pada periode ${currentReport.rentangTanggal}:
 • Total Hari Kerja: ${teacher.totalHariKerja} Hari
 • Total Hadir: ${teacher.totalHadir} Hari
 • Terlambat: ${teacher.totalTerlambatHari} Hari (${teacher.totalMenitTerlambat} menit)
@@ -240,9 +242,15 @@ ${lupaFingerRow}• Status Kedisiplinan: ${teacher.statusKkm}
 ${lupaFingerNote}
 ${
   teacher.statusKkm === "TIDAK KKM"
-    ? "⚠️ PERINGATAN: Keterlambatan Anda mencapai/melebihi ambang batas 50%. Mohon untuk meningkatkan ketaatan jam kerja demi ketertiban bersama."
-    : "Alhamdulillah, ketaatan jam kerja Anda telah memenuhi standar KKM. Pertahankan kedisiplinan ini."
+    ? "⚠️ PERINGATAN: Keterlambatan Anda mencapai/melebihi ambang batas 50%. Mohon untuk meningkatkan ketaatan jam kerja demi ketertiban bersama.\n"
+    : "Alhamdulillah, ketaatan jam kerja Anda telah memenuhi standar KKM. Pertahankan kedisiplinan ini.\n"
 }
+🌐 MONITORING MANDIRI & SLIP PRESENSI:
+Bapak/Ibu dapat memantau rincian kehadiran harian secara mandiri serta mencetak slip presensi melalui webapp SIGAP SMK:
+🔗 Link: https://sigap-smk.vercel.app/presensi
+🔑 Panduan Login Pengguna:
+• Username : ${niyUser} (NIY)
+• Password : ${niyUser} (NIY)
 
 Demikian kami sampaikan untuk evaluasi bersama, terima kasih.
 Wassalamu’alaikum Wr. Wb.
