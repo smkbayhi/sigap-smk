@@ -270,145 +270,146 @@ Wassalamu’alaikum Wr. Wb.
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-xs">
-        <div>
-          {canManageAllPresensi && (
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                Modul Tata Usaha & Ketenagaan
-              </span>
-              <span className="text-gray-400 text-xs">•</span>
-              <span className="text-xs text-gray-500 font-medium">
-                Fingerprint Engine Terintegrasi
-              </span>
+      {/* Top Header Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 sm:p-6 space-y-4">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          {/* Left Title Info */}
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100/90 flex items-center justify-center shrink-0 shadow-2xs">
+              <FileSpreadsheet className="w-6 h-6" />
             </div>
-          )}
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <FileSpreadsheet className="w-6 h-6 text-brand-700 shrink-0" />
-            {canManageAllPresensi
-              ? "Rekapitulasi Presensi & Kinerja Guru"
-              : "Monitoring Presensi & Kinerja Pribadi"}
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            {canManageAllPresensi ? (
-              <>
-                Periode Aktif:{" "}
-                <strong className={currentReport ? "text-slate-800" : "text-gray-400 italic"}>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                {canManageAllPresensi ? (
+                  <span className="bg-emerald-100/80 text-emerald-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-emerald-200/60">
+                    Modul Tata Usaha & Ketenagaan
+                  </span>
+                ) : (
+                  <span className="bg-blue-100/80 text-blue-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-blue-200/60">
+                    Monitoring Mandiri
+                  </span>
+                )}
+                <span className="text-slate-300 text-xs hidden sm:inline">•</span>
+                <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
+                  Fingerprint Engine Terintegrasi
+                </span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                {canManageAllPresensi
+                  ? "Rekapitulasi Presensi & Kinerja Guru"
+                  : "Monitoring Presensi & Kinerja Pribadi"}
+              </h1>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-slate-500 font-medium">Periode:</span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-200/70">
+                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
                   {currentReport ? currentReport.rentangTanggal : "Tidak Ada Periode Aktif"}
-                </strong>
-              </>
-            ) : (
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Action Controls Group */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 pt-2 xl:pt-0">
+            {/* Period Selector & Delete */}
+            {allReports.length > 0 && currentReport && (
+              <div className="flex items-center gap-1 bg-slate-50 p-0.5 rounded-xl border border-slate-200/80">
+                <select
+                  value={currentReport.id}
+                  onChange={(e) => selectReport(e.target.value)}
+                  className="h-9 text-xs px-3 bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  {allReports.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.bulan} {r.tahun} {canManageAllPresensi ? `(${r.teachers.length} Staf)` : ""}
+                    </option>
+                  ))}
+                </select>
+
+                {canManageAllPresensi && (
+                  <button
+                    onClick={async () => {
+                      const confirmMsg =
+                        allReports.length > 1
+                          ? `Apakah Anda yakin ingin menghapus arsip periode "${currentReport.bulan} ${currentReport.tahun}" (${currentReport.teachers.length} guru/pegawai)?\n\nData yang dihapus akan otomatis tersinkronisasi ke Cloud.`
+                          : `Apakah Anda yakin ingin menghapus seluruh data arsip periode "${currentReport.bulan} ${currentReport.tahun}" dari database?\n\nSetelah dihapus, data absensi ini akan hilang dari sistem dan Cloud.`;
+                      if (confirm(confirmMsg)) {
+                        await deleteReport(currentReport.id);
+                        addToast("info", "Arsip Dihapus", "Periode presensi berhasil dihapus dari sistem & database Cloud.");
+                      }
+                    }}
+                    title="Hapus arsip periode aktif ini"
+                    className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Cloud Sync Button */}
+            <button
+              onClick={async () => {
+                await syncFromCloud();
+                addToast("success", "Sinkronisasi Cloud", "Data presensi terbaru berhasil dimuat dari Cloud Database.");
+              }}
+              disabled={isSyncing}
+              title={lastSyncedAt ? `Terakhir sinkron: ${new Date(lastSyncedAt).toLocaleTimeString("id-ID")}` : "Sinkronkan dengan Cloud"}
+              className="h-9 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isSyncing ? "animate-spin text-emerald-600" : ""}`} />
+              <span className="hidden sm:inline">{isSyncing ? "Sinkron..." : "Sinkron Cloud"}</span>
+              {isCloudSynced && !isSyncing && (
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block ml-0.5" title="Tersambung Cloud" />
+              )}
+            </button>
+
+            {/* Tarik Mesin Button */}
+            {canManageAllPresensi && (
+              <button
+                onClick={() => setShowMachineModal(true)}
+                disabled={isPullingMachine}
+                title="Tarik log sidik jari dari Mesin InterActive X 1800 (192.168.1.201:4370)"
+                className="h-9 px-3.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/90 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <Fingerprint className={`w-4 h-4 text-amber-700 ${isPullingMachine ? "animate-pulse" : ""}`} />
+                <span>{isPullingMachine ? "Menarik Mesin..." : "Tarik Data Mesin"}</span>
+              </button>
+            )}
+
+            {/* Upload Mesin Button */}
+            {canManageAllPresensi && (
+              <button
+                onClick={() => setActiveTab("upload")}
+                className="h-9 px-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <UploadCloud className="w-4 h-4 text-slate-300" />
+                <span>Upload Mesin</span>
+              </button>
+            )}
+
+            {currentReport && (
               <>
-                Evaluasi kehadiran mandiri periode:{" "}
-                <strong className={currentReport ? "text-slate-800" : "text-gray-400 italic"}>
-                  {currentReport ? currentReport.rentangTanggal : "Tidak Ada Periode Aktif"}
-                </strong>
-                {" "}untuk peningkatan kedisiplinan kerja.
+                {canManageAllPresensi && (
+                  <button
+                    onClick={handleExportExcel}
+                    className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    <span>Unduh Excel</span>
+                  </button>
+                )}
+
+                <Link
+                  href="/presensi/print"
+                  className="h-9 px-3.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>{canManageAllPresensi ? "Cetak PDF" : "Cetak Slip Presensi"}</span>
+                </Link>
               </>
             )}
-          </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 shrink-0">
-          {/* Period Selector & Delete Button */}
-          {allReports.length > 0 && currentReport && (
-            <div className="flex items-center gap-1">
-              <select
-                value={currentReport.id}
-                onChange={(e) => selectReport(e.target.value)}
-                className="text-xs py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-600 focus:outline-none cursor-pointer"
-              >
-                {allReports.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.bulan} {r.tahun} {canManageAllPresensi ? `(${r.teachers.length} Staf)` : ""}
-                  </option>
-                ))}
-              </select>
-
-              {canManageAllPresensi && (
-                <button
-                  onClick={async () => {
-                    const confirmMsg =
-                      allReports.length > 1
-                        ? `Apakah Anda yakin ingin menghapus arsip periode "${currentReport.bulan} ${currentReport.tahun}" (${currentReport.teachers.length} guru/pegawai)?\n\nData yang dihapus akan otomatis tersinkronisasi ke Cloud.`
-                        : `Apakah Anda yakin ingin menghapus seluruh data arsip periode "${currentReport.bulan} ${currentReport.tahun}" dari database?\n\nSetelah dihapus, data absensi ini akan hilang dari sistem dan Cloud.`;
-                    if (confirm(confirmMsg)) {
-                      await deleteReport(currentReport.id);
-                      addToast("info", "Arsip Dihapus", "Periode presensi berhasil dihapus dari sistem & database Cloud.");
-                    }
-                  }}
-                  title="Hapus arsip periode aktif ini"
-                  className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Cloud Sync Status & Manual Refresh */}
-          <button
-            onClick={async () => {
-              await syncFromCloud();
-              addToast("success", "Sinkronisasi Cloud", "Data presensi terbaru berhasil dimuat dari Cloud Database.");
-            }}
-            disabled={isSyncing}
-            title={lastSyncedAt ? `Terakhir sinkron: ${new Date(lastSyncedAt).toLocaleTimeString("id-ID")}` : "Sinkronkan dengan Cloud"}
-            className="py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${isSyncing ? "animate-spin text-emerald-600" : ""}`} />
-            <span className="hidden sm:inline">{isSyncing ? "Sinkronisasi..." : "Sinkron Cloud"}</span>
-            {isCloudSynced && !isSyncing && (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block ml-0.5" title="Tersambung Cloud" />
-            )}
-          </button>
-
-          {/* Direct Pull from Physical Fingerprint Machine */}
-          {canManageAllPresensi && (
-            <button
-              onClick={() => setShowMachineModal(true)}
-              disabled={isPullingMachine}
-              title="Tarik log sidik jari dari Mesin InterActive X 1800 (192.168.1.201:4370) berdasarkan rentang tanggal"
-              className="py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <Fingerprint className={`w-3.5 h-3.5 text-amber-700 ${isPullingMachine ? "animate-pulse" : ""}`} />
-              <span className="hidden sm:inline">{isPullingMachine ? "Menarik Mesin..." : "Tarik Data Mesin"}</span>
-            </button>
-          )}
-
-          {canManageAllPresensi && (
-            <button
-              onClick={() => setActiveTab("upload")}
-              className="py-2 px-3.5 bg-brand-800 hover:bg-brand-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-            >
-              <UploadCloud className="w-4 h-4" />
-              <span>Upload Mesin</span>
-            </button>
-          )}
-
-          {currentReport && (
-            <>
-              {canManageAllPresensi && (
-                <button
-                  onClick={handleExportExcel}
-                  className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-                >
-                  <FileSpreadsheet className="w-4 h-4" />
-                  <span>Unduh Excel</span>
-                </button>
-              )}
-
-              <Link
-                href="/presensi/print"
-                className="py-2 px-3.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                <span>{canManageAllPresensi ? "Cetak PDF" : "Cetak Slip Presensi"}</span>
-              </Link>
-            </>
-          )}
+          </div>
         </div>
       </div>
 
@@ -456,64 +457,75 @@ Wassalamu’alaikum Wr. Wb.
             /* 4 Administrative School-Wide Stat Cards */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Card 1: Total Guru */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100/80 flex items-center justify-center shrink-0">
                   <Users className="w-6 h-6" />
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Total Pegawai</p>
-                  <h3 className="text-2xl font-black text-gray-900 mt-0.5">
-                    {currentReport.totalGuru}{" "}
-                    <span className="text-xs font-normal text-gray-500">Guru/Staf</span>
-                  </h3>
-                  <p className="text-[11px] text-gray-400 mt-0.5">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Total Pegawai
+                  </p>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                      {currentReport.totalGuru}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500">Guru/Staf</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">
                     {currentReport.totalHariEfektif} Hari Kerja Efektif
                   </p>
                 </div>
               </div>
 
               {/* Card 2: Rata-Rata Kehadiran */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 border border-blue-100/80 flex items-center justify-center shrink-0">
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Rata-Rata Kehadiran</p>
-                  <h3 className="text-2xl font-black text-blue-900 mt-0.5">
-                    {currentReport.rataRataKehadiran}%
-                  </h3>
-                  <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5 mt-0.5">
-                    <TrendingUp className="w-3 h-3" /> Sangat Baik
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Rata-Rata Kehadiran
+                  </p>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="text-2xl sm:text-3xl font-black text-blue-900 tracking-tight">
+                      {currentReport.rataRataKehadiran}%
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1 mt-0.5">
+                    <TrendingUp className="w-3 h-3 text-emerald-600" />
+                    <span>Sangat Baik</span>
                   </p>
                 </div>
               </div>
 
               {/* Card 3: Peringatan Tidak KKM (Terlambat >= 50%) */}
               <div
-                className={`p-5 rounded-2xl border shadow-xs flex items-center gap-4 transition-all ${
+                className={`bg-white p-5 rounded-2xl border shadow-xs hover:shadow-sm transition-all flex items-center gap-4 ${
                   currentReport.guruTidakKkmCount > 0
-                    ? "bg-rose-50/80 border-rose-200 text-rose-900"
-                    : "bg-white border-gray-200 text-gray-900"
+                    ? "border-rose-300 ring-1 ring-rose-200/50"
+                    : "border-slate-200/80"
                 }`}
               >
                 <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${
                     currentReport.guruTidakKkmCount > 0
-                      ? "bg-rose-600 text-white animate-pulse"
-                      : "bg-gray-100 text-gray-500"
+                      ? "bg-rose-50 text-rose-600 border-rose-100"
+                      : "bg-slate-50 text-slate-500 border-slate-100"
                   }`}
                 >
                   <AlertTriangle className="w-6 h-6" />
                 </div>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-rose-800">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-rose-700">
                     Tidak KKM (Telat ≥ 50%)
                   </p>
-                  <h3 className="text-2xl font-black mt-0.5 text-rose-700">
-                    {currentReport.guruTidakKkmCount}{" "}
-                    <span className="text-xs font-normal">Guru Perlu Pembinaan</span>
-                  </h3>
-                  <p className="text-[11px] text-rose-600 mt-0.5">
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="text-2xl sm:text-3xl font-black text-rose-600 tracking-tight">
+                      {currentReport.guruTidakKkmCount}
+                    </span>
+                    <span className="text-xs font-semibold text-rose-700/80">Guru Perlu Pembinaan</span>
+                  </div>
+                  <p className="text-[11px] text-rose-600 font-medium mt-0.5 truncate">
                     {currentReport.guruTidakKkmCount > 0
                       ? "Wajib Evaluasi & Bimbingan TU"
                       : "Seluruh guru memenuhi KKM"}
@@ -522,17 +534,21 @@ Wassalamu’alaikum Wr. Wb.
               </div>
 
               {/* Card 4: Total Menit Keterlambatan */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition-all flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 border border-amber-100/80 flex items-center justify-center shrink-0">
                   <Clock className="w-6 h-6" />
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Total Akumulasi Telat</p>
-                  <h3 className="text-2xl font-black text-amber-900 mt-0.5">
-                    {currentReport.teachers.reduce((acc, t) => acc + t.totalMenitTerlambat, 0)}{" "}
-                    <span className="text-xs font-normal text-gray-500">Menit</span>
-                  </h3>
-                  <p className="text-[11px] text-gray-400 mt-0.5">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Akumulasi Keterlambatan
+                  </p>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="text-2xl sm:text-3xl font-black text-amber-900 tracking-tight">
+                      {currentReport.teachers.reduce((acc, t) => acc + t.totalMenitTerlambat, 0)}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500">Menit</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">
                     Rerata{" "}
                     {(
                       currentReport.teachers.reduce((acc, t) => acc + t.totalMenitTerlambat, 0) /
@@ -699,30 +715,32 @@ Wassalamu’alaikum Wr. Wb.
           {/* ALERTS & REFLECTION BANNERS */}
           {canManageAllPresensi && currentReport.guruTidakKkmCount > 0 && (
             /* School-Wide High Alert Banner (Only for Kepsek & TU) */
-            <div className="bg-gradient-to-r from-rose-900 via-rose-800 to-red-900 rounded-2xl p-5 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-gradient-to-r from-slate-950 via-rose-950 to-slate-900 border border-rose-900/60 rounded-2xl p-4 sm:p-5 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <ShieldAlert className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-400/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <ShieldAlert className="w-5 h-5 text-rose-300" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] bg-rose-500/80 font-black px-2 py-0.5 rounded tracking-wider uppercase">
+                    <span className="text-[10px] bg-rose-500/30 text-rose-200 border border-rose-400/30 font-extrabold px-2 py-0.5 rounded tracking-wider uppercase">
                       Peringatan Kedisiplinan Kerja
                     </span>
-                    <span className="text-xs text-rose-200">•</span>
-                    <span className="text-xs text-rose-200">
+                    <span className="text-xs text-rose-300">•</span>
+                    <span className="text-xs text-rose-200 font-medium">
                       {currentReport.rentangTanggal}
                     </span>
                   </div>
-                  <h4 className="text-base font-bold mt-1">
+                  <h4 className="text-sm sm:text-base font-bold text-white mt-1">
                     Terdapat {currentReport.guruTidakKkmCount} Guru dengan Keterlambatan ≥ 50% (TIDAK KKM)
                   </h4>
-                  <p className="text-xs text-rose-100/90 mt-0.5 max-w-2xl">
+                  <p className="text-xs text-rose-100/90 mt-0.5 max-w-2xl leading-relaxed">
                     Guru berikut terdeteksi memiliki tingkat keterlambatan di atas batas toleransi:{" "}
-                    {currentReport.teachers
-                      .filter((t) => t.statusKkm === "TIDAK KKM")
-                      .map((t) => `${getTeacherBiodata(t).displayName} (${t.persentaseTerlambat}%)`)
-                      .join(", ")}
+                    <span className="font-semibold text-rose-100">
+                      {currentReport.teachers
+                        .filter((t) => t.statusKkm === "TIDAK KKM")
+                        .map((t) => `${getTeacherBiodata(t).displayName} (${t.persentaseTerlambat}%)`)
+                        .join(", ")}
+                    </span>
                     . Disarankan untuk segera diberikan surat pembinaan disiplin.
                   </p>
                 </div>
@@ -730,10 +748,10 @@ Wassalamu’alaikum Wr. Wb.
 
               <button
                 onClick={() => setFilterKkm("tidak_kkm")}
-                className="py-2.5 px-4 bg-white text-rose-900 hover:bg-rose-50 font-bold text-xs rounded-xl transition-all shadow-sm shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                className="py-2.5 px-4 bg-white hover:bg-rose-50 text-rose-950 font-bold text-xs rounded-xl transition-all shadow-xs shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <span>Lihat Daftar Prioritas</span>
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 text-rose-700" />
               </button>
             </div>
           )}
@@ -860,51 +878,53 @@ Wassalamu’alaikum Wr. Wb.
       {activeTab === "rekap" && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
           {/* Table Controls */}
-          <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-1 max-w-md">
               <div className="relative w-full">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Cari nama guru atau PIN..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50/50"
+                  className="w-full pl-10 pr-3.5 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50/70 focus:bg-white transition-colors"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500 font-medium">Filter KKM:</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-slate-500 font-semibold mr-1">Filter KKM:</span>
               <button
                 onClick={() => setFilterKkm("all")}
-                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   filterKkm === "all"
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 Semua ({currentReport.teachers.length})
               </button>
               <button
                 onClick={() => setFilterKkm("tidak_kkm")}
-                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   filterKkm === "tidak_kkm"
-                    ? "bg-rose-700 text-white"
-                    : "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                    ? "bg-rose-700 text-white shadow-xs"
+                    : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/80"
                 }`}
               >
                 <span>Tidak KKM</span>
-                <span className="text-[10px] bg-rose-200 text-rose-900 px-1.5 py-0.2 rounded-full font-black">
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  filterKkm === "tidak_kkm" ? "bg-rose-900 text-rose-100" : "bg-rose-200 text-rose-900"
+                }`}>
                   {currentReport.guruTidakKkmCount}
                 </span>
               </button>
               <button
                 onClick={() => setFilterKkm("kkm")}
-                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   filterKkm === "kkm"
-                    ? "bg-emerald-700 text-white"
-                    : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    ? "bg-emerald-700 text-white shadow-xs"
+                    : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/80"
                 }`}
               >
                 KKM ({currentReport.teachers.filter((t) => t.statusKkm === "KKM").length})

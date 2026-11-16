@@ -167,18 +167,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
             </div>
 
             {/* Right: Quick Action Indicators & Active User Profile */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-2.5">
               {/* Quick Status indicators for Kepsek */}
               {currentUser.role === "kepala_sekolah" && (pendingSK > 0 || pendingRKT > 0) && (
-                <div className="hidden md:flex items-center gap-2 mr-2">
+                <div className="hidden lg:flex items-center gap-2 mr-1">
                   {pendingSK > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full animate-pulse font-medium">
+                    <span className="inline-flex items-center gap-1.5 text-xs bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1 rounded-full animate-pulse font-semibold">
                       <FileCheck2 className="w-3.5 h-3.5 text-amber-600" />
                       {pendingSK} SK Menunggu TTD
                     </span>
                   )}
                   {pendingRKT > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full font-medium">
+                    <span className="inline-flex items-center gap-1.5 text-xs bg-blue-50 text-blue-900 border border-blue-200 px-3 py-1 rounded-full font-semibold">
                       <Shield className="w-3.5 h-3.5 text-blue-600" />
                       {pendingRKT} RKT Menunggu Review
                     </span>
@@ -191,7 +191,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                 <Link
                   href="/"
                   title={`${onlineCount} Guru/Staf sedang online membuka webapp saat ini`}
-                  className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition-colors shadow-2xs"
+                  className="hidden md:flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300/80 hover:bg-emerald-100 transition-colors shadow-2xs"
                 >
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
                   <span>{onlineCount} Guru Online</span>
@@ -202,7 +202,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
               {isCloudConnected ? (
                 <div 
                   title="Terhubung ke Database Cloud Supabase" 
-                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-xs"
+                  className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs"
                 >
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   <span>Supabase Cloud</span>
@@ -210,7 +210,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
               ) : (
                 <div 
                   title="Berjalan dalam Mode Penyimpanan Lokal" 
-                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-50 text-slate-600 border border-slate-200"
+                  className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200"
                 >
                   <span className="w-2 h-2 rounded-full bg-slate-400"></span>
                   <span>Lokal Mode</span>
@@ -225,7 +225,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                   }
                 }}
                 title="Reset Data Demo"
-                className="p-2 text-gray-400 hover:text-brand-700 hover:bg-brand-50 rounded-lg transition-colors cursor-pointer"
+                className="h-8 w-8 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
@@ -234,9 +234,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
               <div className="relative">
                 <button
                   onClick={() => setShowProfileModal(!showProfileModal)}
-                  className="flex items-center gap-2.5 p-1.5 sm:px-3 sm:py-1.5 bg-gray-50 hover:bg-gray-100 rounded-full border border-gray-200 transition-all text-left cursor-pointer"
+                  className="h-9 flex items-center gap-2.5 pl-1 pr-3 bg-slate-50 hover:bg-slate-100 rounded-full border border-slate-200 transition-all text-left cursor-pointer shadow-2xs"
                 >
-                  <div className="w-8 h-8 rounded-full bg-brand-700 text-white font-bold text-xs flex items-center justify-center border-2 border-gold-400 overflow-hidden shadow-sm shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-brand-700 text-white font-bold text-xs flex items-center justify-center border border-gold-400/80 overflow-hidden shadow-xs shrink-0">
                     {currentUser.name
                       .split(" ")
                       .map((n) => n[0])
@@ -244,14 +244,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                       .join("")}
                   </div>
                   <div className="hidden md:block">
-                    <div className="text-xs font-bold text-gray-900 leading-tight">
+                    <div className="text-xs font-bold text-slate-900 leading-tight">
                       {currentUser.name}
                     </div>
-                    <div className="text-[11px] text-gray-500 font-medium">
+                    <div className="text-[10.5px] text-slate-500 font-medium leading-none mt-0.5">
                       {currentUser.jabatan}
                     </div>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                 </button>
 
                 {/* Active Profile Dropdown Card */}
