@@ -31,11 +31,15 @@ const TEACHER_NAMES = {
   "12616042": "Luluk Mamlu'atus S., S.S",
   "13559090": "Yudha Prihantanto, S.Pd, M.Pd",
   "142908": "Mokhamat Ekhsan, S.Kom",
+  "14215094": "Mokhamat Ekhsan, S.Kom",
   "16402178": "Nur Afandi, S.Pd",
   "18076236": "Akhmad Khoiron, Lc",
   "2563": "Achmad Jabbar, S. Sn",
+  "19070265": "Achmad Jabbar, S. Sn",
   "3": "Moh. Nasih Aminulloh, S.Mat, M.Si",
+  "23060333": "Moh. Nasih Aminulloh, S.Mat, M.Si",
   "5399": "Muhammad Fajarul Afthon, S.Pd",
+  "22060315": "Muhammad Fajarul Afthon, S.Pd",
   "4432": "ISHANANI, S.Pd",
 };
 
@@ -99,6 +103,11 @@ function parseHexToTime(hex) {
 let lastPunches = {};
 
 async function sendToSigapApi(punch) {
+  // Filter strictly for SMK teachers (ignore other school units: SMP, SMA, Pondok)
+  if (!TEACHER_NAMES[punch.userId]) {
+    return;
+  }
+
   // Deduplicate identical punch in 30 seconds
   const punchKey = `${punch.userId}_${punch.attTime}`;
   if (lastPunches[punchKey] && Date.now() - lastPunches[punchKey] < 30000) {

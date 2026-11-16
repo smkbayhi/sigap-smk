@@ -29,11 +29,15 @@ const TEACHER_NAMES = {
   "12616042": "Luluk Mamlu'atus S., S.S",
   "13559090": "Yudha Prihantanto, S.Pd, M.Pd",
   "142908": "Mokhamat Ekhsan, S.Kom",
+  "14215094": "Mokhamat Ekhsan, S.Kom",
   "16402178": "Nur Afandi, S.Pd",
   "18076236": "Akhmad Khoiron, Lc",
   "2563": "Achmad Jabbar, S. Sn",
+  "19070265": "Achmad Jabbar, S. Sn",
   "3": "Moh. Nasih Aminulloh, S.Mat, M.Si",
+  "23060333": "Moh. Nasih Aminulloh, S.Mat, M.Si",
   "5399": "Muhammad Fajarul Afthon, S.Pd",
+  "22060315": "Muhammad Fajarul Afthon, S.Pd",
   "4432": "ISHANANI, S.Pd",
 };
 
@@ -405,11 +409,13 @@ async function main() {
 
     console.log(`📊 Ditemukan total ${allLogs.length} rekaman absensi di memori mesin.`);
 
-    // Filter logs for selected date range
+    // Filter logs for selected date range AND strictly for SMK teachers only
     const targetLogs = allLogs.filter((l) => {
       if (!l.attTime) return false;
       const logDate = l.attTime.split(" ")[0];
-      return logDate >= startDate && logDate <= endDate;
+      const isDateMatch = logDate >= startDate && logDate <= endDate;
+      const isSmkTeacher = Boolean(TEACHER_NAMES[l.userId]);
+      return isDateMatch && isSmkTeacher;
     });
 
     console.log(`\n🔍 [3/4] Rekaman presensi untuk rentang ${startDate} s/d ${endDate}: ${targetLogs.length} scan terdeteksi.`);
