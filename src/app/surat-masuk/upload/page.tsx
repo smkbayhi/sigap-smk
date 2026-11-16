@@ -78,12 +78,12 @@ export default function UploadSuratMasukPage() {
       const data = await res.json();
 
       if (data.success) {
-        setNomorSurat(data.nomor_surat || "005/4821/101.3/2026");
-        setPengirim(data.pengirim || "Dinas Pendidikan / Balai Vokasi");
+        setNomorSurat(data.nomor_surat || "");
+        setPengirim(data.pengirim || "");
         setTanggalSurat(data.tanggal_surat || new Date().toISOString().split("T")[0]);
         setPerihal(data.perihal || "");
         setRingkasan(data.ringkasan || "");
-        setTingkatUrgensi(data.tingkat_urgensi || "penting");
+        setTingkatUrgensi(data.tingkat_urgensi || "biasa");
 
         const detectedBidang = data.saran_bidang || "kurikulum";
         const matchedOfficer = users.find((u) => u.bidang === detectedBidang);
@@ -104,38 +104,31 @@ export default function UploadSuratMasukPage() {
       }
     } catch (err) {
       console.error("Gagal menjalankan AI OCR:", err);
-      // Fallback heuristics directly on client
-      const lower = fileToScan.name.toLowerCase();
-      let detectedPerihal = "Undangan Peserta Peningkatan Kapasitas Tenaga Pendidik";
-      let detectedSender = "Balai Besar Penjaminan Mutu Pendidikan Vokasi (BBPPMPV) Jawa Timur";
-
-      if (lower.includes("peningkatan kapasitas")) {
-        detectedPerihal = "Undangan Peserta Peningkatan Kapasitas Tenaga Pendidik & Vokasi";
-        detectedSender = "Balai Besar Penjaminan Mutu Pendidikan Vokasi (BBPPMPV) Jawa Timur";
-      }
+      // Clean filename fallback without fake dummy text
+      const cleanTitle = fileToScan.name
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[_-]+/g, " ")
+        .trim();
 
       const matchedKurikulum = users.find((u) => u.bidang === "kurikulum");
       const kurikulumOfficer = matchedKurikulum
         ? `${matchedKurikulum.name} (${matchedKurikulum.jabatan || "Kasubag Kurikulum"})`
         : "Moh. Nasih Aminulloh, S.Mat, M.Si (Kasubag Kurikulum)";
 
-      setNomorSurat("005/4821/101.3/2026");
-      setPengirim(detectedSender);
-      setPerihal(detectedPerihal);
-      setRingkasan(
-        `Penyampaian surat undangan resmi dari ${detectedSender} perihal ${detectedPerihal} untuk menugaskan guru kejuruan mengikuti kegiatan peningkatan kompetensi.`
-      );
-      setTingkatUrgensi("segera");
+      setNomorSurat("");
+      setPengirim("Instansi Pengirim");
+      setPerihal(cleanTitle);
+      setRingkasan(`Dokumen "${cleanTitle}" yang diunggah ke sistem.`);
+      setTingkatUrgensi("biasa");
       setAiAnalysis({
         saran_bidang: "kurikulum",
         saran_penerima: kurikulumOfficer,
-        confidence_score: 94,
+        confidence_score: 70,
         key_points: [
-          `Agenda: ${detectedPerihal}`,
-          `Pengirim: ${detectedSender}`,
-          `Dokumen digital terverifikasi TTE`,
+          `Agenda: ${cleanTitle}`,
+          `Dokumen perlu diverifikasi manual oleh Tata Usaha`,
         ],
-        action_deadline_suggestion: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000)
+        action_deadline_suggestion: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
           .toISOString()
           .split("T")[0],
       });

@@ -32,3 +32,6 @@ yarn-error.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# OCR Models
+*.traineddata

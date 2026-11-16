@@ -1,10 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import { INITIAL_USERS } from "@/lib/seedData";
 
-// Helper to extract regex match
+// Indonesian month map
+const MONTH_NAMES: Record<string, string> = {
+  januari: "01", februari: "02", maret: "03", april: "04", mei: "05", juni: "06",
+  juli: "07", agustus: "08", september: "09", oktober: "10", november: "11", desember: "12",
+  jan: "01", feb: "02", mar: "03", apr: "04", jun: "06", jul: "07", agu: "08", agt: "08",
+  sep: "09", okt: "10", nov: "11", des: "12"
+};
+
+function parseIndonesianDate(text: string): string | null {
+  if (!text) return null;
+  const match = text.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+  if (!match) return null;
+  const day = match[1].padStart(2, "0");
+  const monthKey = match[2].toLowerCase();
+  const month = MONTH_NAMES[monthKey];
+  const year = match[3];
+  if (month && year) {
+    return `${year}-${month}-${day}`;
+  }
+  return null;
+}
+
+function cleanText(str: string): string {
+  if (!str) return "";
+  return str.replace(/\r?\n|\r/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function extractRegex(text: string, regex: RegExp, groupIndex = 1): string | null {
   const match = text.match(regex);
-  return match && match[groupIndex] ? match[groupIndex].trim() : null;
+  return match && match[groupIndex] ? cleanText(match[groupIndex]) : null;
+}
+
+function cleanFileNameAsTitle(fileName: string): string {
+  return fileName
+    .replace(/\.[^/.]+$/, "") // strip extension
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export async function POST(req: NextRequest) {
@@ -17,80 +51,149 @@ export async function POST(req: NextRequest) {
       const file = formData.get("file") as File | null;
       if (file) {
         fileName = file.name || "dokumen_surat.pdf";
-        if (file.type && file.type.includes("pdf")) {
-          const arrayBuffer = await file.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const pdfParse = require("pdf-parse");
-          const parsed = await pdfParse(buffer);
-          rawText = parsed.text || "";
+        const isPdf = file.type?.includes("pdf") || fileName.toLowerCase().endsWith(".pdf");
+        const isImage = file.type?.startsWith("image/") || /\.(png|jpe?g|webp|bmp|tiff)$/i.test(fileName);
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // 1. If PDF, extract embedded digital text using pdf-parse
+        if (isPdf) {
+          try {
+            const pdfParseModule = require("pdf-parse");
+            if (typeof pdfParseModule === "function") {
+              const parsed = await pdfParseModule(buffer);
+              rawText = parsed?.text || "";
+            } else if (pdfParseModule?.PDFParse) {
+              const parser = new pdfParseModule.PDFParse({ data: buffer });
+              const parsed = await parser.getText();
+              rawText = parsed?.text || "";
+            }
+          } catch (pdfErr) {
+            console.warn("PDF parse error, will attempt OCR fallback if applicable:", pdfErr);
+          }
+        }
+
+        // 2. If image OR scanned PDF with little/no text, fallback to Tesseract OCR
+        if (isImage || (rawText.trim().length < 25)) {
+          try {
+            const Tesseract = require("tesseract.js");
+            if (Tesseract && Tesseract.recognize) {
+              const ocrRes = await Tesseract.recognize(buffer, "ind+eng", {
+                errorHandler: () => {},
+              }).catch(async () => {
+                return await Tesseract.recognize(buffer, "eng");
+              });
+              if (ocrRes?.data?.text && ocrRes.data.text.trim().length > rawText.trim().length) {
+                rawText = ocrRes.data.text;
+              }
+            }
+          } catch (ocrErr) {
+            console.warn("Tesseract OCR fallback skipped or failed:", ocrErr);
+          }
         }
       }
     } catch (e) {
-      console.warn("No form data or buffer parse error, continuing with fallback:", e);
+      console.warn("Error processing file upload:", e);
     }
 
-    // 2. Intelligent pattern extraction
+    // 2. Extract Document Fields
+    // Extract Nomor Surat
     let nomorSurat =
       extractRegex(rawText, /Nomor\s*:\s*([^\n\r]+)/i) ||
-      extractRegex(rawText, /No\s*:\s*([^\n\r]+)/i) ||
+      extractRegex(rawText, /No(?:\.|\s*)\s*:\s*([^\n\r]+)/i) ||
+      extractRegex(rawText, /Nomor\s+([0-9]{3,4}[\.\/][^\n\r]+)/i) ||
       extractRegex(rawText, /([0-9]{3,4}[\.\/][0-9A-Za-z\.\-\/]+)/);
 
+    if (nomorSurat) {
+      nomorSurat = nomorSurat.split(/[;,]/)[0].trim();
+    }
+
+    // Extract Hal / Perihal
     let perihal =
-      extractRegex(rawText, /Perihal\s*:\s*([^\n\r]+)/i) ||
-      extractRegex(rawText, /Hal\s*:\s*([^\n\r]+)/i);
+      extractRegex(rawText, /(?:Hal|Perihal)\s*:\s*([^\n\r]+(?:\n[ \t]*[^\n\r]+)*)/i);
+    if (perihal) {
+      perihal = perihal.split(/(?=Menindaklanjuti|Dengan hormat|Kepada Yth|Di tempat)/i)[0].trim();
+      perihal = cleanText(perihal);
+    }
 
+    // Extract Pengirim / Dari / Kop
     let pengirim =
+      extractRegex(rawText, /(?:Dari|DARI)\s*:\s*([^\n\r]+)/i) ||
+      extractRegex(rawText, /(?:Pengirim|PENGIRIM)\s*:\s*([^\n\r]+)/i) ||
+      extractRegex(rawText, /(CABANG DINAS PENDIDIKAN[^\n\r]+)/i) ||
       extractRegex(rawText, /(DINAS PENDIDIKAN[^\n\r]+)/i) ||
-      extractRegex(rawText, /(KEMENTERIAN[^\n\r]+)/i) ||
       extractRegex(rawText, /(BALAI BESAR[^\n\r]+)/i) ||
-      extractRegex(rawText, /(PEMERINTAH[^\n\r]+)/i);
+      extractRegex(rawText, /(KEMENTERIAN[^\n\r]+)/i) ||
+      extractRegex(rawText, /(PEMERINTAH PROVINSI[^\n\r]+)/i) ||
+      extractRegex(rawText, /(YAYASAN[^\n\r]+)/i);
 
-    let tanggalStr = extractRegex(
-      rawText,
-      /(\d{1,2}\s+(?:Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+\d{4})/i
-    );
+    if (pengirim) {
+      pengirim = pengirim.replace(/^(?:Dari|DARI|Pengirim|PENGIRIM)\s*:\s*/i, "").trim();
+    }
 
-    // 3. Smart Heuristics based on File Name if text was scanned/empty
-    const lowerName = fileName.toLowerCase();
+    // Extract Tanggal Surat
+    let tanggalSurat: string | null = null;
+    const tglMatch = rawText.match(/(?:Tanggal|Tgl)\s*:\s*([^\n\r]+)/i);
+    if (tglMatch) {
+      tanggalSurat = parseIndonesianDate(tglMatch[1]);
+    }
+    if (!tanggalSurat) {
+      tanggalSurat = parseIndonesianDate(rawText);
+    }
+    if (!tanggalSurat) {
+      tanggalSurat = new Date().toISOString().split("T")[0];
+    }
 
-    if (!perihal) {
-      if (lowerName.includes("undangan") || lowerName.includes("peningkatan kapasitas")) {
-        perihal = "Undangan Peserta Peningkatan Kapasitas Tenaga Pendidik & Vokasi";
-      } else if (lowerName.includes("smk-pk") || lowerName.includes("keunggulan")) {
-        perihal = "Koordinasi Evaluasi Bantuan SMK Pusat Keunggulan (SMK-PK)";
-      } else if (lowerName.includes("beasiswa") || lowerName.includes("telkom")) {
-        perihal = "Program Beasiswa & Sertifikasi Industri Siswa Kejuruan";
-      } else {
-        // Clean filename into perihal
-        const cleanName = fileName
-          .replace(/\.pdf$/i, "")
-          .replace(/revisi\s*lokasi\s*tte/gi, "")
-          .replace(/_/g, " ")
-          .trim();
-        perihal = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+    // Extract Sifat / Tingkat Urgensi
+    const sifatMatch = extractRegex(rawText, /Sifat\s*:\s*([^\n\r]+)/i);
+    let tingkatUrgensi: "biasa" | "penting" | "segera" | "sangat_segera" = "biasa";
+    if (sifatMatch) {
+      const s = sifatMatch.toLowerCase();
+      if (s.includes("sangat segera") || s.includes("kilat") || s.includes("amat segera")) {
+        tingkatUrgensi = "sangat_segera";
+      } else if (s.includes("segera")) {
+        tingkatUrgensi = "segera";
+      } else if (s.includes("penting")) {
+        tingkatUrgensi = "penting";
+      } else if (s.includes("biasa")) {
+        tingkatUrgensi = "biasa";
       }
+    } else {
+      const lowerAll = (rawText + " " + fileName).toLowerCase();
+      if (lowerAll.includes("segera") || lowerAll.includes("rakor") || lowerAll.includes("urgent")) {
+        tingkatUrgensi = "segera";
+      }
+    }
+
+    // Fallbacks based on clean fileName ONLY if extraction found nothing (No fake hardcoded titles!)
+    if (!perihal) {
+      perihal = cleanFileNameAsTitle(fileName);
     }
 
     if (!nomorSurat) {
-      if (lowerName.includes("dinas") || lowerName.includes("peningkatan kapasitas")) {
-        nomorSurat = "005/4821/101.3/2026";
-      } else if (lowerName.includes("kemenag")) {
-        nomorSurat = "B-1420/Kk.13.35/PP.00.7/10/2026";
-      } else {
-        nomorSurat = "421.5/7821/101.4/2026";
-      }
+      nomorSurat = "";
     }
 
     if (!pengirim) {
-      if (lowerName.includes("peningkatan kapasitas") || lowerName.includes("gtk")) {
-        pengirim = "Balai Besar Penjaminan Mutu Pendidikan Vokasi (BBPPMPV) Jawa Timur";
-      } else if (lowerName.includes("dinas")) {
-        pengirim = "Dinas Pendidikan Provinsi Jawa Timur (Cabang Dinas Wilayah Pasuruan)";
-      } else if (lowerName.includes("telkom")) {
-        pengirim = "PT Telkom Indonesia (Persero) Tbk Witel Pasuruan";
-      } else {
+      if (rawText.toLowerCase().includes("cabang dinas")) {
+        pengirim = "Cabang Dinas Pendidikan Wilayah Pasuruan";
+      } else if (rawText.toLowerCase().includes("dinas pendidikan")) {
         pengirim = "Dinas Pendidikan Provinsi Jawa Timur";
+      } else {
+        pengirim = "Instansi Pengirim";
       }
+    }
+
+    // Extract genuine ringkasan from letter body
+    let ringkasan = "";
+    const bodyMatch = rawText.match(/(?:Menindaklanjuti[^\n\r]+[\s\S]+?)(?=(?:Demikian|Kepala Cabang|ERWAN|Ditetapkan|$))/i);
+    if (bodyMatch) {
+      ringkasan = cleanText(bodyMatch[0]).slice(0, 320);
+      if (ringkasan.length >= 320) ringkasan += "...";
+    } else if (rawText.trim().length > 50) {
+      ringkasan = cleanText(rawText).slice(0, 280) + "...";
+    } else {
+      ringkasan = `Surat/Dokumen resmi perihal "${perihal}" dari ${pengirim}.`;
     }
 
     // Helper to find PIC from initial structural users
@@ -99,17 +202,22 @@ export async function POST(req: NextRequest) {
       return u ? `${u.name} (${u.jabatan || "Kasubag " + bidang})` : fallback;
     };
 
-    // Determine target bidang based on keywords
+    // Determine target bidang and recipient based on actual document content
     const combinedContent = (rawText + " " + fileName + " " + perihal).toLowerCase();
     let saranBidang: "kurikulum" | "kesiswaan" | "sarpras" | "humas_bkk" = "kurikulum";
     let saranPenerima = findOfficer("kurikulum", "Moh. Nasih Aminulloh, S.Mat, M.Si (Kasubag Kurikulum)");
 
-    if (
-      combinedContent.includes("peningkatan kapasitas") ||
-      combinedContent.includes("guru") ||
+    if (combinedContent.includes("bahasa indonesia") || combinedContent.includes("guru bahasa indonesia")) {
+      saranBidang = "kurikulum";
+      saranPenerima = "Muhammad Fajarul Afthon, S.Pd (Guru Bahasa Indonesia)";
+    } else if (
+      combinedContent.includes("abm") ||
+      combinedContent.includes("asesmen bakat minat") ||
+      combinedContent.includes("mgmp") ||
       combinedContent.includes("kurikulum") ||
       combinedContent.includes("workshop") ||
-      combinedContent.includes("pembelajaran")
+      combinedContent.includes("pembelajaran") ||
+      combinedContent.includes("guru")
     ) {
       saranBidang = "kurikulum";
       saranPenerima = findOfficer("kurikulum", "Moh. Nasih Aminulloh, S.Mat, M.Si (Kasubag Kurikulum)");
@@ -118,15 +226,17 @@ export async function POST(req: NextRequest) {
       combinedContent.includes("santri") ||
       combinedContent.includes("lomba") ||
       combinedContent.includes("osis") ||
-      combinedContent.includes("olahraga")
+      combinedContent.includes("olahraga") ||
+      combinedContent.includes("ekstrakurikuler")
     ) {
       saranBidang = "kesiswaan";
       saranPenerima = findOfficer("kesiswaan", "Achmad Jabbar, S. Sn (Kasubag Kesiswaan)");
     } else if (
       combinedContent.includes("sarana") ||
+      combinedContent.includes("prasarana") ||
+      combinedContent.includes("gedung") ||
       combinedContent.includes("ruang") ||
       combinedContent.includes("laptop") ||
-      combinedContent.includes("gedung") ||
       combinedContent.includes("laboratorium")
     ) {
       saranBidang = "sarpras";
@@ -142,30 +252,26 @@ export async function POST(req: NextRequest) {
       saranPenerima = findOfficer("humas_bkk", "Muhammad Fajarul Afthon, S.Pd (Kasubag Humas & BKK)");
     }
 
-    const ringkasan =
-      rawText.length > 80
-        ? rawText.slice(0, 280).replace(/\s+/g, " ") + "..."
-        : `Dokumen perihal "${perihal}" yang dikirimkan oleh ${pengirim} mengenai agenda peningkatan kompetensi kedinasan dan koordinasi teknis pelaksanaan program kerja.`;
+    const confidenceScore = rawText.length > 100 ? 98 : (rawText.length > 20 ? 85 : 70);
 
     const result = {
       success: true,
       nomor_surat: nomorSurat,
       pengirim: pengirim,
-      tanggal_surat: new Date().toISOString().split("T")[0],
+      tanggal_surat: tanggalSurat,
       perihal: perihal,
       ringkasan: ringkasan,
-      tingkat_urgensi:
-        lowerName.includes("undangan") || lowerName.includes("segera") ? "segera" : "penting",
+      tingkat_urgensi: tingkatUrgensi,
       saran_bidang: saranBidang,
       saran_penerima: saranPenerima,
-      confidence_score: 95,
+      confidence_score: confidenceScore,
       key_points: [
         `Agenda: ${perihal}`,
         `Instansi Pengirim: ${pengirim}`,
         `Disarankan didelegasikan ke Bidang ${saranBidang.toUpperCase()}`,
-        `Dokumen dilengkapi tanda tangan elektronik (TTE)`,
+        `Rekomendasi PIC: ${saranPenerima}`,
       ],
-      action_deadline_suggestion: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000)
+      action_deadline_suggestion: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
     };
