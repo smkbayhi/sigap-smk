@@ -16,6 +16,39 @@ const SECRET_TOKEN = process.env.FINGERPRINT_SECRET_TOKEN || "sigap-smk-fingerpr
 // Jam standar masuk guru SMK Bayt Al-Hikmah (06:50 WIB)
 const JAM_MASUK_STANDAR_MENIT = 6 * 60 + 50; // 410 menit (06:50)
 
+// Pemetaan Resmi ID & Nama Panggilan Mesin Fingerprint InterActive X 1800
+export const MACHINE_PIN_MAPPING: Record<string, string> = {
+  // Sesuai data mesin absensi resmi SMK Bayt Al-Hikmah:
+  "11556022": "11556022", // Nurfaizah
+  "nurfaizah": "11556022",
+  "11861027": "11861027", // Ainiyatulfit...
+  "ainiyatulfit": "11861027",
+  "ainiyatulfitriyah": "11861027",
+  "12616042": "12616042", // Lulukms
+  "lulukms": "12616042",
+  "13559090": "13559090", // Yudha
+  "yudha": "13559090",
+  "142908": "14215094",   // Ekhsan (Kepala Sekolah)
+  "ekhsan": "14215094",
+  "14215094": "14215094",
+  "16402178": "16402178", // Nurafandi
+  "nurafandi": "16402178",
+  "18076236": "18076236", // Khoiron
+  "khoiron": "18076236",
+  "2563": "19070265",     // Achmadjab...
+  "achmadjab": "19070265",
+  "achmadjabbar": "19070265",
+  "19070265": "19070265",
+  "3": "23060333",        // mohnasih
+  "mohnasih": "23060333",
+  "23060333": "23060333",
+  "5399": "22060315",     // Fajar
+  "fajar": "22060315",
+  "22060315": "22060315",
+  "4432": "4432",         // Ishanani
+  "ishanani": "4432",
+};
+
 function timeToMinutes(timeStr: string): number {
   if (!timeStr) return 0;
   const parts = timeStr.split(":");
@@ -124,16 +157,26 @@ export async function POST(req: NextRequest) {
 
       if (!dateStr || !timeStr) continue;
 
-      // Find teacher in currentReport
-      // 1st: Check by direct PIN or ID match in current report
-      let teacher = currentReport.teachers.find(
-        (t) =>
-          String(t.pin).trim() === rawUserId ||
-          t.id.toLowerCase() === rawUserId.toLowerCase() ||
-          t.id.toLowerCase() === `g-${rawUserId.padStart(2, "0")}`
-      );
+      // Find teacher in currentReport:
+      // Priority 1: Check MACHINE_PIN_MAPPING (accurate mapping from official machine)
+      const mappedPin =
+        MACHINE_PIN_MAPPING[rawUserId] ||
+        MACHINE_PIN_MAPPING[rawUserId.toLowerCase()];
 
-      // 2nd: Check via KNOWN_TEACHERS aliases
+      let teacher = mappedPin
+        ? currentReport.teachers.find((t) => String(t.pin).trim() === mappedPin)
+        : null;
+
+      // Priority 2: Direct match by PIN or User ID
+      if (!teacher) {
+        teacher = currentReport.teachers.find(
+          (t) =>
+            String(t.pin).trim() === rawUserId ||
+            t.id.toLowerCase() === rawUserId.toLowerCase()
+        );
+      }
+
+      // Priority 3: Check KNOWN_TEACHERS aliases
       if (!teacher) {
         const knownMaster = KNOWN_TEACHERS.find(
           (km) =>
