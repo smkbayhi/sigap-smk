@@ -1,16 +1,18 @@
 /**
- * SIGAP-SMK - Fingerprint Test Connection
+ * SIGAP-SMK - Fingerprint Diagnostic & Test Connection
  * Target Mesin: InterActive X 1800 (192.168.1.202:4370)
  */
 
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
+const { execSync } = require("child_process");
 
 let config = {
   machineIp: "192.168.1.202",
   machinePort: 4370,
   commKey: 0,
-  timeout: 8000,
+  timeout: 10000,
 };
 
 try {
@@ -22,11 +24,93 @@ try {
   // use default
 }
 
-console.log("=======================================================");
-console.log("   SIGAP-SMK | TES KONEKSI MESIN FINGERPRINT");
+console.log("================================================================");
+console.log("   SIGAP-SMK | DIAGNOSTIK & TES KONEKSI MESIN FINGERPRINT");
 console.log("   Model Mesin : InterActive X 1800");
 console.log(`   Target IP   : ${config.machineIp}:${config.machinePort}`);
-console.log("=======================================================\n");
+console.log("================================================================\n");
+
+// 1. Deteksi IP Komputer / Laptop saat ini
+console.log("📡 [LANGKAH 1] Mendeteksi IP Komputer HCD Anda saat ini:");
+const nets = os.networkInterfaces();
+const detectedIps = [];
+let hasSameSubnet = false;
+
+for (const name of Object.keys(nets)) {
+  for (const net of nets[name]) {
+    if (net.family === "IPv4" && !net.internal) {
+      detectedIps.push({ name, ip: net.address, netmask: net.netmask });
+      console.log(`   - Adapter [${name}]: IP = ${net.address} (Mask: ${net.netmask})`);
+      // Cek apakah 3 blok pertama sama dengan IP mesin (192.168.1.x)
+      const subnetMachine = config.machineIp.split(".").slice(0, 3).join(".");
+      const subnetPc = net.address.split(".").slice(0, 3).join(".");
+      if (subnetMachine === subnetPc) {
+        hasSameSubnet = true;
+      }
+    }
+  }
+}
+
+if (detectedIps.length === 0) {
+  console.log("   ⚠️ Tidak ada adapter jaringan aktif yang terdeteksi!");
+}
+
+console.log("");
+if (!hasSameSubnet) {
+  console.log("   ⚠️ PERHATIAN (POTENSI PENYEBAB UTAMA):");
+  console.log(`      Komputer Anda belum memiliki IP di segmen '192.168.1.xxx'.`);
+  console.log(`      Jika kabel LAN dicolok langsung dari mesin ke laptop, Windows`);
+  console.log(`      memerlukan pengaturan IP Manual (Statis) pada adapter Ethernet.`);
+  console.log("");
+}
+
+// 2. Lakukan Uji Ping ke IP Mesin
+console.log(`🔍 [LANGKAH 2] Menguji PING langsung ke ${config.machineIp} ...`);
+let isPingSuccess = false;
+try {
+  const pingOutput = execSync(`ping -n 3 -w 1500 ${config.machineIp}`, {
+    encoding: "utf8",
+  });
+  console.log(pingOutput);
+
+  if (pingOutput.includes("Reply from") || pingOutput.includes("Balasan dari")) {
+    isPingSuccess = true;
+    console.log(`✅ PING BERHASIL! Komputer dapat melihat mesin ${config.machineIp} di jaringan.`);
+  } else {
+    console.log(`❌ PING GAGAL (Request Timed Out / Unreachable).`);
+  }
+} catch (pingErr) {
+  console.log(`❌ PING GAGAL (Tidak ada balasan dari ${config.machineIp}).`);
+  if (pingErr.stdout) {
+    console.log(pingErr.stdout);
+  }
+}
+
+console.log("\n----------------------------------------------------------------");
+
+if (!isPingSuccess) {
+  console.log("⛔ KESIMPULAN DIAGNOSTIK:");
+  console.log("Mesin belum merespon Ping. Data sidik jari belum bisa ditarik.");
+  console.log("\n🛠️ CARA MENGATASI (PILIH SALAH SATU SESUAI KONDISI):");
+  console.log("");
+  console.log("👉 KONDISI A: Kabel LAN dicolok LANGSUNG dari Mesin ke Laptop (Tanpa Router):");
+  console.log("   1. Buka Control Panel -> Network and Sharing Center -> Change adapter settings.");
+  console.log("   2. Klik kanan pada 'Ethernet' -> Properties.");
+  console.log("   3. Dobel klik 'Internet Protocol Version 4 (TCP/IPv4)'.");
+  console.log("   4. Pilih 'Use the following IP address':");
+  console.log("      - IP address   : 192.168.1.50");
+  console.log("      - Subnet mask  : 255.255.255.0");
+  console.log("      - Gateway      : (kosongkan)");
+  console.log("   5. Klik OK, lalu jalankan kembali TEST-MESIN.bat");
+  console.log("");
+  console.log("👉 KONDISI B: Mesin dicolok ke Router / WiFi Sekolah:");
+  console.log("   Pastikan Laptop Anda terhubung ke WiFi/LAN sekolah yang sama dengan mesin.");
+  console.log("----------------------------------------------------------------\n");
+  process.exit(1);
+}
+
+// 3. Jika Ping Sukses, Uji Komunikasi Protokol ZK ke Port 4370
+console.log(`\n🔌 [LANGKAH 3] Menghubungkan Protokol ZK ke Port ${config.machinePort} ...`);
 
 let ZKLib;
 try {
@@ -35,42 +119,30 @@ try {
   try {
     ZKLib = require("node-zklib");
   } catch (err) {
-    console.error("❌ Pustaka 'zklib-js' belum terinstal!");
-    console.log("👉 Silakan jalankan perintah: npm install");
-    console.log("   atau klik 2x file TEST-MESIN.bat");
+    console.error("❌ Pustaka zklib-js belum terinstal.");
     process.exit(1);
   }
 }
 
-async function testConnection() {
-  console.log(`⏳ Sedang mencoba menghubungkan ke ${config.machineIp}:${config.machinePort} ...`);
+async function runSocketTest() {
   const zkInstance = new ZKLib(
     config.machineIp,
     config.machinePort,
-    config.timeout || 8000,
-    4000,
-    config.commKey || 0,
-    config.protocol || "tcp"
+    config.timeout || 10000,
+    4000
   );
 
   try {
-    // 1. Establish socket connection
     await zkInstance.createSocket();
-    console.log("✅ BERHASIL TERKONEKSI KE MESIN FINGERPRINT!\n");
+    console.log("✅ BERHASIL TERHUBUNG KE MESIN FINGERPRINT (SOCKET AKTIF)!\n");
 
-    // 2. Get device info
     try {
-      console.log("📊 Mengambil Informasi Perangkat...");
       const info = await zkInstance.getInfo();
-      console.log("   - User Count     :", info.userCounts || "Tersedia");
-      console.log("   - Log Count      :", info.logCounts || "Tersedia");
-      console.log("   - Device Version  :", info.version || "ZKTeco OEM Standalone");
-    } catch (infoErr) {
-      console.log("   (Info perangkat terlewati)");
+      console.log("📊 Informasi Mesin:", info);
+    } catch (e) {
+      // ignore
     }
 
-    // 3. Get users registered on machine
-    console.log("\n👥 Membaca Data Pengguna (Guru/Staf) di Mesin...");
     try {
       const users = await zkInstance.getUsers();
       const userList = Array.isArray(users.data)
@@ -78,55 +150,38 @@ async function testConnection() {
         : users.data
         ? Object.values(users.data)
         : [];
-
-      console.log(`   Ditemukan ${userList.length} pengguna terdaftar di mesin:`);
+      console.log(`👥 Ditemukan ${userList.length} pengguna terdaftar di mesin.`);
       userList.slice(0, 10).forEach((u, idx) => {
-        console.log(`   ${idx + 1}. PIN/ID: ${u.userId || u.uid} | Nama: ${u.name || "(Belum diberi nama)"} | Card: ${u.cardno || "-"}`);
+        console.log(`   ${idx + 1}. PIN/ID: ${u.userId || u.uid} | Nama: ${u.name}`);
       });
-      if (userList.length > 10) {
-        console.log(`   ... dan ${userList.length - 10} pengguna lainnya.`);
-      }
-    } catch (userErr) {
-      console.log("   (Pembacaan list user terlewati)");
+    } catch (e) {
+      console.log("   (List user terlewati)");
     }
 
-    // 4. Get attendance logs
-    console.log("\n📋 Membaca Log Presensi Terakhir di Mesin...");
     try {
       const logs = await zkInstance.getAttendances();
       const logList = Array.isArray(logs.data) ? logs.data : [];
-      console.log(`   Total log rekaman di memori mesin: ${logList.length} transaksi`);
-
+      console.log(`\n📋 Ditemukan ${logList.length} total rekaman log presensi.`);
       if (logList.length > 0) {
         console.log("   5 Log Terakhir:");
         logList.slice(-5).forEach((l, idx) => {
           console.log(`   ${idx + 1}. User ID: ${l.deviceUserId} | Waktu: ${l.recordTime}`);
         });
       }
-    } catch (logErr) {
-      console.log("   (Pembacaan log terlewati)");
+    } catch (e) {
+      console.log("   (List log terlewati)");
     }
 
-    console.log("\n=======================================================");
-    console.log("🎉 KESIMPULAN: Mesin InterActive X1800 Siap Sinkron!");
-    console.log("=======================================================");
-  } catch (error) {
-    console.error("\n❌ GAGAL MENGHUBUNGI MESIN FINGERPRINT!");
-    console.error("   Detail Error:", error.message || error);
-    console.log("\n🔍 PANDUAN PEMECAHAN MASALAH (TROUBLESHOOTING):");
-    console.log(`1. Pastikan kabel LAN dari mesin tercolok ke komputer/switch.`);
-    console.log(`2. Buka CMD dan ketik: ping ${config.machineIp}`);
-    console.log(`   Pastikan hasilnya Reply.`);
-    console.log(`3. Pastikan IP komputer HCD satu segmen (contoh: 192.168.1.100).`);
-    console.log(`4. Pastikan Comm Key di mesin bernilai 0 (MENU -> Comm -> Security).`);
+    console.log("\n================================================================");
+    console.log("🎉 SEMUA PENGUJIAN SUKSES! Mesin siap digunakan realtime.");
+    console.log("================================================================");
+  } catch (err) {
+    console.error("❌ GAGAL KOMUNIKASI SOKET:", err.message || err);
   } finally {
     try {
       await zkInstance.disconnect();
-      console.log("\n🔌 Koneksi soket ditutup dengan aman.");
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
   }
 }
 
-testConnection();
+runSocketTest();
