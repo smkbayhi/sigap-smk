@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
 import { usePresensi } from "@/context/PresensiContext";
@@ -17,12 +17,8 @@ import {
   FileSpreadsheet,
   Database,
   Users,
-  ShieldCheck,
   X,
-  PlusCircle,
-  FileCheck2,
   Clock,
-  Sparkles,
   Stamp,
 } from "lucide-react";
 
@@ -32,6 +28,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+  const router = useRouter();
   const pathname = usePathname();
   const { currentUser, isKepsek, isTU, isKasubag, isGuru } = useAuth();
   const { suratKeluar, disposisi, rkt, schoolSettings } = useAppData();
@@ -57,6 +54,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     return false;
   };
 
+  /**
+   * Resilient navigation handler:
+   * 1. Safely closes mobile drawer only when open
+   * 2. Prevents redundant navigation when already on the page
+   * 3. Provides a 250ms fallback navigation if Next.js App Router RSC cache locks up
+   */
+  const handleNav = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (isOpen) {
+      onClose();
+    }
+
+    if (pathname === href) {
+      e.preventDefault();
+      return;
+    }
+
+    // Fail-safe: if Next.js client router is stuck/frozen in production cache,
+    // guarantee navigation occurs after 250ms
+    const targetUrl = href;
+    const fallbackTimer = setTimeout(() => {
+      if (typeof window !== "undefined" && window.location.pathname !== targetUrl) {
+        window.location.href = targetUrl;
+      }
+    }, 250);
+
+    const cleanup = () => clearTimeout(fallbackTimer);
+    window.addEventListener("beforeunload", cleanup, { once: true });
+  };
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -67,21 +93,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         />
       )}
 
-      {/* Sidebar Container */}
+      {/* Sidebar Container: z-50 to ensure it is always above backdrops and sticky headers */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-[#064e3b] text-white flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#064e3b] text-white flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Sidebar Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-emerald-800/60 bg-[#053d2e]">
-          <div className="flex items-center gap-2.5">
+          <Link
+            href="/"
+            prefetch={false}
+            onClick={(e) => handleNav(e, "/")}
+            className="flex items-center gap-2.5 cursor-pointer group"
+          >
             <img
               src={schoolLogo}
               alt="Logo SMK Bayt Al-Hikmah"
-              className="w-8 h-8 object-contain drop-shadow-sm"
+              className="w-8 h-8 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
             />
-            <div>
+            <div className="pointer-events-none">
               <span className="font-extrabold text-white text-base tracking-wider">
                 SIGAP<span className="text-gold-400">-SMK</span>
               </span>
@@ -89,10 +120,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 Bayt Al-Hikmah Pasuruan
               </p>
             </div>
-          </div>
+          </Link>
           <button
             onClick={onClose}
-            className="lg:hidden text-emerald-300 hover:text-white p-1"
+            className="lg:hidden text-emerald-300 hover:text-white p-1 cursor-pointer"
+            aria-label="Tutup Menu"
           >
             <X className="w-5 h-5" />
           </button>
@@ -130,14 +162,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             <nav className="space-y-1">
               <Link
                 href="/"
-                onClick={onClose}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
                   isActive("/")
                     ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
                     : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pointer-events-none">
                   <LayoutDashboard className="w-4 h-4 text-emerald-300" />
                   <span>
                     {isKepsek
@@ -162,19 +195,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               {/* Surat Keluar */}
               <Link
                 href="/surat-keluar"
-                onClick={onClose}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/surat-keluar")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
                   isActive("/surat-keluar")
                     ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
                     : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pointer-events-none">
                   <Send className="w-4 h-4 text-emerald-300" />
                   <span>Surat Keluar & TTD</span>
                 </div>
                 {pendingSK > 0 && (
-                  <span className="text-[10px] bg-amber-500 text-gray-900 font-bold px-1.5 py-0.5 rounded-full">
+                  <span className="text-[10px] bg-amber-500 text-gray-900 font-bold px-1.5 py-0.5 rounded-full pointer-events-none">
                     {pendingSK}
                   </span>
                 )}
@@ -183,14 +217,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               {/* Surat Masuk & OCR */}
               <Link
                 href="/surat-masuk"
-                onClick={onClose}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/surat-masuk")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
                   isActive("/surat-masuk")
                     ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
                     : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pointer-events-none">
                   <Inbox className="w-4 h-4 text-emerald-300" />
                   <span>Surat Masuk & OCR</span>
                 </div>
@@ -199,19 +234,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               {/* Disposisi Cerdas */}
               <Link
                 href="/disposisi"
-                onClick={onClose}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/disposisi")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
                   isActive("/disposisi")
                     ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
                     : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pointer-events-none">
                   <Share2 className="w-4 h-4 text-emerald-300" />
                   <span>Disposisi & WhatsApp</span>
                 </div>
                 {myPendingDisp > 0 && (
-                  <span className="text-[10px] bg-gold-400 text-emerald-950 font-bold px-1.5 py-0.5 rounded-full">
+                  <span className="text-[10px] bg-gold-400 text-emerald-950 font-bold px-1.5 py-0.5 rounded-full pointer-events-none">
                     {myPendingDisp}
                   </span>
                 )}
@@ -228,19 +264,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               {/* RKT */}
               <Link
                 href="/rkt"
-                onClick={onClose}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/rkt")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
                   isActive("/rkt")
                     ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
                     : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pointer-events-none">
                   <CalendarDays className="w-4 h-4 text-emerald-300" />
                   <span>Rencana Kerja (RKT)</span>
                 </div>
                 {pendingRKT > 0 && (
-                  <span className="text-[10px] bg-blue-400 text-blue-950 font-bold px-1.5 py-0.5 rounded-full">
+                  <span className="text-[10px] bg-blue-400 text-blue-950 font-bold px-1.5 py-0.5 rounded-full pointer-events-none">
                     {pendingRKT}
                   </span>
                 )}
@@ -249,14 +286,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               {/* Action Plan */}
               <Link
                 href="/action-plan"
-                onClick={onClose}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/action-plan")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
                   isActive("/action-plan")
                     ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
                     : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pointer-events-none">
                   <Target className="w-4 h-4 text-emerald-300" />
                   <span>Action Plan Bulanan</span>
                 </div>
@@ -265,14 +303,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               {/* Action Report */}
               <Link
                 href="/action-report"
-                onClick={onClose}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/action-report")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
                   isActive("/action-report")
                     ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
                     : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pointer-events-none">
                   <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
                   <span>Action Report & Evaluasi</span>
                 </div>
@@ -281,21 +320,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               {/* Presensi & Rekap Fingerprint / Presensi Pribadi Saya */}
               <Link
                 href="/presensi"
-                onClick={onClose}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/presensi")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
                   isActive("/presensi")
                     ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
                     : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pointer-events-none">
                   <Clock className="w-4 h-4 text-emerald-300" />
                   <span>
                     {canManageAllPresensi ? "Presensi & Fingerprint" : "Presensi Pribadi Saya"}
                   </span>
                 </div>
                 {canManageAllPresensi && Boolean(currentReport && currentReport.guruTidakKkmCount > 0) && (
-                  <span className="text-[10px] bg-rose-500 text-white font-black px-1.5 py-0.5 rounded-full shadow-xs">
+                  <span className="text-[10px] bg-rose-500 text-white font-black px-1.5 py-0.5 rounded-full shadow-xs pointer-events-none">
                     {currentReport?.guruTidakKkmCount} Alert
                   </span>
                 )}
@@ -312,14 +352,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <nav className="space-y-1">
                 <Link
                   href="/master/perspektif"
-                  onClick={onClose}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  prefetch={false}
+                  onClick={(e) => handleNav(e, "/master/perspektif")}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
                     isActive("/master/perspektif")
                       ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
                       : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 pointer-events-none">
                     <Database className="w-4 h-4 text-emerald-300" />
                     <span>Master Perspektif RKT</span>
                   </div>
@@ -327,14 +368,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
                 <Link
                   href="/master/kop-surat"
-                  onClick={onClose}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  prefetch={false}
+                  onClick={(e) => handleNav(e, "/master/kop-surat")}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
                     isActive("/master/kop-surat")
                       ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
                       : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 pointer-events-none">
                     <Stamp className="w-4 h-4 text-emerald-300" />
                     <span>Kop, Logo & TTD Resmi</span>
                   </div>
@@ -342,14 +384,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
                 <Link
                   href="/master/users"
-                  onClick={onClose}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  prefetch={false}
+                  onClick={(e) => handleNav(e, "/master/users")}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
                     isActive("/master/users")
                       ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
                       : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 pointer-events-none">
                     <Users className="w-4 h-4 text-emerald-300" />
                     <span>Pengguna & Hak Akses</span>
                   </div>
