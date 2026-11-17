@@ -85,13 +85,22 @@ export default function PrintPresensiPage() {
     <div className="min-h-screen bg-slate-100 py-6 px-4 print:p-0 print:bg-white text-gray-900">
       {/* Top Floating Print Bar (Hidden on print) */}
       <div className="max-w-[215mm] mx-auto mb-4 flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-sm print:hidden">
-        <Link
-          href="/presensi"
-          className="flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-emerald-700"
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              if (window.opener && window.history.length <= 1) {
+                window.close();
+              } else {
+                window.location.href = "/presensi";
+              }
+            }
+          }}
+          className="flex items-center gap-2 text-xs font-bold text-gray-600 hover:text-emerald-700 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Kembali ke Halaman Presensi</span>
-        </Link>
+        </button>
 
         <button
           onClick={() => window.print()}

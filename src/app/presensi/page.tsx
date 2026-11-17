@@ -400,13 +400,16 @@ Wassalamu’alaikum Wr. Wb.
                   </button>
                 )}
 
-                <Link
+                <a
                   href="/presensi/print"
-                  className="h-9 px-3.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-9 px-3.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer select-none"
+                  title="Cetak Dokumen Resmi Presensi (Buka di Tab Baru)"
                 >
-                  <Printer className="w-4 h-4" />
-                  <span>{canManageAllPresensi ? "Cetak PDF" : "Cetak Slip Presensi"}</span>
-                </Link>
+                  <Printer className="w-4 h-4 pointer-events-none" />
+                  <span className="pointer-events-none">{canManageAllPresensi ? "Cetak PDF" : "Cetak Slip Presensi"}</span>
+                </a>
               </>
             )}
           </div>
