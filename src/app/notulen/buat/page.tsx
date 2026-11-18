@@ -21,6 +21,7 @@ import {
   FileText,
 } from "lucide-react";
 import { NotulenPembahasanSection, NotulenActionItem } from "@/lib/database.types";
+import MeetingAudioAiRecorder from "@/components/notulen/MeetingAudioAiRecorder";
 
 export default function CreateNotulenPage() {
   const router = useRouter();
@@ -190,6 +191,69 @@ export default function CreateNotulenPage() {
     }
   };
 
+  // AI Meeting Minutes Auto-Fill Handler
+  const handleAiGenerated = (data: any) => {
+    if (!data) return;
+    if (data.jenis_rapat) setJenisRapat(data.jenis_rapat);
+    if (data.nomor_notulen) setNomorNotulen(data.nomor_notulen);
+    if (data.tanggal) {
+      setTanggal(data.tanggal);
+      if (data.hari_tanggal) {
+        setHariTanggal(data.hari_tanggal);
+      } else {
+        const d = new Date(data.tanggal + "T00:00:00");
+        setHariTanggal(formatDateForDisplay(d));
+      }
+    } else if (data.hari_tanggal) {
+      setHariTanggal(data.hari_tanggal);
+    }
+    if (data.waktu) setWaktu(data.waktu);
+    if (data.tempat) setTempat(data.tempat);
+    if (data.pemimpin_rapat) setPemimpinRapat(data.pemimpin_rapat);
+    if (data.pemimpin_nip) setPemimpinNip(data.pemimpin_nip);
+    if (data.notulis) setNotulis(data.notulis);
+    if (data.notulis_nip) setNotulisNip(data.notulis_nip);
+    if (data.peserta_rapat) setPesertaRapat(data.peserta_rapat);
+
+    if (Array.isArray(data.susunan_acara) && data.susunan_acara.length > 0) {
+      setSusunanAcara(
+        data.susunan_acara.map((s: string) => s.replace(/^\d+[\.\)]\s*/, "").trim())
+      );
+    }
+
+    if (Array.isArray(data.pembahasan) && data.pembahasan.length > 0) {
+      setPembahasan(
+        data.pembahasan.map((p: any) => ({
+          judul: p.judul || "Pembahasan",
+          keterangan: p.keterangan || "",
+          poin_poin: Array.isArray(p.poin_poin) ? p.poin_poin : [],
+        }))
+      );
+    }
+
+    if (Array.isArray(data.action_items) && data.action_items.length > 0) {
+      setActionItems(
+        data.action_items.map((item: any, idx: number) => ({
+          id: `act-${Date.now()}-${idx + 1}`,
+          keputusan: item.keputusan || "",
+          pic: item.pic || "Seluruh Guru / Staf",
+          tenggat_waktu: item.tenggat_waktu || "Sesuai Jadwal",
+          status: item.status || "pending",
+        }))
+      );
+    }
+
+    if (data.penutup) setPenutup(data.penutup);
+
+    // Smooth scroll to form container
+    setTimeout(() => {
+      const formElement = document.getElementById("notulen-form-content");
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 150);
+  };
+
   const handleDateChange = (val: string) => {
     setTanggal(val);
     if (val) {
@@ -349,8 +413,15 @@ export default function CreateNotulenPage() {
         </div>
       </div>
 
+      {/* AI Audio Recorder & Intelligent Notulen Generator */}
+      <MeetingAudioAiRecorder
+        onGenerated={handleAiGenerated}
+        defaultLeaderName={schoolSettings?.namaKepsek}
+        defaultNotulisName={currentUser.name}
+      />
+
       {/* Main Form Container */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8">
+      <div id="notulen-form-content" className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8">
         {/* Title Header */}
         <div className="border-b border-slate-200 pb-4">
           <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider mb-1">
