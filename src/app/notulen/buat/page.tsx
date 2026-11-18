@@ -388,70 +388,70 @@ export default function CreateNotulenPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between">
-        <Link
-          href="/notulen"
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-emerald-700 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Kembali ke Daftar Notulen</span>
-        </Link>
+    <div className="max-w-4xl mx-auto space-y-6 pb-28">
+      {/* Top Header & Breadcrumbs */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <Link
+            href="/notulen"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-700 transition-colors mb-1.5"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Kembali ke Daftar Notulen</span>
+          </Link>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Buat Notulensi Rapat
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+              Format Resmi Dinas
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Formulir penyusunan notulen rapat resmi SMK Bayt Al-Hikmah Pasuruan.
+          </p>
+        </div>
 
-        {/* Quick Templates */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 font-medium hidden sm:inline">Contoh Template:</span>
+        {/* Quick Actions */}
+        <div className="flex items-center gap-2 self-start sm:self-center">
           <button
             type="button"
             onClick={() => applyTemplate("evaluasi_bulanan")}
-            className="py-1 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+            className="py-1.5 px-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+            title="Muat contoh format rapat evaluasi bulanan guru & staf"
           >
-            <Sparkles className="w-3.5 h-3.5 text-gold-600" />
-            <span>Rapat Evaluasi Bulanan</span>
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>Template Rapat Bulanan</span>
           </button>
         </div>
       </div>
 
-      {/* AI Audio Recorder & Intelligent Notulen Generator */}
+      {/* Asisten AI: Rekam Suara & Foto Catatan Kertas */}
       <MeetingAudioAiRecorder
         onGenerated={handleAiGenerated}
         defaultLeaderName={schoolSettings?.namaKepsek}
         defaultNotulisName={currentUser.name}
       />
 
-      {/* Main Form Container */}
-      <div id="notulen-form-content" className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8">
-        {/* Title Header */}
-        <div className="border-b border-slate-200 pb-4">
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider mb-1">
-            <ClipboardList className="w-4 h-4" />
-            <span>Format Resmi Dokumen Dinas</span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900">
-            Formulir Notulensi Rapat Dinas
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Isi identitas rapat, susunan acara, jalannya pembahasan, serta daftar keputusan & tindak lanjut (action items).
-          </p>
-        </div>
-
-        {/* A. IDENTITAS RAPAT */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-emerald-800 text-white font-black text-xs flex items-center justify-center">
-              A
+      {/* Main Form Sections */}
+      <div id="notulen-form-content" className="space-y-6">
+        {/* 01. IDENTITAS & WAKTU PELAKSANAAN */}
+        <section className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 space-y-5">
+          <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+            <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-xs flex items-center justify-center border border-emerald-200/60 shrink-0">
+              01
             </span>
-            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">
-              Identitas Rapat
-            </h2>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Identitas & Waktu Pelaksanaan</h2>
+              <p className="text-[11px] text-slate-500">Informasi pokok agenda, waktu kegiatan, dan daftar peserta</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/70 p-4 rounded-xl border border-slate-200/80">
+          <div className="space-y-4">
             {/* Jenis Rapat */}
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Jenis / Agenda Rapat: <span className="text-rose-500">*</span>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Agenda / Jenis Rapat <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -459,161 +459,176 @@ export default function CreateNotulenPage() {
                 value={jenisRapat}
                 onChange={(e) => setJenisRapat(e.target.value)}
                 placeholder="Contoh: Rapat Koordinasi Persiapan Penilaian Akhir Semester (PAS)"
-                className="w-full text-xs font-semibold px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white placeholder-slate-400"
               />
             </div>
 
-            {/* Nomor Notulen (Opsional) */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Nomor Notulen (Opsional):
-              </label>
-              <input
-                type="text"
-                value={nomorNotulen}
-                onChange={(e) => setNomorNotulen(e.target.value)}
-                placeholder="Contoh: 012/SMK-BH/NOTULEN/XI/2026"
-                className="w-full text-xs font-mono px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-              />
-            </div>
+            {/* Grid 3 Kolom: Tanggal, Waktu, Tempat */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Tanggal Rapat */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Tanggal Rapat <span className="text-rose-500">*</span>
+                </label>
+                <div className="space-y-1.5">
+                  <input
+                    type="date"
+                    value={tanggal}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
+                  />
+                  <input
+                    type="text"
+                    value={hariTanggal}
+                    onChange={(e) => setHariTanggal(e.target.value)}
+                    placeholder="Hari, DD Bulan YYYY"
+                    className="w-full text-[11px] px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 bg-slate-50 text-slate-600 font-medium"
+                  />
+                </div>
+              </div>
 
-            {/* Tanggal Picker & Hari/Tanggal */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Tanggal Rapat: <span className="text-rose-500">*</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={tanggal}
-                  onChange={(e) => handleDateChange(e.target.value)}
-                  className="w-36 text-xs px-2.5 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                />
+              {/* Waktu Pelaksanaan */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Waktu Pelaksanaan <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
-                  value={hariTanggal}
-                  onChange={(e) => setHariTanggal(e.target.value)}
-                  placeholder="Hari, DD Bulan YYYY"
-                  className="flex-1 text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-medium"
+                  value={waktu}
+                  onChange={(e) => setWaktu(e.target.value)}
+                  placeholder="Pukul 09.00 – 11.30 WIB"
+                  className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Format: Pukul 00.00 – 00.00 WIB</p>
+              </div>
+
+              {/* Tempat */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Tempat / Ruangan <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={tempat}
+                  onChange={(e) => setTempat(e.target.value)}
+                  placeholder="Ruang Guru SMK Bayt Al-Hikmah"
+                  className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Lokasi rapat berlangsung</p>
+              </div>
+            </div>
+
+            {/* Grid 2 Kolom: Nomor Notulen & Peserta Rapat */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Nomor Notulen <span className="text-slate-400 text-[10px] font-normal lowercase">(opsional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={nomorNotulen}
+                  onChange={(e) => setNomorNotulen(e.target.value)}
+                  placeholder="012/SMK-BH/NOTULEN/XI/2026"
+                  className="w-full text-xs font-mono px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Peserta Rapat <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={pesertaRapat}
+                  onChange={(e) => setPesertaRapat(e.target.value)}
+                  placeholder="Contoh: Seluruh Dewan Guru & Staf (32 orang)"
+                  className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
                 />
               </div>
             </div>
 
-            {/* Waktu */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Waktu Pelaksanaan: <span className="text-rose-500">*</span>
+            {/* Group Petugas Rapat (Pemimpin & Notulis) */}
+            <div className="pt-2">
+              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Petugas Pelaksana Rapat
               </label>
-              <input
-                type="text"
-                value={waktu}
-                onChange={(e) => setWaktu(e.target.value)}
-                placeholder="Contoh: Pukul 09.00 – 11.30 WIB"
-                className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-              />
-            </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Pemimpin Rapat */}
+                <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-emerald-700" />
+                    <span className="text-xs font-bold text-slate-800">Pemimpin Rapat</span>
+                    <span className="text-rose-500 text-xs">*</span>
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      value={pemimpinRapat}
+                      onChange={(e) => setPemimpinRapat(e.target.value)}
+                      placeholder="Nama & Jabatan Pemimpin Rapat"
+                      className="w-full text-xs font-semibold px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 bg-white mb-1.5"
+                    />
+                    <input
+                      type="text"
+                      value={pemimpinNip}
+                      onChange={(e) => setPemimpinNip(e.target.value)}
+                      placeholder="NIY / NIP Pemimpin Rapat"
+                      className="w-full text-[11px] font-mono px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 bg-white text-slate-600"
+                    />
+                  </div>
+                </div>
 
-            {/* Tempat */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Tempat / Ruangan: <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={tempat}
-                onChange={(e) => setTempat(e.target.value)}
-                placeholder="Contoh: Ruang Guru SMK Bayt Al-Hikmah"
-                className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-              />
-            </div>
-
-            {/* Pemimpin Rapat */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Pemimpin Rapat: <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={pemimpinRapat}
-                onChange={(e) => setPemimpinRapat(e.target.value)}
-                placeholder="Nama & Jabatan Pemimpin Rapat"
-                className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-semibold"
-              />
-            </div>
-
-            {/* NIP/NIY Pemimpin */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                NIY / NIP Pemimpin Rapat:
-              </label>
-              <input
-                type="text"
-                value={pemimpinNip}
-                onChange={(e) => setPemimpinNip(e.target.value)}
-                placeholder="Contoh: 14215094"
-                className="w-full text-xs font-mono px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-              />
-            </div>
-
-            {/* Notulis */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Notulis (Pencatat): <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={notulis}
-                onChange={(e) => setNotulis(e.target.value)}
-                placeholder="Nama Notulis"
-                className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-semibold"
-              />
-            </div>
-
-            {/* NIP/NIY Notulis */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                NIY / NIP Notulis:
-              </label>
-              <input
-                type="text"
-                value={notulisNip}
-                onChange={(e) => setNotulisNip(e.target.value)}
-                placeholder="Contoh: 19900815 201504 2 001"
-                className="w-full text-xs font-mono px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-              />
-            </div>
-
-            {/* Peserta Rapat */}
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Peserta Rapat: <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={pesertaRapat}
-                onChange={(e) => setPesertaRapat(e.target.value)}
-                placeholder="Contoh: 32 orang (Daftar hadir terlampir)"
-                className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-              />
+                {/* Notulis */}
+                <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                    <span className="text-xs font-bold text-slate-800">Notulis (Pencatat)</span>
+                    <span className="text-rose-500 text-xs">*</span>
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      value={notulis}
+                      onChange={(e) => setNotulis(e.target.value)}
+                      placeholder="Nama Notulis"
+                      className="w-full text-xs font-semibold px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 bg-white mb-1.5"
+                    />
+                    <input
+                      type="text"
+                      value={notulisNip}
+                      onChange={(e) => setNotulisNip(e.target.value)}
+                      placeholder="NIY / NIP Notulis"
+                      className="w-full text-[11px] font-mono px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 bg-white text-slate-600"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* B. SUSUNAN ACARA */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-emerald-800 text-white font-black text-xs flex items-center justify-center">
-                B
+        {/* 02. SUSUNAN ACARA */}
+        <section className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-xs flex items-center justify-center border border-emerald-200/60 shrink-0">
+                02
               </span>
-              <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">
-                Susunan Acara
-              </h2>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-slate-900">Susunan Acara</h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">
+                    {susunanAcara.length} Agenda
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">Urutan pelaksanaan rapat dari pembukaan sampai penutup</p>
+              </div>
             </div>
+
             <button
               type="button"
               onClick={addSusunanAcara}
-              className="py-1 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Tambah Acara</span>
@@ -622,50 +637,57 @@ export default function CreateNotulenPage() {
 
           <div className="space-y-2">
             {susunanAcara.map((acara, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <span className="w-6 text-center text-xs font-bold text-slate-500">
-                  {idx + 1}.
+              <div key={idx} className="flex items-center gap-2 group">
+                <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 font-bold text-xs flex items-center justify-center shrink-0">
+                  {idx + 1}
                 </span>
                 <input
                   type="text"
                   value={acara}
                   onChange={(e) => updateSusunanAcara(idx, e.target.value)}
                   placeholder="Nama sesi / acara"
-                  className="flex-1 text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                  className="flex-1 text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
                 />
                 {susunanAcara.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeSusunanAcara(idx)}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                     title="Hapus sesi"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* C. JALANNYA RAPAT & PEMBAHASAN */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-emerald-800 text-white font-black text-xs flex items-center justify-center">
-                C
+        {/* 03. JALANNYA RAPAT & PEMBAHASAN */}
+        <section className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-xs flex items-center justify-center border border-emerald-200/60 shrink-0">
+                03
               </span>
-              <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">
-                Jalannya Rapat & Pembahasan
-              </h2>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-slate-900">Jalannya Rapat & Pembahasan</h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">
+                    {pembahasan.length} Bagian
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">Materi pengarahan, pemaparan bidang, laporan, serta tanggapan peserta</p>
+              </div>
             </div>
+
             <button
               type="button"
               onClick={addPembahasanSection}
-              className="py-1 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Tambah Bagian Pembahasan</span>
+              <span>Tambah Bagian</span>
             </button>
           </div>
 
@@ -673,17 +695,19 @@ export default function CreateNotulenPage() {
             {pembahasan.map((sec, secIdx) => (
               <div
                 key={secIdx}
-                className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/90 space-y-3"
+                className="bg-slate-50/60 rounded-xl border border-slate-200/80 p-4 space-y-3"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-1">
-                    <span className="text-xs font-bold text-slate-500">{secIdx + 1}.</span>
+                    <span className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center justify-center shrink-0">
+                      {secIdx + 1}
+                    </span>
                     <input
                       type="text"
                       value={sec.judul}
                       onChange={(e) => updateSectionJudul(secIdx, e.target.value)}
-                      placeholder="Judul Pembahasan (Contoh: Pengarahan Kepala Sekolah)"
-                      className="flex-1 text-xs font-bold px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                      placeholder="Judul Bagian Pembahasan (Contoh: Pengarahan Kepala Sekolah)"
+                      className="flex-1 text-xs font-bold px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 bg-white"
                     />
                   </div>
                   {pembahasan.length > 1 && (
@@ -693,7 +717,7 @@ export default function CreateNotulenPage() {
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                       title="Hapus bagian ini"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
@@ -705,12 +729,12 @@ export default function CreateNotulenPage() {
                     value={sec.keterangan || ""}
                     onChange={(e) => updateSectionKet(secIdx, e.target.value)}
                     placeholder="Keterangan pengantar / deskripsi umum jalannya sesi ini (opsional)..."
-                    className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 bg-white placeholder-slate-400"
                   />
                 </div>
 
                 {/* Poin-Poin Detail */}
-                <div className="space-y-2 pl-4 border-l-2 border-emerald-600">
+                <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-slate-600">Poin Pembahasan / Pernyataan:</span>
                     <button
@@ -731,7 +755,7 @@ export default function CreateNotulenPage() {
                         value={poin}
                         onChange={(e) => updatePoin(secIdx, poinIdx, e.target.value)}
                         placeholder="Rincian poin arahan / pembahasan..."
-                        className="flex-1 text-xs px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                        className="flex-1 text-xs px-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 bg-white"
                       />
                       <button
                         type="button"
@@ -747,95 +771,113 @@ export default function CreateNotulenPage() {
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* D. KEPUTUSAN RAPAT & TINDAK LANJUT (ACTION ITEMS) */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-emerald-800 text-white font-black text-xs flex items-center justify-center">
-                D
+        {/* 04. KEPUTUSAN RAPAT & TINDAK LANJUT (ACTION ITEMS) */}
+        <section className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-xs flex items-center justify-center border border-emerald-200/60 shrink-0">
+                04
               </span>
-              <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">
-                Keputusan Rapat & Tindak Lanjut (Action Items)
-              </h2>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-slate-900">Keputusan & Tindak Lanjut (Action Items)</h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                    {actionItems.length} Butir
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">Tabel penugasan resmi, penanggung jawab (PIC), dan tenggat waktu penyelesaian</p>
+              </div>
             </div>
+
             <button
               type="button"
               onClick={addActionItem}
-              className="py-1 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Tambah Keputusan (Action Item)</span>
+              <span>Tambah Keputusan</span>
             </button>
           </div>
 
-          <p className="text-xs text-slate-500">
-            Daftar tugas, penanggung jawab, dan batas akhir penyelesaian hasil rapat. Tabel ini akan tercetak rapi di halaman resmi.
-          </p>
+          <div className="space-y-2">
+            {/* Table Header Row (Hidden on mobile, visible on sm+) */}
+            <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <div className="col-span-1">No.</div>
+              <div className="col-span-5">Hasil Keputusan / Tindak Lanjut</div>
+              <div className="col-span-3">Penanggung Jawab (PIC)</div>
+              <div className="col-span-2">Tenggat Waktu</div>
+              <div className="col-span-1 text-center">Aksi</div>
+            </div>
 
-          <div className="space-y-3">
             {actionItems.map((act, actIdx) => (
               <div
                 key={act.id || actIdx}
-                className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/90 flex flex-col sm:flex-row items-start sm:items-center gap-3"
+                className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/80 flex flex-col sm:grid sm:grid-cols-12 gap-2 items-start sm:items-center"
               >
-                <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center flex-shrink-0">
-                  {actIdx + 1}
-                </span>
-
-                <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-12 gap-2">
-                  <div className="sm:col-span-6">
-                    <input
-                      type="text"
-                      value={act.keputusan}
-                      onChange={(e) => updateActionItem(actIdx, "keputusan", e.target.value)}
-                      placeholder="Keputusan / Rencana Tindak Lanjut"
-                      className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-medium"
-                    />
-                  </div>
-                  <div className="sm:col-span-3">
-                    <input
-                      type="text"
-                      value={act.pic}
-                      onChange={(e) => updateActionItem(actIdx, "pic", e.target.value)}
-                      placeholder="Penanggung Jawab (PIC)"
-                      className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                    />
-                  </div>
-                  <div className="sm:col-span-3">
-                    <input
-                      type="text"
-                      value={act.tenggat_waktu}
-                      onChange={(e) => updateActionItem(actIdx, "tenggat_waktu", e.target.value)}
-                      placeholder="Tenggat Waktu / Deadline"
-                      className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-medium text-emerald-900"
-                    />
-                  </div>
+                <div className="sm:col-span-1 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                    {actIdx + 1}
+                  </span>
+                  <span className="text-xs font-bold text-slate-600 sm:hidden">Butir #{actIdx + 1}</span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => removeActionItem(actIdx)}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer self-end sm:self-center"
-                  title="Hapus baris keputusan"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="sm:col-span-5 w-full">
+                  <input
+                    type="text"
+                    value={act.keputusan}
+                    onChange={(e) => updateActionItem(actIdx, "keputusan", e.target.value)}
+                    placeholder="Keputusan / Rencana Tindak Lanjut"
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 bg-white font-medium"
+                  />
+                </div>
+
+                <div className="sm:col-span-3 w-full">
+                  <input
+                    type="text"
+                    value={act.pic}
+                    onChange={(e) => updateActionItem(actIdx, "pic", e.target.value)}
+                    placeholder="Penanggung Jawab (PIC)"
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 bg-white text-slate-700"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 w-full">
+                  <input
+                    type="text"
+                    value={act.tenggat_waktu}
+                    onChange={(e) => updateActionItem(actIdx, "tenggat_waktu", e.target.value)}
+                    placeholder="Tenggat / Deadline"
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 bg-white font-medium text-emerald-900"
+                  />
+                </div>
+
+                <div className="sm:col-span-1 w-full sm:w-auto flex justify-end sm:justify-center">
+                  <button
+                    type="button"
+                    onClick={() => removeActionItem(actIdx)}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                    title="Hapus butir keputusan"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* E. PENUTUP */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-emerald-800 text-white font-black text-xs flex items-center justify-center">
-              E
+        {/* 05. PENUTUP RAPAT */}
+        <section className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 space-y-4">
+          <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+            <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-xs flex items-center justify-center border border-emerald-200/60 shrink-0">
+              05
             </span>
-            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">
-              Penutup
-            </h2>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Penutup Rapat</h2>
+              <p className="text-[11px] text-slate-500">Waktu penutupan resmi dan doa bersama</p>
+            </div>
           </div>
 
           <textarea
@@ -843,39 +885,45 @@ export default function CreateNotulenPage() {
             value={penutup}
             onChange={(e) => setPenutup(e.target.value)}
             placeholder="Contoh: Rapat ditutup pada pukul 11.30 WIB dengan doa bersama yang dipimpin oleh Bapak Drs. H. Mahmud."
-            className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+            className="w-full text-xs px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-600 bg-white placeholder-slate-400 leading-relaxed"
           />
-        </div>
+        </section>
+      </div>
 
-        {/* Action Buttons */}
-        <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* Sticky Bottom Action Bar */}
+      <div className="sticky bottom-4 z-40 bg-white/95 backdrop-blur-md border border-slate-200 shadow-lg rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2 self-start sm:self-center">
           <Link
             href="/notulen"
-            className="w-full sm:w-auto py-2.5 px-5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all text-center"
+            className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
           >
             Batal
           </Link>
+          <span className="text-slate-300">|</span>
+          <span className="text-[11px] text-slate-500 font-medium">
+            Dokumen Notulen Baru (Draf)
+          </span>
+        </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleSubmit("draft")}
-              className="flex-1 sm:flex-none py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
-            >
-              Simpan Sebagai Draft
-            </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => handleSubmit("draft")}
+            className="flex-1 sm:flex-none py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+          >
+            Simpan Sebagai Draf
+          </button>
 
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleSubmit("final")}
-              className="flex-1 sm:flex-none py-2.5 px-5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              <span>Simpan & Terbitkan</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => handleSubmit("final")}
+            className="flex-1 sm:flex-none py-2 px-5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>Simpan & Terbitkan</span>
+          </button>
         </div>
       </div>
     </div>

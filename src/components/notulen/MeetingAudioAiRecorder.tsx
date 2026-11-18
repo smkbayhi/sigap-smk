@@ -23,6 +23,8 @@ import {
   Eye,
   Loader2,
   Zap,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 interface MeetingAudioAiRecorderProps {
@@ -38,6 +40,7 @@ export default function MeetingAudioAiRecorder({
 }: MeetingAudioAiRecorderProps) {
   // Tabs: 'mic' | 'upload' | 'transcript'
   const [activeTab, setActiveTab] = useState<"mic" | "upload" | "transcript">("mic");
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Recording State
   const [recordingStatus, setRecordingStatus] = useState<
@@ -484,7 +487,7 @@ export default function MeetingAudioAiRecorder({
   };
 
   return (
-    <div className="bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 rounded-2xl shadow-xl border border-emerald-500/30 overflow-hidden text-white mb-8">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xs overflow-hidden text-slate-100 mb-6 transition-all">
       {/* Hidden File Inputs for Photo Upload / Camera */}
       <input
         ref={cameraInputRef}
@@ -503,84 +506,104 @@ export default function MeetingAudioAiRecorder({
       />
 
       {/* Header Banner */}
-      <div className="px-6 py-5 border-b border-emerald-500/20 bg-emerald-950/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-950/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-            <Sparkles className="w-6 h-6 text-slate-950" />
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <Sparkles className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold tracking-tight text-white">
-                Asisten Notulis AI: Rekam Rapat, Foto Catatan & Generate Otomatis
+              <h2 className="text-sm font-bold text-white tracking-tight">
+                Asisten Notulis AI
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                Fitur AI Generatif
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                Gemini 3 Flash
               </span>
             </div>
-            <p className="text-xs text-emerald-200/80 mt-0.5">
-              Rekam suara rapat, unggah audio, atau <strong>foto catatan rapat di kertas</strong>. AI membaca tulisan dan menyusun notulen dinas resmi (Bagian A s.d. E & Tabel PIC).
+            <p className="text-xs text-slate-400 mt-0.5">
+              Rekam suara rapat, unggah audio, atau <strong>foto catatan kertas</strong> untuk generate notulensi otomatis.
             </p>
           </div>
         </div>
 
         {/* Action / Setting Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-center">
           <button
             type="button"
             onClick={() => setShowApiKeyModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
             title="Konfigurasi Kunci Google Gemini API (Opsional)"
           >
             <Key className="w-3.5 h-3.5 text-amber-400" />
-            <span>{geminiApiKey ? "Gemini Key: Aktif" : "Set API Key (Opsional)"}</span>
+            <span className="hidden sm:inline">{geminiApiKey ? "API Key: Aktif" : "Set API Key"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer"
+          >
+            {isCollapsed ? (
+              <>
+                <span>Buka Panel AI</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </>
+            ) : (
+              <>
+                <span>Sembunyikan</span>
+                <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Mode Tabs */}
-      <div className="px-6 pt-4 border-b border-emerald-500/10 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setActiveTab("mic")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-xl transition border-b-2 ${
-            activeTab === "mic"
-              ? "bg-emerald-950/60 text-emerald-300 border-emerald-400"
-              : "text-slate-400 hover:text-slate-200 border-transparent hover:bg-slate-800/40"
-          }`}
-        >
-          <Mic className="w-4 h-4 text-emerald-400" />
-          <span>1. Rekam Suara (Mikrofon)</span>
-        </button>
+      {!isCollapsed && (
+        <>
+          {/* Mode Tabs */}
+          <div className="px-5 pt-3 border-b border-slate-800 bg-slate-950/20 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setActiveTab("mic")}
+              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition ${
+                activeTab === "mic"
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent"
+              }`}
+            >
+              <Mic className="w-3.5 h-3.5 text-emerald-400" />
+              <span>1. Rekam Suara (Mic)</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("upload")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-xl transition border-b-2 ${
-            activeTab === "upload"
-              ? "bg-emerald-950/60 text-emerald-300 border-emerald-400"
-              : "text-slate-400 hover:text-slate-200 border-transparent hover:bg-slate-800/40"
-          }`}
-        >
-          <UploadCloud className="w-4 h-4 text-teal-400" />
-          <span>2. Unggah File Rekaman (Audio)</span>
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("upload")}
+              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition ${
+                activeTab === "upload"
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent"
+              }`}
+            >
+              <UploadCloud className="w-3.5 h-3.5 text-teal-400" />
+              <span>2. Unggah File Audio</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("transcript")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-xl transition border-b-2 ${
-            activeTab === "transcript"
-              ? "bg-emerald-950/60 text-emerald-300 border-emerald-400"
-              : "text-slate-400 hover:text-slate-200 border-transparent hover:bg-slate-800/40"
-          }`}
-        >
-          <Camera className="w-4 h-4 text-amber-400" />
-          <span>3. Foto Catatan Kertas / Teks (OCR)</span>
-        </button>
-      </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab("transcript")}
+              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition ${
+                activeTab === "transcript"
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent"
+              }`}
+            >
+              <Camera className="w-3.5 h-3.5 text-amber-400" />
+              <span>3. Foto Catatan Kertas (OCR)</span>
+            </button>
+          </div>
 
-      {/* Tab Contents */}
-      <div className="p-6">
+          {/* Tab Contents */}
+          <div className="p-5">
         {/* TAB 1: MIC RECORDER */}
         {activeTab === "mic" && (
           <div className="space-y-4">
@@ -959,38 +982,38 @@ export default function MeetingAudioAiRecorder({
         )}
 
         {/* Generate Button */}
-        <div className="mt-6 pt-5 border-t border-emerald-500/20 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="text-xs text-slate-400 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>
-              Otomatis mengisi Identitas Rapat (A), Susunan Acara (B), Pembahasan (C), Tabel Action Items PIC (D), dan Penutup (E).
-            </span>
+        <div className="mt-5 pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-xs text-slate-400 flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>Otomatis mengisi Identitas, Susunan Acara, Pembahasan & Tabel Tindak Lanjut</span>
           </div>
 
           <button
             type="button"
             onClick={handleGenerateAiNotulen}
             disabled={isProcessing}
-            className={`flex items-center gap-2.5 px-6 py-3 rounded-xl font-bold text-sm shadow-xl transition transform hover:-translate-y-0.5 ${
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition ${
               isProcessing
-                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 shadow-emerald-500/30"
+                ? "bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700"
+                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/40"
             }`}
           >
             {isProcessing ? (
               <>
-                <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                <RefreshCw className="w-4 h-4 animate-spin" />
                 <span>{processingStep || "Sedang Memproses AI..."}</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5 text-slate-950" />
+                <Sparkles className="w-4 h-4" />
                 <span>Generate Notulensi Rapat Otomatis dengan AI</span>
               </>
             )}
           </button>
         </div>
       </div>
+    </>
+  )}
 
       {/* Modal Settings Gemini API Key (Optional) */}
       {showApiKeyModal && (
