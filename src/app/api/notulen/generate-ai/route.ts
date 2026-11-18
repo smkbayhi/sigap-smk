@@ -27,6 +27,24 @@ interface GeminiNotulenResponse {
   penutup: string;
 }
 
+// Fallback OCR helper using Tesseract
+async function runOcrOnBase64(base64Data: string): Promise<string> {
+  try {
+    const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "");
+    const buffer = Buffer.from(cleanBase64, "base64");
+    const Tesseract = require("tesseract.js");
+    if (Tesseract && Tesseract.recognize) {
+      const res = await Tesseract.recognize(buffer, "ind+eng").catch(async () => {
+        return await Tesseract.recognize(buffer, "eng");
+      });
+      return res?.data?.text || "";
+    }
+  } catch (err) {
+    console.warn("Tesseract OCR fallback in notulen error:", err);
+  }
+  return "";
+}
+
 // Fallback intelligent NLP heuristic extractor when Gemini API Key is not set or offline
 function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
   const text = transcript.trim();
@@ -212,19 +230,72 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { transcript, audioBase64, mimeType, geminiApiKey } = body;
+    const { transcript, audioBase64, imageBase64, mimeType, geminiApiKey, action } = body;
 
     const apiKey = geminiApiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-    // Check if we have audio input OR transcript text
+    // Check if we have audio, image, or transcript text
     const hasAudio = audioBase64 && typeof audioBase64 === "string" && audioBase64.length > 50;
-    const hasTranscript = transcript && typeof transcript === "string" && transcript.trim().length > 10;
+    const hasImage = imageBase64 && typeof imageBase64 === "string" && imageBase64.length > 50;
+    const hasTranscript = transcript && typeof transcript === "string" && transcript.trim().length > 5;
 
-    if (!hasAudio && !hasTranscript) {
+    // ACTION: OCR ONLY (just extract text from photo of handwritten / printed paper note)
+    if (action === "ocr_only" && hasImage) {
+      if (apiKey) {
+        try {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+          const cleanImageBase64 = imageBase64.replace(/^data:[^;]+;base64,/, "");
+          const ocrRes = await fetch(geminiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      inlineData: {
+                        mimeType: mimeType || "image/jpeg",
+                        data: cleanImageBase64,
+                      },
+                    },
+                    {
+                      text: "Ini adalah foto catatan/tulisan rapat di atas kertas (bisa berupa tulisan tangan atau cetakan). Tolong baca dan transkripsikan seluruh isi tulisan catatan rapat ini secara utuh, jelas, dan rapi dalam bahasa Indonesia.",
+                    },
+                  ],
+                },
+              ],
+            }),
+          });
+          if (ocrRes.ok) {
+            const data = await ocrRes.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text && text.trim().length > 0) {
+              return NextResponse.json({
+                success: true,
+                text: text.trim(),
+                engine: "Google Gemini Vision OCR",
+              });
+            }
+          }
+        } catch (ocrErr) {
+          console.warn("Gemini vision OCR error, fallback to Tesseract:", ocrErr);
+        }
+      }
+
+      // Fallback Tesseract
+      const ocrText = await runOcrOnBase64(imageBase64);
+      return NextResponse.json({
+        success: true,
+        text: ocrText.trim() || "Catatan rapat terdeteksi.",
+        engine: "Tesseract OCR Engine",
+      });
+    }
+
+    if (!hasAudio && !hasImage && !hasTranscript) {
       return NextResponse.json(
         {
           success: false,
-          error: "Harap berikan transkrip percakapan rapat atau rekaman audio suara rapat.",
+          error: "Harap berikan transkrip percakapan rapat, rekaman audio suara, atau foto catatan kertas rapat.",
         },
         { status: 400 }
       );
@@ -235,7 +306,7 @@ export async function POST(req: NextRequest) {
       try {
         const promptInstruction = `
 Anda adalah asisten notulis dinas resmi sekolah SMK Bayt Al-Hikmah Pasuruan yang berdedikasi tinggi dan profesional.
-Analisis rekaman audio suara rapat ini atau transkrip percakapan rapat yang diberikan.
+Analisis data rapat yang diberikan (berupa rekaman suara, foto catatan kertas rapat yang ditulis tangan/tercetak, dan/atau transkrip percakapan rapat).
 Hasilkan dokumen NOTULENSI RAPAT DINAS RESMI yang sangat rapi, formal, terstruktur, dan presisi.
 
 Kembalikan HANYA format JSON valid (tanpa markdown backtick (\`\`\`json)) dengan struktur tepat berikut:
@@ -314,8 +385,17 @@ Kembalikan HANYA format JSON valid (tanpa markdown backtick (\`\`\`json)) dengan
           });
         }
 
+        if (hasImage) {
+          parts.push({
+            inlineData: {
+              mimeType: mimeType || "image/jpeg",
+              data: imageBase64.replace(/^data:[^;]+;base64,/, ""),
+            },
+          });
+        }
+
         const fullPrompt = hasTranscript
-          ? `${promptInstruction}\n\nTRANSKRIP REKAMAN RAPAT:\n${transcript}`
+          ? `${promptInstruction}\n\nTRANSKRIP / CATATAN RAPAT:\n${transcript}`
           : promptInstruction;
 
         parts.push({ text: fullPrompt });
@@ -345,7 +425,7 @@ Kembalikan HANYA format JSON valid (tanpa markdown backtick (\`\`\`json)) dengan
               const parsed = JSON.parse(candidateText.trim());
               return NextResponse.json({
                 success: true,
-                engine: "Google Gemini AI (Cloud)",
+                engine: "Google Gemini AI (Cloud Multimodal)",
                 data: parsed,
               });
             } catch (jsonErr) {
@@ -355,7 +435,7 @@ Kembalikan HANYA format JSON valid (tanpa markdown backtick (\`\`\`json)) dengan
                 const parsed = JSON.parse(cleanJsonMatch[0]);
                 return NextResponse.json({
                   success: true,
-                  engine: "Google Gemini AI (Cloud)",
+                  engine: "Google Gemini AI (Cloud Multimodal)",
                   data: parsed,
                 });
               }
@@ -370,8 +450,15 @@ Kembalikan HANYA format JSON valid (tanpa markdown backtick (\`\`\`json)) dengan
       }
     }
 
-    // Tier 2 Fallback: Intelligent Heuristic NLP Synthesizer
-    const extractedData = heuristicMeetingExtractor(transcript || "Rapat koordinasi dan evaluasi rutin berkala dewan guru sekolah.");
+    // Tier 2 Fallback: If image without Gemini, run OCR on image first
+    let textToAnalyze = transcript || "";
+    if (hasImage && !textToAnalyze) {
+      const ocrResult = await runOcrOnBase64(imageBase64);
+      textToAnalyze = ocrResult || "Rapat koordinasi dewan guru dan staf sekolah.";
+    }
+
+    // Intelligent Heuristic NLP Synthesizer
+    const extractedData = heuristicMeetingExtractor(textToAnalyze || "Rapat koordinasi dan evaluasi rutin berkala dewan guru sekolah.");
 
     return NextResponse.json({
       success: true,

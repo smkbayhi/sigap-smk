@@ -16,9 +16,12 @@ import {
   AlertCircle,
   FileText,
   Key,
-  HelpCircle,
-  Clock,
-  Layers,
+  Camera,
+  Image as ImageIcon,
+  Scan,
+  Trash2,
+  Eye,
+  Loader2,
   Zap,
 } from "lucide-react";
 
@@ -46,9 +49,15 @@ export default function MeetingAudioAiRecorder({
   const [liveTranscript, setLiveTranscript] = useState("");
   const [pastedTranscript, setPastedTranscript] = useState("");
 
-  // Upload State
+  // Upload Audio State
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedAudioUrl, setUploadedAudioUrl] = useState<string | null>(null);
+
+  // Upload Photo / OCR State
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [isOcrScanning, setIsOcrScanning] = useState(false);
 
   // AI & Processing State
   const [isProcessing, setIsProcessing] = useState(false);
@@ -61,12 +70,14 @@ export default function MeetingAudioAiRecorder({
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [geminiApiKey, setGeminiApiKey] = useState("");
 
-  // Refs for Recording
+  // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const speechRecognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
   // Load custom Gemini API key from localStorage on mount
   useEffect(() => {
@@ -99,6 +110,19 @@ export default function MeetingAudioAiRecorder({
       .padStart(2, "0");
     const s = (sec % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
+  };
+
+  // Convert Blob or File to Base64
+  const fileToBase64 = (fileOrBlob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result);
+      };
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(fileOrBlob);
+    });
   };
 
   // 1. START LIVE RECORDING
@@ -228,7 +252,7 @@ export default function MeetingAudioAiRecorder({
     setSuccessMessage(null);
   };
 
-  // 5. HANDLE FILE UPLOAD
+  // 5. HANDLE AUDIO FILE UPLOAD
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -240,26 +264,73 @@ export default function MeetingAudioAiRecorder({
     }
   };
 
-  // Convert Blob or File to Base64
-  const fileToBase64 = (fileOrBlob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result);
-      };
-      reader.onerror = (error) => reject(error);
-      reader.readAsDataURL(fileOrBlob);
-    });
+  // 6. HANDLE PAPER NOTE PHOTO UPLOAD / CAMERA OCR
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadedImage(file);
+      const url = URL.createObjectURL(file);
+      setImagePreviewUrl(url);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+
+      try {
+        const b64 = await fileToBase64(file);
+        setImageBase64(b64);
+        // Automatically trigger OCR scanning to populate the textarea
+        triggerOcrExtraction(b64, file.type || "image/jpeg");
+      } catch (err) {
+        console.warn("Image base64 conversion failed:", err);
+      }
+    }
   };
 
-  // 6. PROCESS RECORDING / TRANSCRIPT WITH AI
+  const triggerOcrExtraction = async (b64: string, mime: string) => {
+    setIsOcrScanning(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetch("/api/notulen/generate-ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "ocr_only",
+          imageBase64: b64,
+          mimeType: mime,
+          geminiApiKey: geminiApiKey.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.text) {
+        setPastedTranscript((prev) => {
+          if (!prev.trim()) return data.text;
+          return prev + "\n\n" + data.text;
+        });
+        setSuccessMessage(
+          `Berhasil membaca tulisan catatan dari foto kertas menggunakan ${data.engine || "AI OCR"}!`
+        );
+      }
+    } catch (err: any) {
+      console.warn("OCR trigger error:", err);
+    } finally {
+      setIsOcrScanning(false);
+    }
+  };
+
+  const removeUploadedImage = () => {
+    setUploadedImage(null);
+    setImagePreviewUrl(null);
+    setImageBase64(null);
+  };
+
+  // 7. PROCESS WITH AI (AUDIO, PHOTO OCR, OR TRANSCRIPT)
   const handleGenerateAiNotulen = async () => {
     setErrorMessage(null);
     setSuccessMessage(null);
 
     let activeTranscript = "";
     let activeAudioBase64 = "";
+    let activeImageBase64 = "";
     let mimeType = "";
 
     if (activeTab === "mic") {
@@ -287,17 +358,25 @@ export default function MeetingAudioAiRecorder({
       }
     } else if (activeTab === "transcript") {
       activeTranscript = pastedTranscript.trim();
+      if (imageBase64) {
+        activeImageBase64 = imageBase64;
+        mimeType = uploadedImage?.type || "image/jpeg";
+      }
     }
 
-    if (!activeTranscript && !activeAudioBase64) {
+    if (!activeTranscript && !activeAudioBase64 && !activeImageBase64) {
       setErrorMessage(
-        "Tidak ada data suara atau transkrip yang dapat diproses. Rekam suara, unggah berkas audio, atau tempel transkrip percakapan rapat."
+        "Tidak ada data suara, foto catatan kertas, atau transkrip yang dapat diproses. Rekam suara, foto catatan kertas rapat, atau tempel transkrip percakapan."
       );
       return;
     }
 
     setIsProcessing(true);
-    setProcessingStep("Menganalisis data audio dan percakapan rapat...");
+    setProcessingStep(
+      activeImageBase64
+        ? "Menganalisis foto catatan rapat dan tulisan tangan..."
+        : "Menganalisis percakapan rapat..."
+    );
 
     try {
       const stepTimer1 = setTimeout(() => {
@@ -320,6 +399,7 @@ export default function MeetingAudioAiRecorder({
         body: JSON.stringify({
           transcript: activeTranscript,
           audioBase64: activeAudioBase64,
+          imageBase64: activeImageBase64,
           mimeType: mimeType,
           geminiApiKey: geminiApiKey.trim() || undefined,
         }),
@@ -337,7 +417,7 @@ export default function MeetingAudioAiRecorder({
 
       setEngineUsed(result.engine || "SIGAP AI Engine");
       setSuccessMessage(
-        "Berhasil! Notulensi rapat dinas telah di-generate secara otomatis sesuai standar resmi sekolah."
+        "Berhasil! Notulensi rapat dinas telah di-generate secara otomatis sesuai format resmi dinas."
       );
 
       // Invoke parent callback to populate form
@@ -394,6 +474,23 @@ Membahas percepatan realisasi program kerja semester ganjil, akreditasi program 
 
   return (
     <div className="bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 rounded-2xl shadow-xl border border-emerald-500/30 overflow-hidden text-white mb-8">
+      {/* Hidden File Inputs for Photo Upload / Camera */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleImageSelect}
+        className="hidden"
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*,.pdf"
+        onChange={handleImageSelect}
+        className="hidden"
+      />
+
       {/* Header Banner */}
       <div className="px-6 py-5 border-b border-emerald-500/20 bg-emerald-950/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -403,14 +500,14 @@ Membahas percepatan realisasi program kerja semester ganjil, akreditasi program 
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold tracking-tight text-white">
-                Asisten Notulis AI: Rekam Rapat & Generate Otomatis
+                Asisten Notulis AI: Rekam Rapat, Foto Catatan & Generate Otomatis
               </h2>
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                 Fitur AI Generatif
               </span>
             </div>
             <p className="text-xs text-emerald-200/80 mt-0.5">
-              Rekam suara rapat langsung dari mikrofon HP/Laptop atau unggah rekaman audio. AI akan otomatis menyusun notulen dinas lengkap (Bagian A s.d. E & Tabel PIC).
+              Rekam suara rapat, unggah audio, atau <strong>foto catatan rapat di kertas</strong>. AI membaca tulisan dan menyusun notulen dinas resmi (Bagian A s.d. E & Tabel PIC).
             </p>
           </div>
         </div>
@@ -430,7 +527,7 @@ Membahas percepatan realisasi program kerja semester ganjil, akreditasi program 
       </div>
 
       {/* Mode Tabs */}
-      <div className="px-6 pt-4 border-b border-emerald-500/10 flex gap-2">
+      <div className="px-6 pt-4 border-b border-emerald-500/10 flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => setActiveTab("mic")}
@@ -441,7 +538,7 @@ Membahas percepatan realisasi program kerja semester ganjil, akreditasi program 
           }`}
         >
           <Mic className="w-4 h-4 text-emerald-400" />
-          <span>1. Rekam Langsung (Mikrofon)</span>
+          <span>1. Rekam Suara (Mikrofon)</span>
         </button>
 
         <button
@@ -466,8 +563,8 @@ Membahas percepatan realisasi program kerja semester ganjil, akreditasi program 
               : "text-slate-400 hover:text-slate-200 border-transparent hover:bg-slate-800/40"
           }`}
         >
-          <FileText className="w-4 h-4 text-blue-400" />
-          <span>3. Tempel Transkrip / Catatan Rapat</span>
+          <Camera className="w-4 h-4 text-amber-400" />
+          <span>3. Foto Catatan Kertas / Teks (OCR)</span>
         </button>
       </div>
 
@@ -701,23 +798,119 @@ Membahas percepatan realisasi program kerja semester ganjil, akreditasi program 
           </div>
         )}
 
-        {/* TAB 3: PASTED TRANSCRIPT / ROUGH NOTES */}
+        {/* TAB 3: PHOTO OF PAPER NOTE (OCR) & PASTED NOTES */}
         {activeTab === "transcript" && (
           <div className="space-y-4">
+            {/* PAPER NOTE OCR UPLOAD CARD */}
+            <div className="p-4 rounded-2xl bg-slate-950/60 border border-amber-500/30">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400">
+                    <Camera className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">
+                      Foto Catatan Rapat di Kertas / Buku Notulen (AI OCR)
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Foto tulisan tangan atau catatan di kertas. AI akan otomatis membaca teksnya.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow-md shadow-amber-500/20"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>Ambil Foto (Kamera HP)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5 text-teal-400" />
+                    <span>Pilih Galeri / File</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Photo Preview if Selected */}
+              {imagePreviewUrl && (
+                <div className="mt-3 p-3 rounded-xl bg-slate-900/80 border border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={imagePreviewUrl}
+                      alt="Foto Catatan Rapat"
+                      className="w-16 h-16 object-cover rounded-lg border border-slate-600"
+                    />
+                    <div>
+                      <p className="text-xs font-semibold text-slate-200">
+                        {uploadedImage?.name || "Foto Catatan Rapat"}
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        {uploadedImage ? `${(uploadedImage.size / 1024).toFixed(1)} KB` : "Gambar Siap"}
+                      </p>
+                      {isOcrScanning ? (
+                        <div className="flex items-center gap-1.5 text-xs text-amber-400 mt-1 font-medium animate-pulse">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Membaca teks dari foto catatan kertas...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-[11px] text-emerald-400 mt-1 font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Teks berhasil diekstrak ke dalam kotak catatan di bawah</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {imageBase64 && !isOcrScanning && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          triggerOcrExtraction(imageBase64, uploadedImage?.type || "image/jpeg")
+                        }
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 transition"
+                      >
+                        <Scan className="w-3.5 h-3.5" />
+                        <span>Pindai Ulang OCR</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={removeUploadedImage}
+                      className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/20 transition"
+                      title="Hapus Foto"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* TEXTAREA FOR OCR RESULTS OR MANUAL NOTES */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-semibold text-slate-300 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-blue-400" />
-                  <span>Tempel Catatan Rapat Kasar / Transkrip WhatsApp Voice Note:</span>
+                  <span>
+                    Hasil Ekstraksi OCR / Tempel Catatan Percakapan Rapat:
+                  </span>
                 </label>
                 <span className="text-[11px] text-slate-400">
-                  AI akan merapikan dan mengubahnya menjadi format dinas resmi
+                  Bisa diedit atau ditambah poin sebelum di-generate
                 </span>
               </div>
               <textarea
                 value={pastedTranscript}
                 onChange={(e) => setPastedTranscript(e.target.value)}
-                placeholder="Tempelkan hasil transkrip rekaman suara atau catatan rapat kasar di sini... AI SIGAP akan menganalisis poin pembahasan, menyusun susunan acara, dan memetakan tabel keputusan beserta PIC-nya secara otomatis."
+                placeholder="Hasil pembacaan foto catatan di kertas akan muncul di sini secara otomatis. Anda juga dapat menempelkan catatan kasar atau hasil transkrip rekaman suara di sini..."
                 rows={6}
                 className="w-full text-xs font-sans bg-slate-950/80 border border-slate-700/60 rounded-xl p-4 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-400"
               />
