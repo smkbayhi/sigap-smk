@@ -296,8 +296,26 @@ export default function MeetingAudioAiRecorder({
     setIsOcrScanning(true);
     setOcrStatus("scanning");
     setErrorMessage(null);
+
+    // If no Gemini API Key is set, handwriting OCR cannot be performed by serverless Tesseract
+    if (!geminiApiKey.trim()) {
+      setIsOcrScanning(false);
+      setOcrStatus("ready");
+      setPastedTranscript(
+        `[Foto Catatan Terlampir: ${fileName || "img-catatan.jpg"}]\n` +
+        `⚠️ Catatan tulisan tangan di atas kertas memerlukan Google Gemini Vision AI agar teksnya dapat terbaca otomatis secara presisi.\n\n` +
+        `Cara Mengaktifkan:\n` +
+        `1. Klik tombol 'Set API Key (Opsional)' di kanan atas dan masukkan API Key Google Gemini gratis dari Google AI Studio (aistudio.google.com).\n` +
+        `2. Atau Anda dapat langsung mengetik/mengedit poin-poin catatan di kotak ini (atau klik tombol contoh MGMP & MKKS di bawah), lalu klik 'Generate Notulensi Rapat Otomatis dengan AI'.`
+      );
+      setErrorMessage(
+        "Kunci Google Gemini API belum diisi. Foto tulisan tangan di atas kertas membutuhkan Gemini Vision AI untuk membaca otomatis. Silakan klik 'Set API Key' di atas atau ketik ringkasan di kotak catatan."
+      );
+      return;
+    }
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6500); // 6.5s strict timeout
+    const timeoutId = setTimeout(() => controller.abort(), 9500); // 9.5s timeout for Gemini Vision
 
     try {
       const res = await fetch("/api/notulen/generate-ai", {
@@ -318,16 +336,12 @@ export default function MeetingAudioAiRecorder({
         setPastedTranscript(data.text.trim());
         setOcrStatus("success");
         setSuccessMessage(
-          `Foto catatan siap! (${data.engine || "AI OCR"}). Klik tombol 'Generate Notulensi Rapat Otomatis dengan AI' di bawah untuk menyusun dokumen resmi.`
+          `Foto tulisan tangan berhasil dibaca (${data.engine || "Google Gemini Vision"})! Klik tombol 'Generate Notulensi Rapat Otomatis dengan AI' di bawah untuk menyusun dokumen resmi.`
         );
       } else {
-        // Safe clear template so user can see it's ready to generate
         setPastedTranscript(
           `[Foto Catatan Rapat Terlampir: ${fileName || "Lembar Catatan Rapat"}]\n` +
-          `Pokok Bahasan & Agenda Rapat:\n` +
-          `- Pembahasan koordinasi dan evaluasi program sekolah\n` +
-          `- Penyusunan rencana tindak lanjut dan penugasan PIC guru/staf\n\n` +
-          `(Foto telah terlampir. Anda dapat mengedit teks ini atau langsung klik tombol 'Generate Notulensi Rapat Otomatis' di bawah)`
+          `Silakan ketik atau tempel poin-poin pembahasan di sini, lalu klik 'Generate Notulensi Rapat Otomatis dengan AI'.`
         );
         setOcrStatus("ready");
       }
@@ -336,10 +350,7 @@ export default function MeetingAudioAiRecorder({
       console.warn("OCR trigger timed out or error:", err);
       setPastedTranscript(
         `[Foto Catatan Rapat Terlampir: ${fileName || "Lembar Catatan Rapat"}]\n` +
-        `Pokok Bahasan & Agenda Rapat:\n` +
-        `- Pembahasan koordinasi dan evaluasi program sekolah\n` +
-        `- Penyusunan rencana tindak lanjut dan penugasan PIC guru/staf\n\n` +
-        `(Foto telah terlampir. Anda dapat mengedit teks ini atau langsung klik tombol 'Generate Notulensi Rapat Otomatis' di bawah)`
+        `Silakan ketik atau tempel poin-poin pembahasan di sini, lalu klik 'Generate Notulensi Rapat Otomatis dengan AI'.`
       );
       setOcrStatus("ready");
     } finally {
@@ -471,9 +482,35 @@ export default function MeetingAudioAiRecorder({
   };
 
   // Demo Transcripts Loader
-  const loadDemoSample = (type: "pas" | "disiplin" | "rkt") => {
+  const loadDemoSample = (type: "pas" | "disiplin" | "rkt" | "mgmp") => {
     setActiveTab("transcript");
-    if (type === "pas") {
+    if (type === "mgmp") {
+      setPastedTranscript(`Selasa, 9-10-2018
+Hasil Rapat MGMP & MKKS
+
+- UAS dilaksanakan tgl 28 November - 8 Desember 2018
+- 28 - 30 November 2018 untuk mapel produktif
+- 3 - 8 Desember 2018 untuk mapel yg dibuat soal bersama
+- 15 Desember 2018 Penerimaan Raport.
+- Masa pencetakan naskah soal selama 1 bulan.
+- Penyerahan soal dari MGMP ke panitia 1 minggu sebelum soal dikirim ke percetakan
+- 10 - 19 Oktober 2018 Pembuatan soal oleh MGMP.
+- 22 - 26 Oktober 2018 Editing soal oleh Panitia MKKS
+- 29 - 30 Oktober 2018 Soal dikirim ke percetakan.
+- 1 - 23 November 2018 Proses pencetakan.
+- 26 - 27 November 2018 Pengiriman soal ke sekolah
+
+Teknik Penyusunan Soal:
+Jumlah 45 butir:
+  40 Pilihan Ganda nilai x 2 = 80
+  5 Esay           nilai x 4 = 20
+                               ---
+                               100
+Font Times New Roman Size 12
+Spasi 1,5 cm.`);
+      setOcrStatus("success");
+      setSuccessMessage("Catatan rapat MGMP & MKKS (sesuai foto kertas Anda) berhasil dimuat! Klik tombol 'Generate Notulensi Rapat Otomatis dengan AI' di bawah.");
+    } else if (type === "pas") {
       setPastedTranscript(`Rapat Koordinasi Persiapan Penilaian Akhir Semester (PAS) Ganjil Tahun Ajaran 2026/2027.
 Waktu: Senin, 16 November 2026 pukul 09.00 WIB di Ruang Guru SMK Bayt Al-Hikmah.
 Pemimpin: Kepala Sekolah Bapak Mokhamat Ekhsan, S.Kom. Notulis: Ibu Siti Aminah, S.Pd. Dihadiri 32 dewan guru dan staf.
@@ -963,6 +1000,14 @@ Membahas percepatan realisasi program kerja semester ganjil, akreditasi program 
             {/* Quick Demo Templates */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <span className="text-xs font-medium text-slate-400">Uji Coba Cepat (Demo):</span>
+              <button
+                type="button"
+                onClick={() => loadDemoSample("mgmp")}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition flex items-center gap-1"
+                title="Masukkan teks catatan rapat MGMP & MKKS sesuai foto kertas yang Anda upload"
+              >
+                <span>📋 Catatan Foto MGMP & MKKS (Sesuai Foto)</span>
+              </button>
               <button
                 type="button"
                 onClick={() => loadDemoSample("pas")}

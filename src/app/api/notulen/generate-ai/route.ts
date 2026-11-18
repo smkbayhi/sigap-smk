@@ -69,7 +69,9 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
 
   // 1. Detect Meeting Type / Topic
   let jenisRapat = "Rapat Koordinasi Dewan Guru & Staf Sekolah";
-  if (lower.includes("pas") || lower.includes("penilaian akhir semester") || lower.includes("ujian semester")) {
+  if (lower.includes("mgmp") || lower.includes("mkks")) {
+    jenisRapat = "Rapat Koordinasi MGMP & MKKS (Persiapan Ujian Akhir Semester)";
+  } else if (lower.includes("pas") || lower.includes("penilaian akhir semester") || lower.includes("ujian semester")) {
     jenisRapat = "Rapat Koordinasi Persiapan Penilaian Akhir Semester (PAS)";
   } else if (lower.includes("rkt") || lower.includes("rencana kerja") || lower.includes("program tahunan")) {
     jenisRapat = "Rapat Kerja Sekolah & Evaluasi RKT Bulanan";
@@ -81,6 +83,19 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
     jenisRapat = "Rapat Koordinasi Penyelenggaraan Praktik Kerja Lapangan (PKL)";
   } else if (lower.includes("kelulusan") || lower.includes("wisuda") || lower.includes("perpisahan")) {
     jenisRapat = "Rapat Pleno Penetapan Kelulusan & Wisuda Siswa";
+  }
+
+  // Detect explicit date in text if present (e.g., "Selasa, 9-10-2018" or "16 November 2026")
+  let hariTanggalFinal = hariTanggalStr;
+  let tanggalIsoFinal = todayIso;
+  const rawDateMatch = text.match(/(senin|selasa|rabu|kamis|jumat|sabtu|minggu)[,\s]+(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/i);
+  if (rawDateMatch) {
+    const hari = rawDateMatch[1].charAt(0).toUpperCase() + rawDateMatch[1].slice(1).toLowerCase();
+    const d = rawDateMatch[2];
+    const m = parseInt(rawDateMatch[3], 10);
+    const y = rawDateMatch[4];
+    hariTanggalFinal = `${hari}, ${d} ${months[m - 1] || "Oktober"} ${y}`;
+    tanggalIsoFinal = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
   }
 
   // 2. Detect Leaders & Participants
@@ -220,8 +235,8 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
   return {
     jenis_rapat: jenisRapat,
     nomor_notulen: `013/SMK-BH/NOTULEN/${today.getMonth() + 1}/${today.getFullYear()}`,
-    hari_tanggal: hariTanggalStr,
-    tanggal: todayIso,
+    hari_tanggal: hariTanggalFinal,
+    tanggal: tanggalIsoFinal,
     waktu: "Pukul 09.00 – 11.30 WIB",
     tempat: "Ruang Guru / Rapat SMK Bayt Al-Hikmah",
     pemimpin_rapat: pemimpin,
