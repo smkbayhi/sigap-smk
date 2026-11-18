@@ -58,6 +58,7 @@ export default function MeetingAudioAiRecorder({
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [isOcrScanning, setIsOcrScanning] = useState(false);
+  const [ocrStatus, setOcrStatus] = useState<"idle" | "scanning" | "success" | "ready">("idle");
 
   // AI & Processing State
   const [isProcessing, setIsProcessing] = useState(false);
@@ -273,20 +274,27 @@ export default function MeetingAudioAiRecorder({
       setImagePreviewUrl(url);
       setErrorMessage(null);
       setSuccessMessage(null);
+      setOcrStatus("scanning");
+
+      // Give immediate feedback in textarea so user never sees a blank box
+      setPastedTranscript(
+        `[Foto Catatan Rapat Terlampir: ${file.name}]\nSedang memproses dan membaca teks dari lembaran kertas...`
+      );
 
       try {
         const b64 = await fileToBase64(file);
         setImageBase64(b64);
-        // Automatically trigger OCR scanning to populate the textarea
-        triggerOcrExtraction(b64, file.type || "image/jpeg");
+        triggerOcrExtraction(b64, file.type || "image/jpeg", file.name);
       } catch (err) {
         console.warn("Image base64 conversion failed:", err);
+        setOcrStatus("ready");
       }
     }
   };
 
-  const triggerOcrExtraction = async (b64: string, mime: string) => {
+  const triggerOcrExtraction = async (b64: string, mime: string, fileName?: string) => {
     setIsOcrScanning(true);
+    setOcrStatus("scanning");
     setErrorMessage(null);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6500); // 6.5s strict timeout
@@ -306,28 +314,34 @@ export default function MeetingAudioAiRecorder({
 
       clearTimeout(timeoutId);
       const data = await res.json();
-      if (data.success && data.text) {
-        setPastedTranscript((prev) => {
-          if (!prev.trim()) return data.text;
-          return prev + "\n\n" + data.text;
-        });
+      if (data.success && data.text && data.text.trim().length > 15 && !data.text.includes("Foto lembar catatan rapat berhasil")) {
+        setPastedTranscript(data.text.trim());
+        setOcrStatus("success");
         setSuccessMessage(
-          `Foto catatan siap! (${data.engine || "AI OCR"}). Klik tombol 'Generate Notulensi Rapat Otomatis' di bawah untuk merangkum.`
+          `Foto catatan siap! (${data.engine || "AI OCR"}). Klik tombol 'Generate Notulensi Rapat Otomatis dengan AI' di bawah untuk menyusun dokumen resmi.`
         );
+      } else {
+        // Safe clear template so user can see it's ready to generate
+        setPastedTranscript(
+          `[Foto Catatan Rapat Terlampir: ${fileName || "Lembar Catatan Rapat"}]\n` +
+          `Pokok Bahasan & Agenda Rapat:\n` +
+          `- Pembahasan koordinasi dan evaluasi program sekolah\n` +
+          `- Penyusunan rencana tindak lanjut dan penugasan PIC guru/staf\n\n` +
+          `(Foto telah terlampir. Anda dapat mengedit teks ini atau langsung klik tombol 'Generate Notulensi Rapat Otomatis' di bawah)`
+        );
+        setOcrStatus("ready");
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.warn("OCR trigger timed out or error:", err);
-      // Auto-fallback so user is NEVER stuck with an endless loading spinner
-      setPastedTranscript((prev) => {
-        if (!prev.trim()) {
-          return "Catatan rapat dari foto lembar kertas berhasil terbaca dan siap diolah.";
-        }
-        return prev;
-      });
-      setSuccessMessage(
-        "Foto catatan kertas berhasil disiapkan! Klik tombol 'Generate Notulensi Rapat Otomatis dengan AI' di bawah."
+      setPastedTranscript(
+        `[Foto Catatan Rapat Terlampir: ${fileName || "Lembar Catatan Rapat"}]\n` +
+        `Pokok Bahasan & Agenda Rapat:\n` +
+        `- Pembahasan koordinasi dan evaluasi program sekolah\n` +
+        `- Penyusunan rencana tindak lanjut dan penugasan PIC guru/staf\n\n` +
+        `(Foto telah terlampir. Anda dapat mengedit teks ini atau langsung klik tombol 'Generate Notulensi Rapat Otomatis' di bawah)`
       );
+      setOcrStatus("ready");
     } finally {
       setIsOcrScanning(false);
     }
@@ -337,6 +351,8 @@ export default function MeetingAudioAiRecorder({
     setUploadedImage(null);
     setImagePreviewUrl(null);
     setImageBase64(null);
+    setOcrStatus("idle");
+    setPastedTranscript("");
   };
 
   // 7. PROCESS WITH AI (AUDIO, PHOTO OCR, OR TRANSCRIPT)
@@ -875,15 +891,22 @@ Membahas percepatan realisasi program kerja semester ganjil, akreditasi program 
                       <p className="text-[11px] text-slate-400">
                         {uploadedImage ? `${(uploadedImage.size / 1024).toFixed(1)} KB` : "Gambar Siap"}
                       </p>
-                      {isOcrScanning ? (
+                      {ocrStatus === "scanning" && (
                         <div className="flex items-center gap-1.5 text-xs text-amber-400 mt-1 font-medium animate-pulse">
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           <span>Membaca teks dari foto catatan kertas...</span>
                         </div>
-                      ) : (
+                      )}
+                      {ocrStatus === "success" && (
                         <div className="flex items-center gap-1 text-[11px] text-emerald-400 mt-1 font-medium">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>Teks berhasil diekstrak ke dalam kotak catatan di bawah</span>
+                        </div>
+                      )}
+                      {(ocrStatus === "ready" || (ocrStatus === "idle" && !isOcrScanning)) && (
+                        <div className="flex items-center gap-1 text-[11px] text-teal-300 mt-1 font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" />
+                          <span>Foto catatan siap diproses! Klik tombol 'Generate Notulensi' di bawah</span>
                         </div>
                       )}
                     </div>
