@@ -13,6 +13,7 @@ import {
   StatusDisposisi,
   StatusRKT,
   SchoolSettings,
+  NotulenRapat,
 } from "@/lib/database.types";
 import {
   INITIAL_PERSPEKTIF,
@@ -22,6 +23,7 @@ import {
   INITIAL_RKT,
   INITIAL_ACTION_PLANS,
   INITIAL_ACTION_REPORTS,
+  INITIAL_NOTULEN_RAPAT,
   DEFAULT_SCHOOL_SETTINGS,
   TTD_KEPSEK_DATA_URL,
   STEMPEL_SEKOLAH_DATA_URL,
@@ -51,6 +53,7 @@ interface AppDataContextType {
   rkt: RKT[];
   actionPlans: ActionPlan[];
   actionReports: ActionReport[];
+  notulenList: NotulenRapat[];
   toasts: ToastMessage[];
 
   // School & Letter Settings (Logo, Stempel, TTD)
@@ -101,6 +104,13 @@ interface AppDataContextType {
   addActionReport: (data: Omit<ActionReport, "id" | "created_at">) => void;
   updateActionReport: (id: string, partial: Partial<ActionReport>) => void;
 
+  // Actions: Notulen Rapat
+  addNotulen: (data: Omit<NotulenRapat, "id" | "created_at">) => NotulenRapat;
+  updateNotulen: (id: string, partial: Partial<NotulenRapat>) => void;
+  deleteNotulen: (id: string) => void;
+  approveNotulen: (id: string, kepsekName: string) => void;
+  toggleActionItemStatus: (notulenId: string, actionItemId: string) => void;
+
   // System
   addToast: (type: ToastMessage["type"], title: string, message: string) => void;
   removeToast: (id: string) => void;
@@ -117,6 +127,7 @@ const STORAGE_KEYS = {
   RKT: "sigap_smk_rkt",
   ACTION_PLANS: "sigap_smk_action_plans",
   ACTION_REPORTS: "sigap_smk_action_reports",
+  NOTULEN: "sigap_smk_notulen",
   SCHOOL_SETTINGS: "sigap_smk_school_settings",
 };
 
@@ -128,6 +139,7 @@ const DELETED_KEYS = {
   RKT: "sigap_smk_deleted_rkt_ids",
   ACTION_PLANS: "sigap_smk_deleted_ap_ids",
   ACTION_REPORTS: "sigap_smk_deleted_ar_ids",
+  NOTULEN: "sigap_smk_deleted_notulen_ids",
 };
 
 // Legacy dummy seed IDs that must never be resurrected on any browser/device
@@ -331,6 +343,26 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     }
     return INITIAL_ACTION_REPORTS;
   });
+
+  const [notulenList, setNotulenList] = useState<NotulenRapat[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const deleted = getDeletedIds(DELETED_KEYS.NOTULEN);
+        const stored = localStorage.getItem(STORAGE_KEYS.NOTULEN);
+        if (stored) {
+          const parsed: NotulenRapat[] = JSON.parse(stored);
+          return (Array.isArray(parsed) ? parsed : []).filter(
+            (n) => !deleted.includes(n.id)
+          );
+        }
+        return INITIAL_NOTULEN_RAPAT;
+      } catch {
+        return INITIAL_NOTULEN_RAPAT;
+      }
+    }
+    return INITIAL_NOTULEN_RAPAT;
+  });
+
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(isSupabaseConfigured);
 
@@ -1111,6 +1143,110 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     addToast("info", "Laporan Diperbarui", "Data laporan berhasil diubah.");
   };
 
+  // Safe background cloud sync for notulen rapat
+  const syncNotulenToCloud = async (action: "upsert" | "delete", itemOrId: NotulenRapat | string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      if (action === "upsert") {
+        await (supabase.from("notulen_rapat") as any).upsert(itemOrId);
+      } else {
+        await (supabase.from("notulen_rapat") as any).delete().eq("id", itemOrId);
+      }
+    } catch {
+      // Table may not yet be provisioned on cloud
+    }
+  };
+
+  // Notulen Rapat Actions
+  const addNotulen = (data: Omit<NotulenRapat, "id" | "created_at">): NotulenRapat => {
+    const newItem: NotulenRapat = {
+      ...data,
+      id: "notulen-" + Date.now(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    unmarkDeletedId(DELETED_KEYS.NOTULEN, newItem.id);
+    const updated = [newItem, ...notulenList];
+    setNotulenList(updated);
+    saveToStorage(STORAGE_KEYS.NOTULEN, updated);
+    syncNotulenToCloud("upsert", newItem);
+    addToast(
+      "success",
+      "Notulen Rapat Dibuat",
+      `Notulen "${data.jenis_rapat}" berhasil disimpan.`
+    );
+    return newItem;
+  };
+
+  const updateNotulen = (id: string, partial: Partial<NotulenRapat>) => {
+    const updated = notulenList.map((n) =>
+      n.id === id ? { ...n, ...partial, updated_at: new Date().toISOString() } : n
+    );
+    setNotulenList(updated);
+    saveToStorage(STORAGE_KEYS.NOTULEN, updated);
+    const target = updated.find((n) => n.id === id);
+    if (target) syncNotulenToCloud("upsert", target);
+    addToast("info", "Notulen Diperbarui", "Perubahan data notulen rapat telah disimpan.");
+  };
+
+  const deleteNotulen = (id: string) => {
+    markDeletedId(DELETED_KEYS.NOTULEN, id);
+    const updated = notulenList.filter((n) => n.id !== id);
+    setNotulenList(updated);
+    saveToStorage(STORAGE_KEYS.NOTULEN, updated);
+    syncNotulenToCloud("delete", id);
+    addToast("info", "Notulen Dihapus", "Data notulen rapat telah dihapus.");
+  };
+
+  const approveNotulen = (id: string, kepsekName: string) => {
+    const updated = notulenList.map((n) => {
+      if (n.id === id) {
+        return {
+          ...n,
+          status: "disetujui" as const,
+          is_approved_by_kepsek: true,
+          approved_at: new Date().toISOString(),
+          approved_by_name: kepsekName,
+          has_ttd_kepsek: true,
+          has_stempel: true,
+          updated_at: new Date().toISOString(),
+        };
+      }
+      return n;
+    });
+    setNotulenList(updated);
+    saveToStorage(STORAGE_KEYS.NOTULEN, updated);
+    const target = updated.find((n) => n.id === id);
+    if (target) syncNotulenToCloud("upsert", target);
+    addToast(
+      "success",
+      "Notulen Disetujui & Disahkan",
+      "Notulen rapat telah diverifikasi dan disahkan oleh Kepala Sekolah."
+    );
+  };
+
+  const toggleActionItemStatus = (notulenId: string, actionItemId: string) => {
+    const updated = notulenList.map((n) => {
+      if (n.id === notulenId) {
+        const updatedItems = n.action_items.map((item) => {
+          if (item.id === actionItemId) {
+            return {
+              ...item,
+              status: (item.status === "selesai" ? "pending" : "selesai") as "pending" | "selesai",
+            };
+          }
+          return item;
+        });
+        return { ...n, action_items: updatedItems, updated_at: new Date().toISOString() };
+      }
+      return n;
+    });
+    setNotulenList(updated);
+    saveToStorage(STORAGE_KEYS.NOTULEN, updated);
+    const target = updated.find((n) => n.id === notulenId);
+    if (target) syncNotulenToCloud("upsert", target);
+  };
+
   // School Settings Actions (Logo, Stempel, TTD)
   const updateSchoolSettings = async (partial: Partial<SchoolSettings>) => {
     const updated: SchoolSettings = { ...schoolSettings, ...partial };
@@ -1246,6 +1382,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setRkt(INITIAL_RKT);
     setActionPlans(INITIAL_ACTION_PLANS);
     setActionReports(INITIAL_ACTION_REPORTS);
+    setNotulenList(INITIAL_NOTULEN_RAPAT);
     addToast("info", "Data Demo Direset", "Semua data telah dikembalikan ke kondisi awal seeder.");
   };
 
@@ -1264,6 +1401,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         rkt,
         actionPlans,
         actionReports,
+        notulenList,
         toasts,
         addSuratKeluar,
         updateSuratKeluar,
@@ -1290,6 +1428,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         deleteActionPlan,
         addActionReport,
         updateActionReport,
+        addNotulen,
+        updateNotulen,
+        deleteNotulen,
+        approveNotulen,
+        toggleActionItemStatus,
         addToast,
         removeToast,
         resetAllData,

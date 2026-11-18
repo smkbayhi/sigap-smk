@@ -20,6 +20,7 @@ import {
   X,
   Clock,
   Stamp,
+  ClipboardList,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -31,12 +32,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { currentUser, isKepsek, isTU, isKasubag, isGuru } = useAuth();
-  const { suratKeluar, disposisi, rkt, schoolSettings } = useAppData();
+  const { suratKeluar, disposisi, rkt, schoolSettings, notulenList } = useAppData();
   const { currentReport } = usePresensi();
   const schoolLogo = schoolSettings?.logoSmkUrl || LOGO_SMK_DATA_URL;
 
   const pendingSK = suratKeluar.filter((s) => s.status === "menunggu_persetujuan").length;
   const pendingRKT = rkt.filter((r) => r.status === "menunggu_persetujuan").length;
+  const pendingActionItems = (notulenList || []).reduce(
+    (acc, n) => acc + (n.action_items || []).filter((a) => a.status === "pending").length,
+    0
+  );
   
   // Pending disposisi for current user or overall
   const myPendingDisp = disposisi.filter((d) => 
@@ -249,6 +254,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 {myPendingDisp > 0 && (
                   <span className="text-[10px] bg-gold-400 text-emerald-950 font-bold px-1.5 py-0.5 rounded-full pointer-events-none">
                     {myPendingDisp}
+                  </span>
+                )}
+              </Link>
+
+              {/* Notulensi & Risalah Rapat */}
+              <Link
+                href="/notulen"
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/notulen")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
+                  isActive("/notulen")
+                    ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
+                    : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
+                }`}
+              >
+                <div className="flex items-center gap-3 pointer-events-none">
+                  <ClipboardList className="w-4 h-4 text-emerald-300" />
+                  <span>Notulensi Rapat</span>
+                </div>
+                {pendingActionItems > 0 && (
+                  <span
+                    title={`${pendingActionItems} tindak lanjut aktif`}
+                    className="text-[10px] bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded-full pointer-events-none"
+                  >
+                    {pendingActionItems}
                   </span>
                 )}
               </Link>

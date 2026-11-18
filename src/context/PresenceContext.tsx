@@ -39,6 +39,8 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith("/disposisi")) return "Daftar Disposisi Tugas";
   if (pathname.startsWith("/surat-masuk/")) return "Membaca Surat Masuk";
   if (pathname.startsWith("/surat-masuk")) return "Arsip Surat Masuk";
+  if (pathname.startsWith("/notulen/")) return "Membaca Risalah Rapat";
+  if (pathname.startsWith("/notulen")) return "Notulensi & Risalah Rapat";
   if (pathname.startsWith("/surat-keluar")) return "Surat Keluar & TTD";
   if (pathname.startsWith("/rkt")) return "Rencana Kerja Tahunan (RKT)";
   if (pathname.startsWith("/master")) return "Master Data & Pengaturan";

@@ -1,4 +1,4 @@
-import { User, MasterPerspektif, SuratKeluar, SuratMasuk, Disposisi, RKT, ActionPlan, ActionReport, SchoolSettings } from "./database.types";
+import { User, MasterPerspektif, SuratKeluar, SuratMasuk, Disposisi, RKT, ActionPlan, ActionReport, SchoolSettings, NotulenRapat } from "./database.types";
 
 // Official Logo Yayasan Pondok Pesantren Bayt Al-Hikmah (Left Logo)
 // Official Logo Yayasan PP Bayt Al-Hikmah (Authentic extracted from School Doc)
@@ -255,3 +255,97 @@ export const INITIAL_DISPOSISI: Disposisi[] = [];
 export const INITIAL_RKT: RKT[] = [];
 export const INITIAL_ACTION_PLANS: ActionPlan[] = [];
 export const INITIAL_ACTION_REPORTS: ActionReport[] = [];
+
+export const INITIAL_NOTULEN_RAPAT: NotulenRapat[] = [
+  {
+    id: "notulen-pas-2026",
+    nomor_notulen: "012/SMK-BH/NOTULEN/XI/2026",
+    jenis_rapat: "Rapat Koordinasi Persiapan Penilaian Akhir Semester (PAS)",
+    hari_tanggal: "Senin, 16 November 2026",
+    tanggal: "2026-11-16",
+    waktu: "Pukul 09.00 – 11.30 WIB",
+    tempat: "Ruang Guru SMK Bayt Al-Hikmah",
+    pemimpin_rapat: "Mokhamat Ekhsan, S.Kom (Kepala Sekolah)",
+    pemimpin_nip: "14215094",
+    notulis: "Siti Aminah, S.Pd.",
+    notulis_nip: "19900815 201504 2 001",
+    peserta_rapat: "32 orang (Daftar hadir terlampir)",
+    jumlah_peserta: 32,
+    susunan_acara: [
+      "Pembukaan",
+      "Pengarahan Kepala Sekolah",
+      "Pembahasan Teknis Pelaksanaan PAS",
+      "Sesi Tanya Jawab dan Masukan",
+      "Kesimpulan dan Penutup",
+    ],
+    pembahasan: [
+      {
+        judul: "Pembukaan",
+        keterangan: "Rapat dibuka oleh pembawa acara pada pukul 09.05 WIB dengan membaca basmalah bersama.",
+        poin_poin: [],
+      },
+      {
+        judul: "Pengarahan Kepala Sekolah",
+        poin_poin: [
+          "Kepala Sekolah mengingatkan pentingnya kedisiplinan guru dalam mengumpulkan naskah soal tepat waktu.",
+          "Pelaksanaan ujian harus berjalan jujur, tertib, dan kondusif.",
+        ],
+      },
+      {
+        judul: "Pembahasan Inti",
+        poin_poin: [
+          "Wakil Kepala Sekolah Bidang Kurikulum memaparkan jadwal pelaksanaan PAS yang akan dimulai pada tanggal 30 November 2026.",
+          "Sistem ujian menggunakan metode berbasis komputer/gawai (CBT) untuk kelas tinggi dan kertas untuk kelas rendah.",
+          "Pembagian tugas panitia pelaksana dan jadwal pengawas ruang ujian.",
+        ],
+      },
+      {
+        judul: "Tanggapan / Masukan Peserta",
+        poin_poin: [
+          "Bapak Budi Santoso mengusulkan agar jaringan Wi-Fi sekolah dicek dan ditambah kapasitasnya sebelum ujian dimulai untuk menghindari kendala teknis.",
+          "Ibu Rina menyarankan adanya simulasi ujian bagi siswa sehari sebelum pelaksanaan.",
+        ],
+      },
+    ],
+    action_items: [
+      {
+        id: "act-1",
+        keputusan: "Batas akhir pengumpulan naskah soal dan kisi-kisi ke panitia.",
+        pic: "Seluruh Guru Mata Pelajaran",
+        tenggat_waktu: "23 November 2026",
+        status: "pending",
+      },
+      {
+        id: "act-2",
+        keputusan: "Pengecekan jaringan internet dan server ujian sekolah.",
+        pic: "Tim IT Sekolah",
+        tenggat_waktu: "25 November 2026",
+        status: "pending",
+      },
+      {
+        id: "act-3",
+        keputusan: "Pelaksanaan simulasi teknis ujian bagi seluruh siswa.",
+        pic: "Panitia Kurikulum",
+        tenggat_waktu: "27 November 2026",
+        status: "pending",
+      },
+      {
+        id: "act-4",
+        keputusan: "Penerbitan jadwal resmi pengawas ruang ujian.",
+        pic: "Sekretaris Panitia",
+        tenggat_waktu: "26 November 2026",
+        status: "pending",
+      },
+    ],
+    penutup: "Rapat ditutup pada pukul 11.30 WIB dengan doa bersama yang dipimpin oleh Bapak Drs. H. Mahmud.",
+    status: "final",
+    is_approved_by_kepsek: true,
+    approved_at: "2026-11-16T12:00:00Z",
+    approved_by_name: "Mokhamat Ekhsan, S.Kom",
+    has_ttd_kepsek: true,
+    has_stempel: true,
+    created_by: "user-tu",
+    creator_name: "Siti Aminah, S.Pd.",
+    created_at: "2026-11-16T09:00:00Z",
+  },
+];

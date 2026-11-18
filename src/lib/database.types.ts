@@ -180,3 +180,63 @@ export interface ActionReport {
   lampiran_file_size?: string;
   created_at: string;
 }
+
+export interface NotulenActionItem {
+  id: string;
+  keputusan: string;
+  pic: string;
+  tenggat_waktu: string;
+  status?: 'pending' | 'selesai';
+}
+
+export interface NotulenPembahasanSection {
+  judul: string; // e.g. "Pembukaan", "Pengarahan Kepala Sekolah", "Pembahasan Inti", "Tanggapan / Masukan Peserta"
+  keterangan?: string; // e.g. "Rapat dibuka oleh pembawa acara pada pukul 09.05 WIB dengan membaca basmalah bersama."
+  poin_poin: string[]; // bullet points
+}
+
+export type StatusNotulen = 'draft' | 'final' | 'disetujui';
+
+export interface NotulenRapat {
+  id: string;
+  nomor_notulen?: string;
+  // A. IDENTITAS RAPAT
+  jenis_rapat: string;
+  hari_tanggal: string;
+  tanggal: string; // YYYY-MM-DD
+  waktu: string;
+  tempat: string;
+  pemimpin_rapat: string;
+  pemimpin_nip?: string;
+  notulis: string;
+  notulis_id?: string;
+  notulis_nip?: string;
+  peserta_rapat: string;
+  jumlah_peserta?: number;
+
+  // B. SUSUNAN ACARA
+  susunan_acara: string[];
+
+  // C. JALANNYA RAPAT & PEMBAHASAN
+  pembahasan: NotulenPembahasanSection[];
+
+  // D. KEPUTUSAN RAPAT & TINDAK LANJUT (ACTION ITEMS)
+  action_items: NotulenActionItem[];
+
+  // E. PENUTUP
+  penutup: string;
+
+  // PENGESAHAN & STATUS
+  status: StatusNotulen;
+  catatan_kepsek?: string;
+  is_approved_by_kepsek: boolean;
+  approved_at?: string;
+  approved_by_name?: string;
+  has_ttd_kepsek?: boolean;
+  has_stempel?: boolean;
+  created_by: string;
+  creator_name?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
