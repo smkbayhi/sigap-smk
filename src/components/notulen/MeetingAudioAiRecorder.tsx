@@ -483,71 +483,6 @@ export default function MeetingAudioAiRecorder({
     }
   };
 
-  // Demo Transcripts Loader
-  const loadDemoSample = (type: "pas" | "disiplin" | "rkt" | "mgmp") => {
-    setActiveTab("transcript");
-    if (type === "mgmp") {
-      setPastedTranscript(`Selasa, 9-10-2018
-Hasil Rapat MGMP & MKKS
-
-- UAS dilaksanakan tgl 28 November - 8 Desember 2018
-- 28 - 30 November 2018 untuk mapel produktif
-- 3 - 8 Desember 2018 untuk mapel yg dibuat soal bersama
-- 15 Desember 2018 Penerimaan Raport.
-- Masa pencetakan naskah soal selama 1 bulan.
-- Penyerahan soal dari MGMP ke panitia 1 minggu sebelum soal dikirim ke percetakan
-- 10 - 19 Oktober 2018 Pembuatan soal oleh MGMP.
-- 22 - 26 Oktober 2018 Editing soal oleh Panitia MKKS
-- 29 - 30 Oktober 2018 Soal dikirim ke percetakan.
-- 1 - 23 November 2018 Proses pencetakan.
-- 26 - 27 November 2018 Pengiriman soal ke sekolah
-
-Teknik Penyusunan Soal:
-Jumlah 45 butir:
-  40 Pilihan Ganda nilai x 2 = 80
-  5 Esay           nilai x 4 = 20
-                               ---
-                               100
-Font Times New Roman Size 12
-Spasi 1,5 cm.`);
-      setOcrStatus("success");
-      setSuccessMessage("Catatan rapat MGMP & MKKS (sesuai foto kertas Anda) berhasil dimuat! Klik tombol 'Generate Notulensi Rapat Otomatis dengan AI' di bawah.");
-    } else if (type === "pas") {
-      setPastedTranscript(`Rapat Koordinasi Persiapan Penilaian Akhir Semester (PAS) Ganjil Tahun Ajaran 2026/2027.
-Waktu: Senin, 16 November 2026 pukul 09.00 WIB di Ruang Guru SMK Bayt Al-Hikmah.
-Pemimpin: Kepala Sekolah Bapak Mokhamat Ekhsan, S.Kom. Notulis: Ibu Siti Aminah, S.Pd. Dihadiri 32 dewan guru dan staf.
-
-Jalannya Rapat:
-1. Rapat dibuka tepat pukul 09.05 WIB dengan pembacaan Ummul Kitab bersama dipimpin notulis.
-2. Pengarahan Kepala Sekolah: Bapak Mokhamat Ekhsan menegaskan agar seluruh guru tertib mengumpulkan kisi-kisi dan naskah soal tepat waktu. Ketertiban dan kejujuran ujian adalah marwah sekolah.
-3. Pembahasan Inti Kurikulum: Waka Kurikulum Bapak Nasih menyampaikan jadwal pelaksanaan PAS dimulai tanggal 30 November sampai 7 Desember 2026. Ujian berbasis CBT untuk kelas XI dan XII, serta paper-based untuk kelas X.
-4. Tanggapan & Masukan: Bapak Budi Santoso menyarankan pengecekan kapasitas bandwidth Wi-Fi sekolah agar server tidak down. Ibu Rina mengusulkan adanya simulasi CBT satu hari sebelum pelaksanaan.
-
-Keputusan Rapat & Tindak Lanjut:
-- Batas akhir penyerahan naskah soal dan kisi-kisi ke panitia paling lambat tanggal 23 November 2026. PIC: Seluruh Guru Mata Pelajaran.
-- Pengecekan jaringan internet dan server ujian sekolah selesai tanggal 25 November 2026. PIC: Tim IT Sekolah.
-- Pelaksanaan simulasi teknis CBT bagi siswa pada tanggal 26 November 2026. PIC: Panitia Kurikulum.
-- Rapat ditutup pukul 11.30 WIB dengan doa kafaratul majelis.`);
-    } else if (type === "disiplin") {
-      setPastedTranscript(`Rapat Pembinaan Kedisiplinan Guru dan Karyawan SMK Bayt Al-Hikmah Pasuruan.
-Hari/Tanggal: Rabu, 18 November 2026 pukul 13.00 WIB di Ruang Rapat Pimpinan.
-Pemimpin: Kepala Sekolah Mokhamat Ekhsan, S.Kom. Dihadiri Kepala TU dan Tim Kedisiplinan.
-
-Pembahasan:
-- Evaluasi presensi fingerprint digital pekan lalu. Terdapat staf yang mengalami kendala lupa finger saat jam pulang.
-- Kepala Sekolah menginstruksikan agar Kepala Tata Usaha rutin melakukan rekonsiliasi dan verifikasi status kehadiran (izin, sakit, dinas luar) sebelum rekapitulasi dicetak.
-- Pesan WA rekapitulasi kehadiran wajib menyertakan link akses webapp mandiri dengan login akun NIY masing-masing guru.
-
-Keputusan:
-1. Pembaruan format pesan WhatsApp presensi harian paling lambat 20 November 2026 oleh Tim IT.
-2. Kepala TU melakukan pembinaan dan verifikasi langsung bagi guru yang terlambat lebih dari batas toleransi.`);
-    } else {
-      setPastedTranscript(`Rapat Evaluasi Rencana Kerja Tahunan (RKT) dan Capaian Mutu Sekolah.
-Pemimpin: Mokhamat Ekhsan, S.Kom. Tempat: Aula SMK Bayt Al-Hikmah.
-Membahas percepatan realisasi program kerja semester ganjil, akreditasi program keahlian, dan penguatan jejaring kerja sama industri (DUDI) untuk magang siswa PKL.`);
-    }
-  };
-
   return (
     <div className="bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 rounded-2xl shadow-xl border border-emerald-500/30 overflow-hidden text-white mb-8">
       {/* Hidden File Inputs for Photo Upload / Camera */}
@@ -997,40 +932,6 @@ Membahas percepatan realisasi program kerja semester ganjil, akreditasi program 
                 rows={6}
                 className="w-full text-xs font-sans bg-slate-950/80 border border-slate-700/60 rounded-xl p-4 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-400"
               />
-            </div>
-
-            {/* Quick Demo Templates */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-xs font-medium text-slate-400">Uji Coba Cepat (Demo):</span>
-              <button
-                type="button"
-                onClick={() => loadDemoSample("mgmp")}
-                className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition flex items-center gap-1"
-                title="Masukkan teks catatan rapat MGMP & MKKS sesuai foto kertas yang Anda upload"
-              >
-                <span>📋 Catatan Foto MGMP & MKKS (Sesuai Foto)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => loadDemoSample("pas")}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition"
-              >
-                📝 Contoh Rapat PAS 2026
-              </button>
-              <button
-                type="button"
-                onClick={() => loadDemoSample("disiplin")}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition"
-              >
-                👥 Contoh Rapat Kedisiplinan Guru
-              </button>
-              <button
-                type="button"
-                onClick={() => loadDemoSample("rkt")}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 transition"
-              >
-                📊 Contoh Rapat Evaluasi RKT
-              </button>
             </div>
           </div>
         )}
