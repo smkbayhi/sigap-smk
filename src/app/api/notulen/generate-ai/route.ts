@@ -183,13 +183,25 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
 
   // 5. Decision & Action Items
   const actionItems: GeminiNotulenResponse["action_items"] = [];
-  const actionKeywords = ["tugas", "deadline", "kumpul", "siapkan", "jadwal", "pic", "koordinasi", "paling lambat", "segera"];
+  const actionKeywords = [
+    "tugas", "deadline", "kumpul", "siapkan", "jadwal", "pic", "koordinasi", 
+    "paling lambat", "segera", "pembuatan", "editing", "kirim", "cetak", 
+    "pencetakan", "pengiriman", "oktober", "november", "desember", "uas", "raport"
+  ];
   
   sentences.forEach((s) => {
     const sLower = s.toLowerCase();
-    if (actionKeywords.some((k) => sLower.includes(k))) {
+    if (actionKeywords.some((k) => sLower.includes(k)) && s.length > 8) {
       let pic = "Tim Pelaksana Rapat";
-      if (sLower.includes("kurikulum") || sLower.includes("soal") || sLower.includes("nilai")) {
+      if (sLower.includes("mgmp")) {
+        pic = "Pengurus MGMP Mapel";
+      } else if (sLower.includes("mkks")) {
+        pic = "Panitia MKKS";
+      } else if (sLower.includes("percetakan") || sLower.includes("cetak")) {
+        pic = "Pihak Percetakan Mitra";
+      } else if (sLower.includes("sekolah") || sLower.includes("pengiriman")) {
+        pic = "Panitia Distribusi & Sekolah";
+      } else if (sLower.includes("kurikulum") || sLower.includes("soal") || sLower.includes("nilai")) {
         pic = "Waka Kurikulum & Guru Mapel";
       } else if (sLower.includes("sarpras") || sLower.includes("jaringan") || sLower.includes("ruang") || sLower.includes("it")) {
         pic = "Bagian Sarpras & Tim IT";
@@ -199,10 +211,20 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
         pic = "Kepala Tata Usaha";
       }
 
+      // Try extract date from the line if present
+      let deadlineStr = `${Math.min(today.getDate() + 5, 28)} ${months[today.getMonth()]} ${today.getFullYear()}`;
+      const lineDateMatch = s.match(/(?:\d{1,2}\s*(?:-|s\.?d\.?)\s*)?(\d{1,2})\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\s*(\d{4})?/i);
+      if (lineDateMatch) {
+        const d = lineDateMatch[1];
+        const m = lineDateMatch[2];
+        const y = lineDateMatch[3] || (tanggalIsoFinal ? tanggalIsoFinal.split("-")[0] : String(today.getFullYear()));
+        deadlineStr = `${d} ${m} ${y}`;
+      }
+
       actionItems.push({
         keputusan: s.replace(/^[-•*]\s*/, ""),
         pic: pic,
-        tenggat_waktu: `${Math.min(today.getDate() + 5, 28)} ${months[today.getMonth()]} ${today.getFullYear()}`,
+        tenggat_waktu: deadlineStr,
         status: "pending"
       });
     }
