@@ -84,7 +84,9 @@ export default function MeetingAudioAiRecorder({
   useEffect(() => {
     try {
       const savedKey = localStorage.getItem("sigap_gemini_api_key");
-      if (savedKey) setGeminiApiKey(savedKey);
+      if (savedKey && savedKey.trim().length > 10) {
+        setGeminiApiKey(savedKey.trim());
+      }
     } catch (e) {
       // ignore
     }

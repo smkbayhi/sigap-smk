@@ -27,6 +27,37 @@ interface GeminiNotulenResponse {
   penutup: string;
 }
 
+// Fallback Google Gemini caller that automatically tests active vision models
+async function callGeminiWithFallback(apiKey: string, contents: any[], generationConfig?: any) {
+  const models = [
+    "gemini-3-flash-preview",
+    "gemini-3.5-flash",
+    "gemini-flash-latest",
+    "gemini-2.5-flash",
+  ];
+
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents, generationConfig }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return { success: true, model, data: json };
+      } else {
+        const errText = await res.text();
+        console.warn(`Gemini model ${model} HTTP ${res.status}:`, errText.slice(0, 150));
+      }
+    } catch (e) {
+      console.warn(`Gemini model ${model} error:`, e);
+    }
+  }
+  return { success: false, error: "Semua model Gemini tidak dapat dijangkau" };
+}
+
 // Fast OCR helper with strict timeout to prevent serverless function hangs
 async function runOcrOnBase64(base64Data: string): Promise<string> {
   const ocrTask = (async () => {
@@ -46,7 +77,6 @@ async function runOcrOnBase64(base64Data: string): Promise<string> {
     return "";
   })();
 
-  // 4.5 seconds timeout race to stay safely below Vercel's 10s lambda limit
   const timeoutTask = new Promise<string>((resolve) => {
     setTimeout(() => resolve(""), 4500);
   });
@@ -103,14 +133,18 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
   let notulis = "Siti Aminah, S.Pd (Notulis Rapat)";
   let peserta = "Seluruh Dewan Guru & Staf TU SMK Bayt Al-Hikmah (32 orang)";
 
-  if (lower.includes("ekhsan") || lower.includes("kepala sekolah")) {
+  if (lower.includes("mgmp") || lower.includes("mkks")) {
+    pemimpin = "Ketua MKKS & Pengurus MGMP";
+    notulis = "Sekretaris Panitia";
+    peserta = "Perwakilan Guru Mata Pelajaran SMK (MGMP & MKKS)";
+  } else if (lower.includes("ekhsan") || lower.includes("kepala sekolah")) {
     pemimpin = "Mokhamat Ekhsan, S.Kom (Kepala Sekolah)";
   }
 
   // 3. Susunan Acara
   const susunanAcara = [
     "1. Pembukaan dan Doa Bersama",
-    "2. Pengarahan dan Sambutan Kepala Sekolah",
+    "2. Pengarahan dan Sambutan Pemimpin Rapat",
     "3. Pemaparan Agenda Inti & Pembahasan Teknis",
     "4. Sesi Tanya Jawab, Tanggapan, dan Solusi Bersama",
     "5. Perumusan Keputusan, Penugasan PIC, dan Penutup",
@@ -120,7 +154,7 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
   const sentences = text
     .split(/(?<=[.?!])\s+|\n+/)
     .map((s) => s.trim())
-    .filter((s) => s.length > 10);
+    .filter((s) => s.length > 8);
 
   const pembukaanPoints: string[] = [];
   const pengarahanPoints: string[] = [];
@@ -146,37 +180,37 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
       keterangan: "Rapat dibuka dengan membaca doa bersama dipimpin oleh pembawa acara/notulis.",
       poin_poin: pembukaanPoints.length > 0 
         ? pembukaanPoints.slice(0, 3) 
-        : ["Rapat resmi dimulai dengan tertib dan khidmat.", "Memeriksa kehadiran seluruh peserta rapat."]
+        : ["Rapat resmi dimulai dengan tertib dan khidmat.", "Pemeriksaan kehadiran peserta rapat."]
     },
     {
-      judul: "2. Pengarahan Kepala Sekolah",
-      keterangan: "Kepala Sekolah memberikan arahan strategis terkait prioritas dan target sekolah.",
+      judul: "2. Pengarahan & Arahan Teknis",
+      keterangan: "Pemaparan arahan strategis terkait prioritas dan target pelaksanaan agenda.",
       poin_poin: pengarahanPoints.length > 0 
         ? pengarahanPoints.slice(0, 4) 
         : [
-            "Kepala Sekolah menekankan pentingnya komitmen seluruh guru terhadap mutu pelayanan pendidikan dan ketepatan waktu.",
-            "Setiap agenda kerja harus diimbangi dengan monitoring dan evaluasi terukur."
+            "Penegasan komitmen seluruh guru terhadap ketepatan waktu pengumpulan soal dan administrasi.",
+            "Setiap tahapan kerja harus dipantau secara ketat sesuai tenggat waktu yang disepakati."
           ]
     },
     {
       judul: "3. Pembahasan Inti & Teknis",
       keterangan: "Pemaparan materi teknis dan musyawarah pelaksanaan kegiatan oleh penanggung jawab bidang.",
       poin_poin: intiPoints.length > 0 
-        ? intiPoints.slice(0, 5) 
+        ? intiPoints.slice(0, 6) 
         : [
             "Pemaparan pembagian tugas operasional dan jadwal implementasi kegiatan.",
-            "Koordinasi kelengkapan sarana prasarana dan perangkat pendukung.",
-            "Penyusunan standar operasional prosedur untuk memitigasi kendala di lapangan."
+            "Koordinasi kelengkapan naskah dan perangkat pendukung.",
+            "Penyusunan standar operasional prosedur untuk memitigasi kendala teknis."
           ]
     },
     {
       judul: "4. Tanggapan & Masukan Peserta Rapat",
-      keterangan: "Sesi dialog interaktif, tanya jawab, dan saran dari dewan guru dan staf pelaksana.",
+      keterangan: "Sesi dialog interaktif, tanya jawab, dan saran dari peserta rapat.",
       poin_poin: tanggapanPoints.length > 0 
         ? tanggapanPoints.slice(0, 4) 
         : [
-            "Dewan guru menyampaikan kesiapan melaksanakan tanggung jawab yang diamanahkan.",
-            "Perlunya koordinasi berkala antar unit kerja agar pelaksanaan berjalan sinergis."
+            "Peserta rapat menyampaikan kesiapan melaksanakan tanggung jawab yang diamanahkan.",
+            "Perlunya koordinasi berkala antar tim kerja agar pelaksanaan berjalan sinergis."
           ]
     }
   ];
@@ -211,7 +245,6 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
         pic = "Kepala Tata Usaha";
       }
 
-      // Try extract date from the line if present
       let deadlineStr = `${Math.min(today.getDate() + 5, 28)} ${months[today.getMonth()]} ${today.getFullYear()}`;
       const lineDateMatch = s.match(/(?:\d{1,2}\s*(?:-|s\.?d\.?)\s*)?(\d{1,2})\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\s*(\d{4})?/i);
       if (lineDateMatch) {
@@ -260,7 +293,7 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
     hari_tanggal: hariTanggalFinal,
     tanggal: tanggalIsoFinal,
     waktu: "Pukul 09.00 – 11.30 WIB",
-    tempat: "Ruang Guru / Rapat SMK Bayt Al-Hikmah",
+    tempat: "Ruang Rapat SMK / Ruang Guru",
     pemimpin_rapat: pemimpin,
     pemimpin_nip: "14215094",
     notulis: notulis,
@@ -268,7 +301,7 @@ function heuristicMeetingExtractor(transcript: string): GeminiNotulenResponse {
     peserta_rapat: peserta,
     susunan_acara: susunanAcara,
     pembahasan: pembahasan,
-    action_items: actionItems.slice(0, 6),
+    action_items: actionItems.slice(0, 8),
     penutup: "Rapat ditutup secara resmi pada pukul 11.30 WIB dengan pembacaan doa kafaratul majelis dan hamdalah bersama-sama. Seluruh peserta rapat sepakat untuk melaksanakan hasil keputusan ini dengan penuh tanggung jawab dan integritas."
   };
 }
@@ -278,61 +311,56 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { transcript, audioBase64, imageBase64, mimeType, geminiApiKey, action } = body;
 
-    const apiKey = geminiApiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    const apiKey =
+      geminiApiKey ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY;
 
-    // Check if we have audio, image, or transcript text
     const hasAudio = audioBase64 && typeof audioBase64 === "string" && audioBase64.length > 50;
     const hasImage = imageBase64 && typeof imageBase64 === "string" && imageBase64.length > 50;
     const hasTranscript = transcript && typeof transcript === "string" && transcript.trim().length > 5;
 
-    // ACTION: OCR ONLY (just extract text from photo of handwritten / printed paper note)
+    // ACTION: OCR ONLY (Extract raw text from handwritten / printed photo of paper)
     if (action === "ocr_only" && hasImage) {
       if (apiKey) {
         try {
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
           const cleanImageBase64 = imageBase64.replace(/^data:[^;]+;base64,/, "");
-          const ocrRes = await fetch(geminiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
+          const geminiRes = await callGeminiWithFallback(apiKey, [
+            {
+              parts: [
                 {
-                  parts: [
-                    {
-                      inlineData: {
-                        mimeType: mimeType || "image/jpeg",
-                        data: cleanImageBase64,
-                      },
-                    },
-                    {
-                      text: "Ini adalah foto catatan/tulisan rapat di atas kertas (bisa berupa tulisan tangan atau cetakan). Tolong baca dan transkripsikan seluruh isi tulisan catatan rapat ini secara utuh, jelas, dan rapi dalam bahasa Indonesia.",
-                    },
-                  ],
+                  inlineData: {
+                    mimeType: mimeType || "image/jpeg",
+                    data: cleanImageBase64,
+                  },
+                },
+                {
+                  text: "Tolong baca dan transkripsikan seluruh isi tulisan catatan rapat ini (baik tulisan tangan maupun ketikan) secara utuh, jelas, presisi, dan rapi dalam bahasa Indonesia.",
                 },
               ],
-            }),
-          });
-          if (ocrRes.ok) {
-            const data = await ocrRes.json();
-            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text && text.trim().length > 0) {
+            },
+          ]);
+
+          if (geminiRes.success && geminiRes.data) {
+            const candidateText = geminiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (candidateText && candidateText.trim().length > 0) {
               return NextResponse.json({
                 success: true,
-                text: text.trim(),
-                engine: "Google Gemini Vision OCR",
+                text: candidateText.trim(),
+                engine: `Google Gemini Vision (${geminiRes.model})`,
               });
             }
           }
         } catch (ocrErr) {
-          console.warn("Gemini vision OCR error, fallback to Tesseract:", ocrErr);
+          console.warn("Gemini vision OCR error, fallback to fast OCR:", ocrErr);
         }
       }
 
-      // Fast Fallback OCR with safe response
+      // Fast Fallback OCR
       const ocrText = await runOcrOnBase64(imageBase64);
       return NextResponse.json({
         success: true,
-        text: ocrText.trim() || "Foto lembar catatan rapat berhasil diunggah. Silakan klik tombol 'Generate Notulensi Rapat Otomatis dengan AI' di bawah untuk menyusun dokumen notulen dinas resmi secara lengkap.",
+        text: ocrText.trim() || "Catatan rapat terdeteksi dari foto lembaran kertas.",
         engine: ocrText.trim() ? "AI OCR Fast Engine" : "SIGAP Fast Image Detector",
       });
     }
@@ -347,7 +375,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Attempt Gemini 1.5 Flash / 2.0 Flash Call if API Key exists
+    // Call Google Gemini Vision / Multimodal if API Key is available
     if (apiKey) {
       try {
         const promptInstruction = `
@@ -385,11 +413,11 @@ Kembalikan HANYA format JSON valid (tanpa markdown backtick (\`\`\`json)) dengan
       ]
     },
     {
-      "judul": "2. Pengarahan Kepala Sekolah",
+      "judul": "2. Pengarahan Kepala Sekolah / Pemimpin",
       "keterangan": "Keterangan",
       "poin_poin": [
-        "Poin instruksi kepala sekolah...",
-        "Poin target mutu..."
+        "Poin instruksi...",
+        "Poin target..."
       ]
     },
     {
@@ -404,8 +432,8 @@ Kembalikan HANYA format JSON valid (tanpa markdown backtick (\`\`\`json)) dengan
       "judul": "4. Tanggapan & Masukan Peserta",
       "keterangan": "Keterangan dialog",
       "poin_poin": [
-        "Masukan dari guru A...",
-        "Usulan dari guru B..."
+        "Masukan dari peserta A...",
+        "Usulan dari peserta B..."
       ]
     }
   ],
@@ -446,32 +474,23 @@ Kembalikan HANYA format JSON valid (tanpa markdown backtick (\`\`\`json)) dengan
 
         parts.push({ text: fullPrompt });
 
-        // Call Google Gemini API
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-        const response = await fetch(geminiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [{ parts }],
-            generationConfig: {
-              temperature: 0.2,
-              responseMimeType: "application/json",
-            },
-          }),
-        });
+        const geminiRes = await callGeminiWithFallback(
+          apiKey,
+          [{ parts }],
+          {
+            temperature: 0.2,
+            responseMimeType: "application/json",
+          }
+        );
 
-        if (response.ok) {
-          const geminiResult = await response.json();
-          const candidateText =
-            geminiResult?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (geminiRes.success && geminiRes.data) {
+          const candidateText = geminiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (candidateText) {
             try {
               const parsed = JSON.parse(candidateText.trim());
               return NextResponse.json({
                 success: true,
-                engine: "Google Gemini AI (Cloud Multimodal)",
+                engine: `Google Gemini AI (${geminiRes.model})`,
                 data: parsed,
               });
             } catch (jsonErr) {
@@ -481,15 +500,12 @@ Kembalikan HANYA format JSON valid (tanpa markdown backtick (\`\`\`json)) dengan
                 const parsed = JSON.parse(cleanJsonMatch[0]);
                 return NextResponse.json({
                   success: true,
-                  engine: "Google Gemini AI (Cloud Multimodal)",
+                  engine: `Google Gemini AI (${geminiRes.model})`,
                   data: parsed,
                 });
               }
             }
           }
-        } else {
-          const errText = await response.text();
-          console.warn("Gemini API returned error:", response.status, errText);
         }
       } catch (geminiCallErr) {
         console.error("Gemini invocation error, falling back to smart NLP engine:", geminiCallErr);
@@ -504,7 +520,7 @@ Kembalikan HANYA format JSON valid (tanpa markdown backtick (\`\`\`json)) dengan
     }
 
     // Intelligent Heuristic NLP Synthesizer
-    const extractedData = heuristicMeetingExtractor(textToAnalyze || "Rapat koordinasi dan evaluasi rutin berkala dewan guru sekolah.");
+    const extractedData = heuristicMeetingExtractor(textToAnalyze || "Rapat koordinasi dewan guru dan staf sekolah.");
 
     return NextResponse.json({
       success: true,
