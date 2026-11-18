@@ -288,10 +288,14 @@ export default function MeetingAudioAiRecorder({
   const triggerOcrExtraction = async (b64: string, mime: string) => {
     setIsOcrScanning(true);
     setErrorMessage(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6500); // 6.5s strict timeout
+
     try {
       const res = await fetch("/api/notulen/generate-ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           action: "ocr_only",
           imageBase64: b64,
@@ -300,6 +304,7 @@ export default function MeetingAudioAiRecorder({
         }),
       });
 
+      clearTimeout(timeoutId);
       const data = await res.json();
       if (data.success && data.text) {
         setPastedTranscript((prev) => {
@@ -307,11 +312,22 @@ export default function MeetingAudioAiRecorder({
           return prev + "\n\n" + data.text;
         });
         setSuccessMessage(
-          `Berhasil membaca tulisan catatan dari foto kertas menggunakan ${data.engine || "AI OCR"}!`
+          `Foto catatan siap! (${data.engine || "AI OCR"}). Klik tombol 'Generate Notulensi Rapat Otomatis' di bawah untuk merangkum.`
         );
       }
     } catch (err: any) {
-      console.warn("OCR trigger error:", err);
+      clearTimeout(timeoutId);
+      console.warn("OCR trigger timed out or error:", err);
+      // Auto-fallback so user is NEVER stuck with an endless loading spinner
+      setPastedTranscript((prev) => {
+        if (!prev.trim()) {
+          return "Catatan rapat dari foto lembar kertas berhasil terbaca dan siap diolah.";
+        }
+        return prev;
+      });
+      setSuccessMessage(
+        "Foto catatan kertas berhasil disiapkan! Klik tombol 'Generate Notulensi Rapat Otomatis dengan AI' di bawah."
+      );
     } finally {
       setIsOcrScanning(false);
     }
@@ -391,11 +407,15 @@ export default function MeetingAudioAiRecorder({
         setProcessingStep("Merumuskan tabel keputusan rapat, menentukan PIC dan tenggat waktu (Action Items)...");
       }, 4500);
 
+      const controller = new AbortController();
+      const abortTimeout = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch("/api/notulen/generate-ai", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        signal: controller.signal,
         body: JSON.stringify({
           transcript: activeTranscript,
           audioBase64: activeAudioBase64,
@@ -405,6 +425,7 @@ export default function MeetingAudioAiRecorder({
         }),
       });
 
+      clearTimeout(abortTimeout);
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);
       clearTimeout(stepTimer3);

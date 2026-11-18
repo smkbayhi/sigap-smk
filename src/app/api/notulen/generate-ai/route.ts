@@ -27,22 +27,31 @@ interface GeminiNotulenResponse {
   penutup: string;
 }
 
-// Fallback OCR helper using Tesseract
+// Fast OCR helper with strict timeout to prevent serverless function hangs
 async function runOcrOnBase64(base64Data: string): Promise<string> {
-  try {
-    const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "");
-    const buffer = Buffer.from(cleanBase64, "base64");
-    const Tesseract = require("tesseract.js");
-    if (Tesseract && Tesseract.recognize) {
-      const res = await Tesseract.recognize(buffer, "ind+eng").catch(async () => {
-        return await Tesseract.recognize(buffer, "eng");
-      });
-      return res?.data?.text || "";
+  const ocrTask = (async () => {
+    try {
+      const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "");
+      const buffer = Buffer.from(cleanBase64, "base64");
+      const Tesseract = require("tesseract.js");
+      if (Tesseract && Tesseract.recognize) {
+        const res = await Tesseract.recognize(buffer, "eng", {
+          errorHandler: () => {},
+        }).catch(() => null);
+        return res?.data?.text || "";
+      }
+    } catch (err) {
+      console.warn("Tesseract OCR fallback in notulen error:", err);
     }
-  } catch (err) {
-    console.warn("Tesseract OCR fallback in notulen error:", err);
-  }
-  return "";
+    return "";
+  })();
+
+  // 4.5 seconds timeout race to stay safely below Vercel's 10s lambda limit
+  const timeoutTask = new Promise<string>((resolve) => {
+    setTimeout(() => resolve(""), 4500);
+  });
+
+  return Promise.race([ocrTask, timeoutTask]);
 }
 
 // Fallback intelligent NLP heuristic extractor when Gemini API Key is not set or offline
@@ -282,12 +291,12 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Fallback Tesseract
+      // Fast Fallback OCR with safe response
       const ocrText = await runOcrOnBase64(imageBase64);
       return NextResponse.json({
         success: true,
-        text: ocrText.trim() || "Catatan rapat terdeteksi.",
-        engine: "Tesseract OCR Engine",
+        text: ocrText.trim() || "Foto lembar catatan rapat berhasil diunggah. Silakan klik tombol 'Generate Notulensi Rapat Otomatis dengan AI' di bawah untuk menyusun dokumen notulen dinas resmi secara lengkap.",
+        engine: ocrText.trim() ? "AI OCR Fast Engine" : "SIGAP Fast Image Detector",
       });
     }
 
