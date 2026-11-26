@@ -37,11 +37,14 @@ import {
   CheckCircle,
   ArrowRight,
   Award,
+  Fingerprint,
+  AlertTriangle,
 } from "lucide-react";
 import { DigitalSignatureModal } from "@/components/signature/DigitalSignatureModal";
 import { PresenceTrackerCard } from "@/components/dashboard/PresenceTrackerCard";
-import { SuratKeluar, EvaluasiSebatik } from "@/lib/database.types";
-import { getEvaluasiSebatikList } from "@/lib/sebatikService";
+import { SuratKeluar } from "@/lib/database.types";
+import { usePresensi } from "@/context/PresensiContext";
+import { findTeacherRecordForUser } from "@/lib/presensiParser";
 
 export default function DashboardPage() {
   const { currentUser, users, isKepsek, isTU, isKasubag, isGuru } = useAuth();
@@ -60,32 +63,8 @@ export default function DashboardPage() {
 
   const [selectedSuratForSignature, setSelectedSuratForSignature] =
     useState<SuratKeluar | null>(null);
-  const [userSebatikEval, setUserSebatikEval] = useState<EvaluasiSebatik | null>(null);
-
-  useEffect(() => {
-    async function loadUserSebatik() {
-      if (!currentUser) return;
-      try {
-        const list = await getEvaluasiSebatikList();
-        const found = list.find((item) => {
-          if (item.user_id && item.user_id === currentUser.id) return true;
-          const cleanItemName = (item.nama_guru || "").toLowerCase().replace(/[^a-z]/g, "");
-          const cleanUserName = (currentUser.name || "").toLowerCase().replace(/[^a-z]/g, "");
-          return (
-            cleanItemName.length > 3 &&
-            cleanUserName.length > 3 &&
-            (cleanItemName.includes(cleanUserName) || cleanUserName.includes(cleanItemName))
-          );
-        });
-        if (found) {
-          setUserSebatikEval(found);
-        }
-      } catch (e) {
-        console.warn("Failed checking user sebatik eval:", e);
-      }
-    }
-    loadUserSebatik();
-  }, [currentUser]);
+  const { currentReport } = usePresensi();
+  const myTeacherRecord = findTeacherRecordForUser(currentReport?.teachers, currentUser);
 
   // General Statistics
   const totalSuratMasuk = suratMasuk.length;
@@ -178,6 +157,169 @@ export default function DashboardPage() {
 
   // Find Kepsek user for WhatsApp notifications
   const kepsekUser = users.find((u) => u.role === "kepala_sekolah");
+
+  // Komponen Presensi Pribadi Saya untuk Seluruh Dewan Guru (Guru & Kasubag Non-TU)
+  const renderPresensiPribadiCard = () => (
+    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-card space-y-5">
+      {/* Header Card */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center font-bold shrink-0">
+            <Fingerprint className="w-6 h-6 text-emerald-700" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                Presensi Pribadi Saya
+              </h3>
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/70 text-emerald-800 border border-emerald-200">
+                Sinkron Fingerprint HCD
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Periode: <strong className="text-slate-700 font-semibold">{currentReport?.rentangTanggal || "Bulan Berjalan"}</strong> • Rekam kehadiran & jam kedatangan mandiri
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/presensi"
+          className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white shadow-xs transition-all self-start sm:self-auto cursor-pointer"
+        >
+          <span>Lihat Detail Log Absensi</span>
+          <ChevronRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {/* Metrics Grid */}
+      {myTeacherRecord ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 1. Hari Kerja & Kehadiran */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Kehadiran Bertugas</span>
+              <Calendar className="w-4 h-4 text-emerald-700" />
+            </div>
+            <div className="flex items-baseline gap-1.5 pt-1">
+              <span className="text-2xl font-black text-slate-900 font-mono">
+                {myTeacherRecord.totalHadir}
+              </span>
+              <span className="text-xs text-slate-500 font-semibold">
+                / {myTeacherRecord.totalHariKerja} Hari
+              </span>
+              <span className="text-xs font-bold text-emerald-700 ml-auto bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                {Math.round((myTeacherRecord.totalHadir / (myTeacherRecord.totalHariKerja || 1)) * 100)}%
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 pt-0.5">
+              {myTeacherRecord.totalIzin || 0} Izin • {myTeacherRecord.totalSakit || 0} Sakit • {myTeacherRecord.totalAlpha || 0} Alpha
+            </p>
+          </div>
+
+          {/* 2. Keterlambatan */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Keterlambatan</span>
+              <Clock className="w-4 h-4 text-amber-600" />
+            </div>
+            <div className="flex items-baseline gap-1.5 pt-1">
+              <span className="text-2xl font-black text-amber-700 font-mono">
+                {myTeacherRecord.totalTerlambatHari}
+              </span>
+              <span className="text-xs text-slate-500 font-semibold">Hari</span>
+              <span className="text-xs font-bold text-amber-800 ml-auto bg-amber-100/80 px-2 py-0.5 rounded-full">
+                {myTeacherRecord.totalMenitTerlambat} mnt
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 pt-0.5">
+              {myTeacherRecord.persentaseTerlambat}% dari jadwal kedatangan
+            </p>
+          </div>
+
+          {/* 3. Status KKM Disiplin */}
+          <div
+            className={`p-4 rounded-xl border space-y-1 ${
+              myTeacherRecord.statusKkm === "TIDAK KKM"
+                ? "bg-rose-50/70 border-rose-200"
+                : "bg-emerald-50/70 border-emerald-200"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span
+                className={`text-[11px] font-bold uppercase tracking-wider ${
+                  myTeacherRecord.statusKkm === "TIDAK KKM" ? "text-rose-700" : "text-emerald-700"
+                }`}
+              >
+                Status KKM Disiplin
+              </span>
+              {myTeacherRecord.statusKkm === "TIDAK KKM" ? (
+                <AlertTriangle className="w-4 h-4 text-rose-600" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              )}
+            </div>
+            <div className="pt-1">
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-black tracking-wide ${
+                  myTeacherRecord.statusKkm === "TIDAK KKM"
+                    ? "bg-rose-600 text-white"
+                    : "bg-emerald-700 text-white"
+                }`}
+              >
+                {myTeacherRecord.statusKkm}
+              </span>
+            </div>
+            <p
+              className={`text-[11px] font-medium pt-0.5 ${
+                myTeacherRecord.statusKkm === "TIDAK KKM" ? "text-rose-800" : "text-emerald-800"
+              }`}
+            >
+              {myTeacherRecord.statusKkm === "TIDAK KKM"
+                ? `Telat ${myTeacherRecord.persentaseTerlambat}% (Ambang batas < 50%)`
+                : "Memenuhi Standar Disiplin KBM"}
+            </p>
+          </div>
+
+          {/* 4. Rekam Fingerprint */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+            <div className="flex items-center justify-between text-slate-500">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Rekam Sidik Jari</span>
+              <Fingerprint className="w-4 h-4 text-teal-700" />
+            </div>
+            <div className="pt-1">
+              {myTeacherRecord.totalLupaFinger && myTeacherRecord.totalLupaFinger > 0 ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                  {myTeacherRecord.totalLupaFinger} Hari Lupa Finger
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                  ✓ Checklock Lengkap
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-500 pt-0.5">
+              {myTeacherRecord.totalLupaFinger && myTeacherRecord.totalLupaFinger > 0
+                ? "Ada hari hadir tanpa rekam masuk/pulang"
+                : "Jam masuk & pulang terekam mesin"}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
+          <p className="text-xs text-slate-600">
+            Data presensi fingerprint untuk akun <strong>{currentUser.name}</strong> belum terpetakan pada periode aktif ({currentReport?.rentangTanggal || "Bulan Berjalan"}).
+          </p>
+          <Link
+            href="/presensi"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 hover:underline"
+          >
+            <span>Buka Halaman Presensi Pribadi Saya</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-7 pb-12">
@@ -720,6 +862,9 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-500 mt-2">Tugas dari Kepala Sekolah</p>
             </div>
           </div>
+
+          {/* PRESENSI PRIBADI SAYA (UNTUK DEWAN GURU STRUKTURAL / KASUBAG) */}
+          {renderPresensiPribadiCard()}
         </>
       )}
 
@@ -801,46 +946,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* INSTRUMEN 1: ANGKET PEMAHAMAN & REFLEKSI KBM SEBATIK */}
-          <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 rounded-2xl p-6 text-white border border-emerald-500/30 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-400/30 px-3 py-0.5 rounded-full text-[11px] font-bold text-emerald-300">
-                <Award className="w-3.5 h-3.5 text-amber-400" />
-                <span>Instrumen 1 • Kombel SEBATIK</span>
-                {userSebatikEval && (
-                  <span className="bg-emerald-400/30 text-emerald-200 px-2 py-0.5 rounded-full text-[10px]">
-                    ✓ Sudah Mengisi (Skor: {userSebatikEval.skor_bagian_a} Poin)
-                  </span>
-                )}
-              </div>
-              <h3 className="text-lg font-bold text-white tracking-tight">
-                Evaluasi Pemahaman Konsep & Refleksi Kedisiplinan Waktu Mengajar
-              </h3>
-              <p className="text-xs text-emerald-100/80 leading-relaxed">
-                Refleksi bersama 3 sesi berbagi praktik baik (Strategi MELODY, LKPD Kontekstual & Rubrik, Media Kreatif & Public Speaking) dalam rangka mengawal Program Prioritas Guru Menyela. Dilengkapi uji pemahaman 100 poin otomatis dan refleksi durasi KBM 2×30 menit.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-2.5 shrink-0 w-full md:w-auto">
-              {userSebatikEval ? (
-                <Link
-                  href="/kombel-sebatik"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-xs shadow-md transition-all cursor-pointer"
-                >
-                  <span>Lihat Hasil & Ulasan Saya</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              ) : (
-                <Link
-                  href="/kombel-sebatik"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-xs shadow-md transition-all cursor-pointer"
-                >
-                  <span>Mulai Isi Angket SEBATIK</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              )}
-            </div>
-          </div>
+          {/* PRESENSI PRIBADI SAYA */}
+          {renderPresensiPribadiCard()}
         </>
       )}
 
