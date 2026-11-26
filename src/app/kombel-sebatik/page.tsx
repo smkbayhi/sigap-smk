@@ -29,7 +29,6 @@ import {
   BookOpen,
   Award,
   Send,
-  RotateCcw,
   LayoutDashboard,
   ShieldAlert,
 } from "lucide-react";
@@ -934,35 +933,23 @@ export default function KombelSebatikFormPage() {
 
             {/* Bottom Navigation */}
             <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentStep(1);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+              <Link
+                href="/"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 py-2.5 px-6 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Ubah / Perbarui Jawaban Saya</span>
-              </button>
+                <ArrowLeft className="w-4 h-4" />
+                <span>Selesai & Kembali ke Dasbor Utama</span>
+              </Link>
 
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {isKepsek && (
                 <Link
-                  href="/"
-                  className="flex-1 sm:flex-none text-center py-2.5 px-5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+                  href="/kombel-sebatik/admin"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition-all"
                 >
-                  Selesai & Ke Dasbor Utama
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Dasbor Rekap VBPG (Admin)</span>
                 </Link>
-
-                {isKepsek && (
-                  <Link
-                    href="/kombel-sebatik/admin"
-                    className="flex-1 sm:flex-none text-center py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition-all"
-                  >
-                    Dasbor Rekap VBPG (Admin)
-                  </Link>
-                )}
-              </div>
+              )}
             </div>
           </div>
         )}
