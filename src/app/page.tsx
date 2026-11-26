@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
@@ -39,6 +39,8 @@ import {
   Award,
   Fingerprint,
   AlertTriangle,
+  History,
+  Layers,
 } from "lucide-react";
 import { DigitalSignatureModal } from "@/components/signature/DigitalSignatureModal";
 import { PresenceTrackerCard } from "@/components/dashboard/PresenceTrackerCard";
@@ -63,8 +65,86 @@ export default function DashboardPage() {
 
   const [selectedSuratForSignature, setSelectedSuratForSignature] =
     useState<SuratKeluar | null>(null);
-  const { currentReport } = usePresensi();
+  const { currentReport, allReports } = usePresensi();
+  const [presensiViewMode, setPresensiViewMode] = useState<"kumulatif" | "periode">("kumulatif");
   const myTeacherRecord = findTeacherRecordForUser(currentReport?.teachers, currentUser);
+
+  // Riwayat presensi user di seluruh periode database
+  const teacherHistory = useMemo(() => {
+    if (!allReports || allReports.length === 0 || !currentUser) return [];
+    return allReports
+      .map((report) => {
+        const record = findTeacherRecordForUser(report.teachers, currentUser);
+        return {
+          reportId: report.id,
+          judul: report.judul,
+          bulan: report.bulan,
+          tahun: report.tahun,
+          rentangTanggal: report.rentangTanggal,
+          record: record || null,
+        };
+      })
+      .filter((item): item is {
+        reportId: string;
+        judul: string;
+        bulan: string;
+        tahun: number;
+        rentangTanggal: string;
+        record: NonNullable<typeof item.record>;
+      } => item.record !== null);
+  }, [allReports, currentUser]);
+
+  // Agregasi Evaluasi Kumulatif Seluruh Periode Database
+  const cumulativePresensi = useMemo(() => {
+    if (!teacherHistory || teacherHistory.length === 0) return null;
+
+    let totalHariKerja = 0;
+    let totalHadir = 0;
+    let totalTerlambatHari = 0;
+    let totalMenitTerlambat = 0;
+    let totalIzin = 0;
+    let totalSakit = 0;
+    let totalAlpha = 0;
+    let totalLupaFinger = 0;
+    let kkmCount = 0;
+
+    teacherHistory.forEach(({ record }) => {
+      totalHariKerja += record.totalHariKerja || 0;
+      totalHadir += record.totalHadir || 0;
+      totalTerlambatHari += record.totalTerlambatHari || 0;
+      totalMenitTerlambat += record.totalMenitTerlambat || 0;
+      totalIzin += record.totalIzin || 0;
+      totalSakit += record.totalSakit || 0;
+      totalAlpha += record.totalAlpha || 0;
+      totalLupaFinger += record.totalLupaFinger || 0;
+      if (record.statusKkm === "KKM") {
+        kkmCount += 1;
+      }
+    });
+
+    const totalPeriode = teacherHistory.length;
+    const persenHadir = totalHariKerja > 0 ? Math.round((totalHadir / totalHariKerja) * 100) : 0;
+    const persenTerlambat = totalHariKerja > 0 ? Number(((totalTerlambatHari / totalHariKerja) * 100).toFixed(1)) : 0;
+    const persenKkm = totalPeriode > 0 ? Math.round((kkmCount / totalPeriode) * 100) : 0;
+    const isKonsistenKkm = kkmCount === totalPeriode;
+
+    return {
+      totalPeriode,
+      totalHariKerja,
+      totalHadir,
+      totalTerlambatHari,
+      totalMenitTerlambat,
+      totalIzin,
+      totalSakit,
+      totalAlpha,
+      totalLupaFinger,
+      kkmCount,
+      persenHadir,
+      persenTerlambat,
+      persenKkm,
+      isKonsistenKkm,
+    };
+  }, [teacherHistory]);
 
   // General Statistics
   const totalSuratMasuk = suratMasuk.length;
@@ -160,163 +240,414 @@ export default function DashboardPage() {
 
   // Komponen Presensi Pribadi Saya untuk Seluruh Dewan Guru (Guru & Kasubag Non-TU)
   const renderPresensiPribadiCard = () => (
-    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-card space-y-5">
+    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-card space-y-6">
       {/* Header Card */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center font-bold shrink-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center font-bold shrink-0 mt-0.5 sm:mt-0">
             <Fingerprint className="w-6 h-6 text-emerald-700" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-base font-bold text-slate-900 tracking-tight">
-                Presensi Pribadi Saya
+                {presensiViewMode === "kumulatif"
+                  ? "Evaluasi Presensi Pribadi Saya (Kumulatif)"
+                  : "Presensi Pribadi Saya (Bulan Berjalan)"}
               </h3>
               <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100/70 text-emerald-800 border border-emerald-200">
-                Sinkron Fingerprint HCD
+                {presensiViewMode === "kumulatif"
+                  ? `${teacherHistory.length} Periode Database Terdata`
+                  : "Sinkron Fingerprint HCD"}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Periode: <strong className="text-slate-700 font-semibold">{currentReport?.rentangTanggal || "Bulan Berjalan"}</strong> • Rekam kehadiran & jam kedatangan mandiri
+              {presensiViewMode === "kumulatif"
+                ? `Akumulasi evaluasi kedisiplinan dan rekam fingerprint seluruh periode yang tercatat di database sekolah`
+                : `Periode: ${currentReport?.rentangTanggal || "Bulan Berjalan"} • Rekam kehadiran & jam kedatangan mandiri`}
             </p>
           </div>
         </div>
 
-        <Link
-          href="/presensi"
-          className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white shadow-xs transition-all self-start sm:self-auto cursor-pointer"
-        >
-          <span>Lihat Detail Log Absensi</span>
-          <ChevronRight className="w-4 h-4" />
-        </Link>
-      </div>
-
-      {/* Metrics Grid */}
-      {myTeacherRecord ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 1. Hari Kerja & Kehadiran */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-            <div className="flex items-center justify-between text-slate-500">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Kehadiran Bertugas</span>
-              <Calendar className="w-4 h-4 text-emerald-700" />
-            </div>
-            <div className="flex items-baseline gap-1.5 pt-1">
-              <span className="text-2xl font-black text-slate-900 font-mono">
-                {myTeacherRecord.totalHadir}
-              </span>
-              <span className="text-xs text-slate-500 font-semibold">
-                / {myTeacherRecord.totalHariKerja} Hari
-              </span>
-              <span className="text-xs font-bold text-emerald-700 ml-auto bg-emerald-100/80 px-2 py-0.5 rounded-full">
-                {Math.round((myTeacherRecord.totalHadir / (myTeacherRecord.totalHariKerja || 1)) * 100)}%
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 pt-0.5">
-              {myTeacherRecord.totalIzin || 0} Izin • {myTeacherRecord.totalSakit || 0} Sakit • {myTeacherRecord.totalAlpha || 0} Alpha
-            </p>
-          </div>
-
-          {/* 2. Keterlambatan */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-            <div className="flex items-center justify-between text-slate-500">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Keterlambatan</span>
-              <Clock className="w-4 h-4 text-amber-600" />
-            </div>
-            <div className="flex items-baseline gap-1.5 pt-1">
-              <span className="text-2xl font-black text-amber-700 font-mono">
-                {myTeacherRecord.totalTerlambatHari}
-              </span>
-              <span className="text-xs text-slate-500 font-semibold">Hari</span>
-              <span className="text-xs font-bold text-amber-800 ml-auto bg-amber-100/80 px-2 py-0.5 rounded-full">
-                {myTeacherRecord.totalMenitTerlambat} mnt
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 pt-0.5">
-              {myTeacherRecord.persentaseTerlambat}% dari jadwal kedatangan
-            </p>
-          </div>
-
-          {/* 3. Status KKM Disiplin */}
-          <div
-            className={`p-4 rounded-xl border space-y-1 ${
-              myTeacherRecord.statusKkm === "TIDAK KKM"
-                ? "bg-rose-50/70 border-rose-200"
-                : "bg-emerald-50/70 border-emerald-200"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span
-                className={`text-[11px] font-bold uppercase tracking-wider ${
-                  myTeacherRecord.statusKkm === "TIDAK KKM" ? "text-rose-700" : "text-emerald-700"
+        {/* View Switcher & Link to Presensi */}
+        <div className="flex flex-wrap items-center gap-2">
+          {teacherHistory.length > 0 && (
+            <div className="inline-flex items-center p-1 bg-slate-100/80 rounded-xl border border-slate-200/90 text-xs">
+              <button
+                type="button"
+                onClick={() => setPresensiViewMode("kumulatif")}
+                className={`px-3 py-1.5 font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  presensiViewMode === "kumulatif"
+                    ? "bg-white text-emerald-800 shadow-xs border border-slate-200/60"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                Status KKM Disiplin
-              </span>
-              {myTeacherRecord.statusKkm === "TIDAK KKM" ? (
-                <AlertTriangle className="w-4 h-4 text-rose-600" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              )}
-            </div>
-            <div className="pt-1">
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-black tracking-wide ${
-                  myTeacherRecord.statusKkm === "TIDAK KKM"
-                    ? "bg-rose-600 text-white"
-                    : "bg-emerald-700 text-white"
+                <Layers className="w-3.5 h-3.5" />
+                <span>Kumulatif ({teacherHistory.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPresensiViewMode("periode")}
+                className={`px-3 py-1.5 font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  presensiViewMode === "periode"
+                    ? "bg-white text-emerald-800 shadow-xs border border-slate-200/60"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                {myTeacherRecord.statusKkm}
-              </span>
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Bulan Berjalan</span>
+              </button>
             </div>
-            <p
-              className={`text-[11px] font-medium pt-0.5 ${
-                myTeacherRecord.statusKkm === "TIDAK KKM" ? "text-rose-800" : "text-emerald-800"
-              }`}
-            >
-              {myTeacherRecord.statusKkm === "TIDAK KKM"
-                ? `Telat ${myTeacherRecord.persentaseTerlambat}% (Ambang batas < 50%)`
-                : "Memenuhi Standar Disiplin KBM"}
-            </p>
-          </div>
+          )}
 
-          {/* 4. Rekam Fingerprint */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-            <div className="flex items-center justify-between text-slate-500">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Rekam Sidik Jari</span>
-              <Fingerprint className="w-4 h-4 text-teal-700" />
-            </div>
-            <div className="pt-1">
-              {myTeacherRecord.totalLupaFinger && myTeacherRecord.totalLupaFinger > 0 ? (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                  {myTeacherRecord.totalLupaFinger} Hari Lupa Finger
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
-                  ✓ Checklock Lengkap
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-500 pt-0.5">
-              {myTeacherRecord.totalLupaFinger && myTeacherRecord.totalLupaFinger > 0
-                ? "Ada hari hadir tanpa rekam masuk/pulang"
-                : "Jam masuk & pulang terekam mesin"}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
-          <p className="text-xs text-slate-600">
-            Data presensi fingerprint untuk akun <strong>{currentUser.name}</strong> belum terpetakan pada periode aktif ({currentReport?.rentangTanggal || "Bulan Berjalan"}).
-          </p>
           <Link
             href="/presensi"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white shadow-xs transition-all cursor-pointer"
           >
-            <span>Buka Halaman Presensi Pribadi Saya</span>
+            <span>Log Absensi Lengkap</span>
             <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
+      </div>
+
+      {/* Mode 1: Kumulatif Seluruh Periode */}
+      {presensiViewMode === "kumulatif" && (
+        <>
+          {cumulativePresensi ? (
+            <div className="space-y-6">
+              {/* Metrics Grid Kumulatif */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. Kehadiran Kumulatif */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                  <div className="flex items-center justify-between text-slate-500">
+                    <span className="text-[11px] font-bold uppercase tracking-wider">Kehadiran Kumulatif</span>
+                    <Calendar className="w-4 h-4 text-emerald-700" />
+                  </div>
+                  <div className="flex items-baseline gap-1.5 pt-1">
+                    <span className="text-2xl font-black text-slate-900 font-mono">
+                      {cumulativePresensi.totalHadir}
+                    </span>
+                    <span className="text-xs text-slate-500 font-semibold">
+                      / {cumulativePresensi.totalHariKerja} Hari
+                    </span>
+                    <span className="text-xs font-bold text-emerald-700 ml-auto bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                      {cumulativePresensi.persenHadir}%
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 pt-0.5">
+                    {cumulativePresensi.totalIzin} Izin • {cumulativePresensi.totalSakit} Sakit • {cumulativePresensi.totalAlpha} Alpha
+                  </p>
+                </div>
+
+                {/* 2. Keterlambatan Kumulatif */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                  <div className="flex items-center justify-between text-slate-500">
+                    <span className="text-[11px] font-bold uppercase tracking-wider">Keterlambatan Kumulatif</span>
+                    <Clock className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <div className="flex items-baseline gap-1.5 pt-1">
+                    <span className="text-2xl font-black text-amber-700 font-mono">
+                      {cumulativePresensi.totalTerlambatHari}
+                    </span>
+                    <span className="text-xs text-slate-500 font-semibold">Hari</span>
+                    <span className="text-xs font-bold text-amber-800 ml-auto bg-amber-100/80 px-2 py-0.5 rounded-full">
+                      {cumulativePresensi.totalMenitTerlambat} mnt
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 pt-0.5">
+                    {cumulativePresensi.persenTerlambat}% dari jadwal kedatangan ({cumulativePresensi.totalPeriode} periode)
+                  </p>
+                </div>
+
+                {/* 3. Konsistensi KKM Disiplin Kumulatif */}
+                <div
+                  className={`p-4 rounded-xl border space-y-1 ${
+                    cumulativePresensi.isKonsistenKkm
+                      ? "bg-emerald-50/70 border-emerald-200"
+                      : "bg-amber-50/70 border-amber-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-[11px] font-bold uppercase tracking-wider ${
+                        cumulativePresensi.isKonsistenKkm ? "text-emerald-700" : "text-amber-800"
+                      }`}
+                    >
+                      Konsistensi KKM
+                    </span>
+                    {cumulativePresensi.isKonsistenKkm ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-1.5 pt-1">
+                    <span className="text-2xl font-black text-slate-900 font-mono">
+                      {cumulativePresensi.kkmCount}
+                    </span>
+                    <span className="text-xs text-slate-500 font-semibold">
+                      / {cumulativePresensi.totalPeriode} Periode
+                    </span>
+                    <span
+                      className={`text-xs font-black ml-auto px-2 py-0.5 rounded-full ${
+                        cumulativePresensi.isKonsistenKkm
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {cumulativePresensi.persenKkm}% KKM
+                    </span>
+                  </div>
+                  <p
+                    className={`text-[11px] font-medium pt-0.5 ${
+                      cumulativePresensi.isKonsistenKkm ? "text-emerald-800" : "text-amber-800"
+                    }`}
+                  >
+                    {cumulativePresensi.isKonsistenKkm
+                      ? "100% Konsisten Memenuhi Standar Disiplin KBM"
+                      : "Terdapat periode di bawah batas toleransi"}
+                  </p>
+                </div>
+
+                {/* 4. Rekam Fingerprint Kumulatif */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                  <div className="flex items-center justify-between text-slate-500">
+                    <span className="text-[11px] font-bold uppercase tracking-wider">Rekam Fingerprint</span>
+                    <Fingerprint className="w-4 h-4 text-teal-700" />
+                  </div>
+                  <div className="pt-1">
+                    {cumulativePresensi.totalLupaFinger > 0 ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                        {cumulativePresensi.totalLupaFinger} Hari Lupa Finger
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                        ✓ 100% Checklock Lengkap
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 pt-0.5">
+                    {cumulativePresensi.totalLupaFinger > 0
+                      ? `Akumulasi presensi tanpa tapping mesin masuk/pulang`
+                      : `Seluruh rekam masuk & pulang tuntas di ${cumulativePresensi.totalPeriode} periode`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Tabel Riwayat Evaluasi per Periode */}
+              <div className="pt-2 border-t border-slate-100 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <History className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Rincian Rekam Presensi per Periode Laporan Database ({teacherHistory.length} Periode)</span>
+                  </h4>
+                  <span className="text-[11px] text-slate-500">
+                    Evaluasi longitudinal kedisiplinan guru
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase text-[10px] tracking-wider">
+                      <tr>
+                        <th className="py-2.5 px-3">Periode Laporan</th>
+                        <th className="py-2.5 px-3 text-center">Kehadiran</th>
+                        <th className="py-2.5 px-3 text-center">Keterlambatan</th>
+                        <th className="py-2.5 px-3 text-center">Lupa Finger</th>
+                        <th className="py-2.5 px-3 text-center">Status KKM</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {teacherHistory.map((item, idx) => (
+                        <tr key={item.reportId || idx} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-2.5 px-3 font-semibold text-slate-900">
+                            <div>{item.judul || `Periode ${item.bulan} ${item.tahun}`}</div>
+                            <div className="text-[10px] text-slate-500 font-normal">{item.rentangTanggal}</div>
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span className="font-bold text-slate-800">{item.record.totalHadir}</span>
+                            <span className="text-slate-400 font-normal">/{item.record.totalHariKerja} hari </span>
+                            <span className="text-[10px] font-bold text-emerald-700">
+                              ({Math.round((item.record.totalHadir / (item.record.totalHariKerja || 1)) * 100)}%)
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span className="font-bold text-amber-800">{item.record.totalTerlambatHari} hari</span>
+                            <span className="text-[10px] text-slate-500"> ({item.record.totalMenitTerlambat} mnt)</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            {item.record.totalLupaFinger && item.record.totalLupaFinger > 0 ? (
+                              <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                {item.record.totalLupaFinger}x
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-semibold text-[11px]">-</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span
+                              className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide ${
+                                item.record.statusKkm === "KKM"
+                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                  : "bg-rose-100 text-rose-800 border border-rose-300"
+                              }`}
+                            >
+                              {item.record.statusKkm}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
+              <p className="text-xs text-slate-600">
+                Data presensi fingerprint untuk akun <strong>{currentUser.name}</strong> belum terpetakan di dalam database.
+              </p>
+              <Link
+                href="/presensi"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 hover:underline"
+              >
+                <span>Buka Halaman Presensi Pribadi Saya</span>
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Mode 2: Bulan Berjalan */}
+      {presensiViewMode === "periode" && (
+        <>
+          {myTeacherRecord ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 1. Hari Kerja & Kehadiran */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Kehadiran Bertugas</span>
+                  <Calendar className="w-4 h-4 text-emerald-700" />
+                </div>
+                <div className="flex items-baseline gap-1.5 pt-1">
+                  <span className="text-2xl font-black text-slate-900 font-mono">
+                    {myTeacherRecord.totalHadir}
+                  </span>
+                  <span className="text-xs text-slate-500 font-semibold">
+                    / {myTeacherRecord.totalHariKerja} Hari
+                  </span>
+                  <span className="text-xs font-bold text-emerald-700 ml-auto bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                    {Math.round((myTeacherRecord.totalHadir / (myTeacherRecord.totalHariKerja || 1)) * 100)}%
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 pt-0.5">
+                  {myTeacherRecord.totalIzin || 0} Izin • {myTeacherRecord.totalSakit || 0} Sakit • {myTeacherRecord.totalAlpha || 0} Alpha
+                </p>
+              </div>
+
+              {/* 2. Keterlambatan */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Keterlambatan</span>
+                  <Clock className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="flex items-baseline gap-1.5 pt-1">
+                  <span className="text-2xl font-black text-amber-700 font-mono">
+                    {myTeacherRecord.totalTerlambatHari}
+                  </span>
+                  <span className="text-xs text-slate-500 font-semibold">Hari</span>
+                  <span className="text-xs font-bold text-amber-800 ml-auto bg-amber-100/80 px-2 py-0.5 rounded-full">
+                    {myTeacherRecord.totalMenitTerlambat} mnt
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 pt-0.5">
+                  {myTeacherRecord.persentaseTerlambat}% dari jadwal kedatangan
+                </p>
+              </div>
+
+              {/* 3. Status KKM Disiplin */}
+              <div
+                className={`p-4 rounded-xl border space-y-1 ${
+                  myTeacherRecord.statusKkm === "TIDAK KKM"
+                    ? "bg-rose-50/70 border-rose-200"
+                    : "bg-emerald-50/70 border-emerald-200"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`text-[11px] font-bold uppercase tracking-wider ${
+                      myTeacherRecord.statusKkm === "TIDAK KKM" ? "text-rose-700" : "text-emerald-700"
+                    }`}
+                  >
+                    Status KKM Disiplin
+                  </span>
+                  {myTeacherRecord.statusKkm === "TIDAK KKM" ? (
+                    <AlertTriangle className="w-4 h-4 text-rose-600" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  )}
+                </div>
+                <div className="pt-1">
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-black tracking-wide ${
+                      myTeacherRecord.statusKkm === "TIDAK KKM"
+                        ? "bg-rose-600 text-white"
+                        : "bg-emerald-700 text-white"
+                    }`}
+                  >
+                    {myTeacherRecord.statusKkm}
+                  </span>
+                </div>
+                <p
+                  className={`text-[11px] font-medium pt-0.5 ${
+                    myTeacherRecord.statusKkm === "TIDAK KKM" ? "text-rose-800" : "text-emerald-800"
+                  }`}
+                >
+                  {myTeacherRecord.statusKkm === "TIDAK KKM"
+                    ? `Telat ${myTeacherRecord.persentaseTerlambat}% (Ambang batas < 50%)`
+                    : "Memenuhi Standar Disiplin KBM"}
+                </p>
+              </div>
+
+              {/* 4. Rekam Fingerprint */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Rekam Sidik Jari</span>
+                  <Fingerprint className="w-4 h-4 text-teal-700" />
+                </div>
+                <div className="pt-1">
+                  {myTeacherRecord.totalLupaFinger && myTeacherRecord.totalLupaFinger > 0 ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                      {myTeacherRecord.totalLupaFinger} Hari Lupa Finger
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                      ✓ Checklock Lengkap
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 pt-0.5">
+                  {myTeacherRecord.totalLupaFinger && myTeacherRecord.totalLupaFinger > 0
+                    ? "Ada hari hadir tanpa rekam masuk/pulang"
+                    : "Jam masuk & pulang terekam mesin"}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
+              <p className="text-xs text-slate-600">
+                Data presensi fingerprint untuk akun <strong>{currentUser.name}</strong> belum terpetakan pada periode aktif ({currentReport?.rentangTanggal || "Bulan Berjalan"}).
+              </p>
+              <Link
+                href="/presensi"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 hover:underline"
+              >
+                <span>Buka Halaman Presensi Pribadi Saya</span>
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
