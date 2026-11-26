@@ -240,3 +240,34 @@ export interface NotulenRapat {
   updated_at?: string;
 }
 
+// ====================================================================
+// EVALUASI & REFLEKSI KBM KOMBEL SEBATIK
+// ====================================================================
+export interface EvaluasiSebatik {
+  id: string;
+  user_id?: string;
+  nama_guru: string;
+  mata_pelajaran: string;
+  sesi_diikuti: string[]; // multi-pilih sesi 1, 2, 3
+  
+  // BAGIAN A: UJI PEMAHAMAN KONSEP (Soal 1–6)
+  jawaban_soal_1: string; // Opsi A / B / C / D
+  jawaban_soal_2: string; // Opsi A / B / C / D
+  jawaban_soal_3: string; // Opsi A / B / C / D
+  jawaban_soal_4: string; // Opsi A / B / C / D
+  jawaban_soal_5: string; // Esai contoh pertanyaan pemantik & asesmen awal/akhir
+  jawaban_soal_6: string; // Esai strategi asesmen akhir 5-7 menit
+  skor_bagian_a: number;  // 0 - 100 (25 poin per jawaban benar soal 1–4)
+
+  // BAGIAN B: REFLEKSI KEDISIPLINAN WAKTU MENGAJAR (Soal 7–11)
+  jawaban_soal_7: string;   // Opsi A / B / C / D (Keterlaksanaan waktu)
+  is_waktu_tuntas: boolean; // true jika memilih opsi A atau B pada soal 7
+  jawaban_soal_8: string;   // Opsi A / B / C / D / E (Faktor overtime)
+  jawaban_soal_9: string[]; // Checkbox strategi pengendalian waktu
+  jawaban_soal_10: string;  // Esai trik manajemen waktu paling efektif
+  jawaban_soal_11: string;  // Esai komitmen perbaikan
+
+  created_at: string;
+}
+
+

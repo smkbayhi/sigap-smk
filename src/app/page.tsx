@@ -36,6 +36,7 @@ import {
   FileSpreadsheet,
   CheckCircle,
   ArrowRight,
+  Award,
 } from "lucide-react";
 import { DigitalSignatureModal } from "@/components/signature/DigitalSignatureModal";
 import { PresenceTrackerCard } from "@/components/dashboard/PresenceTrackerCard";
@@ -775,6 +776,38 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-500 mt-2">Terkirim ke WhatsApp Pribadi</p>
             </div>
           </div>
+
+          {/* INSTRUMEN 1: ANGKET PEMAHAMAN & REFLEKSI KBM SEBATIK */}
+          <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 rounded-2xl p-6 text-white border border-emerald-500/30 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-400/30 px-3 py-0.5 rounded-full text-[11px] font-bold text-emerald-300">
+                <Award className="w-3.5 h-3.5 text-amber-400" />
+                <span>Instrumen 1 • Kombel SEBATIK</span>
+              </div>
+              <h3 className="text-lg font-bold text-white tracking-tight">
+                Evaluasi Pemahaman Konsep & Refleksi Kedisiplinan Waktu Mengajar
+              </h3>
+              <p className="text-xs text-emerald-100/80 leading-relaxed">
+                Refleksi bersama 3 sesi berbagi praktik baik (Strategi MELODY, LKPD Kontekstual & Rubrik, Media Kreatif & Public Speaking) dalam rangka mengawal Program Prioritas Guru Menyela. Dilengkapi uji pemahaman 100 poin otomatis dan refleksi durasi KBM 2×30 menit.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 shrink-0 w-full md:w-auto">
+              <Link
+                href="/kombel-sebatik"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-xs shadow-md transition-all cursor-pointer"
+              >
+                <span>Isi Angket SEBATIK</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/kombel-sebatik/admin"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 transition-all"
+              >
+                <span>Lihat Rekap Kolektif</span>
+              </Link>
+            </div>
+          </div>
         </>
       )}
 
@@ -828,6 +861,13 @@ export default function DashboardPage() {
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-gold-300" />
                   Kop, Logo & TTD Resmi
+                </Link>
+                <Link
+                  href="/kombel-sebatik/admin"
+                  className="inline-flex items-center gap-2 text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 px-4 py-2 rounded-xl transition-all"
+                >
+                  <Award className="w-3.5 h-3.5 text-amber-300" />
+                  Kombel SEBATIK (VBPG)
                 </Link>
               </div>
             </div>

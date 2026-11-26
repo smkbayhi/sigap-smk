@@ -21,6 +21,7 @@ import {
   Clock,
   Stamp,
   ClipboardList,
+  Award,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -369,6 +370,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     {currentReport?.guruTidakKkmCount} Alert
                   </span>
                 )}
+              </Link>
+
+              {/* Kombel SEBATIK */}
+              <Link
+                href="/kombel-sebatik"
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/kombel-sebatik")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
+                  isActive("/kombel-sebatik")
+                    ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
+                    : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
+                }`}
+              >
+                <div className="flex items-center gap-3 pointer-events-none">
+                  <Award className="w-4 h-4 text-emerald-300" />
+                  <span>Kombel SEBATIK</span>
+                </div>
+                <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-400/40 font-bold px-1.5 py-0.5 rounded pointer-events-none">
+                  Refleksi KBM
+                </span>
               </Link>
             </nav>
           </div>

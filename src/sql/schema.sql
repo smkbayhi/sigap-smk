@@ -260,8 +260,30 @@ DROP TRIGGER IF EXISTS trg_action_reports_updated ON action_reports;
 CREATE TRIGGER trg_action_reports_updated BEFORE UPDATE ON action_reports FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
 -- ====================================================================
--- DATA AWAL (SEEDER) PEGAWAI SMK BAYT AL-HIKMAH PASURUAN
+-- TABEL: EVALUASI & REFLEKSI KBM KOMBEL SEBATIK
 -- ====================================================================
+CREATE TABLE IF NOT EXISTS evaluasi_sebatik_guru (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL,
+    nama_guru VARCHAR(255) NOT NULL,
+    mata_pelajaran VARCHAR(255) NOT NULL,
+    sesi_diikuti JSONB NOT NULL DEFAULT '[]'::jsonb,
+    jawaban_soal_1 VARCHAR(10) NOT NULL,
+    jawaban_soal_2 VARCHAR(10) NOT NULL,
+    jawaban_soal_3 VARCHAR(10) NOT NULL,
+    jawaban_soal_4 VARCHAR(10) NOT NULL,
+    jawaban_soal_5 TEXT NOT NULL,
+    jawaban_soal_6 TEXT NOT NULL,
+    skor_bagian_a INTEGER NOT NULL DEFAULT 0,
+    jawaban_soal_7 VARCHAR(10) NOT NULL,
+    is_waktu_tuntas BOOLEAN NOT NULL DEFAULT false,
+    jawaban_soal_8 VARCHAR(10) NOT NULL,
+    jawaban_soal_9 JSONB NOT NULL DEFAULT '[]'::jsonb,
+    jawaban_soal_10 TEXT NOT NULL,
+    jawaban_soal_11 TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 INSERT INTO users (id, nip, name, email, role, jabatan, bidang, phone)
 VALUES 
   ('user-kepsek', '14215094', 'Mokhamat Ekhsan, S.Kom', 'kepsek@smk.baytalhikmah.sch.id', 'kepala_sekolah', 'Kepala SMK Bayt Al-Hikmah', NULL, '6281234567890'),
