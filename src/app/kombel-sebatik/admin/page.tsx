@@ -9,7 +9,6 @@ import {
   getEvaluasiSebatikList,
   calculateSebatikMetrics,
   exportSebatikToCsv,
-  resetEvaluasiSebatik,
 } from "@/lib/sebatikService";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import { TTD_KEPSEK_DATA_URL, STEMPEL_SEKOLAH_DATA_URL } from "@/lib/seedData";
@@ -31,7 +30,6 @@ import {
   Eye,
   X,
   HelpCircle,
-  RotateCcw,
   Info,
   Calendar,
   Sparkles,
@@ -64,7 +62,6 @@ export default function KombelSebatikAdminPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<EvaluasiSebatik | null>(null);
-  const [isResetting, setIsResetting] = useState<boolean>(false);
 
   // Automatically unlock if user is logged in as Kepala Sekolah
   useEffect(() => {
@@ -98,25 +95,6 @@ export default function KombelSebatikAdminPage() {
       setPinError(null);
     } else {
       setPinError("PIN Akses salah. Gunakan PIN default: 2026");
-    }
-  };
-
-  // Reset demo data to 0
-  const handleResetData = async () => {
-    if (
-      window.confirm(
-        "Apakah Anda yakin ingin mengosongkan respon uji coba? Seluruh data demo akan dibersihkan dan dasbor kembali ke 0 respon siap untuk pengisian riil dewan guru."
-      )
-    ) {
-      setIsResetting(true);
-      try {
-        await resetEvaluasiSebatik();
-        await loadData();
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsResetting(false);
-      }
     }
   };
 
@@ -309,18 +287,6 @@ export default function KombelSebatikAdminPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Tombol Bersihkan / Reset Data Demo */}
-            <button
-              type="button"
-              onClick={handleResetData}
-              disabled={isResetting}
-              className="inline-flex items-center gap-1.5 py-2 px-3 rounded-xl bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-700 font-semibold text-xs border border-slate-300 hover:border-rose-300 shadow-2xs transition-all cursor-pointer"
-              title="Bersihkan data uji coba / reset respon ke 0"
-            >
-              <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} />
-              <span>Reset Data (0 Respon)</span>
-            </button>
-
             <button
               type="button"
               onClick={() => exportSebatikToCsv(list)}
