@@ -4,10 +4,23 @@ import { supabase, isSupabaseConfigured } from "./supabaseClient";
 
 const LOCAL_STORAGE_KEY = "sigap_evaluasi_sebatik_list";
 
+// Daftar ID data demo/uji coba bawaan yang harus diabaikan/dibersihkan
+const DUMMY_SEED_IDS = new Set([
+  "seb-1",
+  "seb-2",
+  "seb-3",
+  "seb-4",
+  "seb-5",
+  "seb-6",
+  "seb-7",
+  "seb-8",
+  "seb-9",
+]);
+
 /**
  * Mendapatkan semua data respon evaluasi Kombel SEBATIK.
- * Mengambil dari localStorage dengan fallback data awal seeder resmi,
- * dan mencoba sinkronisasi dari tabel Supabase `evaluasi_sebatik_guru` bila aktif.
+ * Mengambil respon riil dari guru. Jika belum ada pengisian, mengembalikan array kosong [].
+ * Otomatis membersihkan data demo/dummy lawas.
  */
 export async function getEvaluasiSebatikList(): Promise<EvaluasiSebatik[]> {
   let localData: EvaluasiSebatik[] = [];
@@ -16,17 +29,18 @@ export async function getEvaluasiSebatikList(): Promise<EvaluasiSebatik[]> {
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (stored) {
-        localData = JSON.parse(stored);
-      } else {
-        localData = SEED_EVALUASI_SEBATIK;
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localData));
+        const parsed: EvaluasiSebatik[] = JSON.parse(stored);
+        // Saring data demo bawaan, hanya simpan respon riil
+        localData = parsed.filter((item) => !DUMMY_SEED_IDS.has(item.id));
+        // Jika ada perubahan setelah penyaringan demo, simpan kembali
+        if (localData.length !== parsed.length) {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localData));
+        }
       }
     } catch (e) {
       console.warn("Failed to read SEBATIK from localStorage:", e);
-      localData = SEED_EVALUASI_SEBATIK;
+      localData = [];
     }
-  } else {
-    localData = SEED_EVALUASI_SEBATIK;
   }
 
   // Coba ambil dari Supabase jika terkonfigurasi
@@ -37,35 +51,38 @@ export async function getEvaluasiSebatikList(): Promise<EvaluasiSebatik[]> {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        // Map Supabase rows to EvaluasiSebatik
-        const mappedFromDb: EvaluasiSebatik[] = data.map((row: any) => ({
-          id: row.id,
-          user_id: row.user_id,
-          nama_guru: row.nama_guru,
-          mata_pelajaran: row.mata_pelajaran,
-          sesi_diikuti: Array.isArray(row.sesi_diikuti) ? row.sesi_diikuti : [],
-          jawaban_soal_1: row.jawaban_soal_1 || "",
-          jawaban_soal_2: row.jawaban_soal_2 || "",
-          jawaban_soal_3: row.jawaban_soal_3 || "",
-          jawaban_soal_4: row.jawaban_soal_4 || "",
-          jawaban_soal_5: row.jawaban_soal_5 || "",
-          jawaban_soal_6: row.jawaban_soal_6 || "",
-          skor_bagian_a: Number(row.skor_bagian_a) || 0,
-          jawaban_soal_7: row.jawaban_soal_7 || "",
-          is_waktu_tuntas: Boolean(row.is_waktu_tuntas),
-          jawaban_soal_8: row.jawaban_soal_8 || "",
-          jawaban_soal_9: Array.isArray(row.jawaban_soal_9) ? row.jawaban_soal_9 : [],
-          jawaban_soal_10: row.jawaban_soal_10 || "",
-          jawaban_soal_11: row.jawaban_soal_11 || "",
-          created_at: row.created_at || new Date().toISOString(),
-        }));
+      if (!error && data) {
+        // Map Supabase rows to EvaluasiSebatik dan saring data demo
+        const mappedFromDb: EvaluasiSebatik[] = data
+          .filter((row: any) => !DUMMY_SEED_IDS.has(row.id))
+          .map((row: any) => ({
+            id: row.id,
+            user_id: row.user_id,
+            nama_guru: row.nama_guru,
+            mata_pelajaran: row.mata_pelajaran,
+            sesi_diikuti: Array.isArray(row.sesi_diikuti) ? row.sesi_diikuti : [],
+            jawaban_soal_1: row.jawaban_soal_1 || "",
+            jawaban_soal_2: row.jawaban_soal_2 || "",
+            jawaban_soal_3: row.jawaban_soal_3 || "",
+            jawaban_soal_4: row.jawaban_soal_4 || "",
+            jawaban_soal_5: row.jawaban_soal_5 || "",
+            jawaban_soal_6: row.jawaban_soal_6 || "",
+            skor_bagian_a: Number(row.skor_bagian_a) || 0,
+            jawaban_soal_7: row.jawaban_soal_7 || "",
+            is_waktu_tuntas: Boolean(row.is_waktu_tuntas),
+            jawaban_soal_8: row.jawaban_soal_8 || "",
+            jawaban_soal_9: Array.isArray(row.jawaban_soal_9) ? row.jawaban_soal_9 : [],
+            jawaban_soal_10: row.jawaban_soal_10 || "",
+            jawaban_soal_11: row.jawaban_soal_11 || "",
+            created_at: row.created_at || new Date().toISOString(),
+          }));
 
-        // Gabungkan dan simpan ke localStorage
-        if (typeof window !== "undefined") {
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mappedFromDb));
+        if (mappedFromDb.length > 0) {
+          if (typeof window !== "undefined") {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mappedFromDb));
+          }
+          return mappedFromDb;
         }
-        return mappedFromDb;
       }
     } catch (err) {
       console.warn("Supabase fetch evaluasi_sebatik_guru failed, using local:", err);
@@ -76,6 +93,22 @@ export async function getEvaluasiSebatikList(): Promise<EvaluasiSebatik[]> {
 }
 
 /**
+ * Mereset seluruh data respon evaluasi ke nol (membersihkan data uji coba).
+ */
+export async function resetEvaluasiSebatik(): Promise<void> {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+  }
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.from("evaluasi_sebatik_guru").delete().neq("id", "none");
+    } catch (err) {
+      console.warn("Failed to clear Supabase evaluasi_sebatik_guru:", err);
+    }
+  }
+}
+
+/**
  * Menyimpan respon baru dari guru ke localStorage dan Supabase (bila aktif).
  */
 export async function saveEvaluasiSebatik(evaluasi: EvaluasiSebatik): Promise<EvaluasiSebatik> {
@@ -83,9 +116,11 @@ export async function saveEvaluasiSebatik(evaluasi: EvaluasiSebatik): Promise<Ev
   if (typeof window !== "undefined") {
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      existingList = stored ? JSON.parse(stored) : [...SEED_EVALUASI_SEBATIK];
+      existingList = stored ? JSON.parse(stored) : [];
+      // Saring demo data
+      existingList = existingList.filter((item) => !DUMMY_SEED_IDS.has(item.id));
     } catch (e) {
-      existingList = [...SEED_EVALUASI_SEBATIK];
+      existingList = [];
     }
 
     // Jika guru yang sama sudah pernah mengisi, perbarui data sebelumnya

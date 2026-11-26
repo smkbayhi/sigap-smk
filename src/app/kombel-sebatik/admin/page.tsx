@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useAppData } from "@/context/AppDataContext";
@@ -9,6 +9,7 @@ import {
   getEvaluasiSebatikList,
   calculateSebatikMetrics,
   exportSebatikToCsv,
+  resetEvaluasiSebatik,
 } from "@/lib/sebatikService";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import { TTD_KEPSEK_DATA_URL, STEMPEL_SEKOLAH_DATA_URL } from "@/lib/seedData";
@@ -29,14 +30,28 @@ import {
   TrendingUp,
   Eye,
   X,
-  Sparkles,
   HelpCircle,
-  ShieldCheck,
   RotateCcw,
+  Info,
+  Calendar,
+  Sparkles,
 } from "lucide-react";
 
+interface TeacherRowData {
+  id: string;
+  nama: string;
+  niy?: string;
+  mapel: string;
+  isSubmitted: boolean;
+  sesiDiikuti: string[];
+  skorBagianA: number | null;
+  isWaktuTuntas: boolean | null;
+  evaluasiData: EvaluasiSebatik | null;
+  submittedAt?: string;
+}
+
 export default function KombelSebatikAdminPage() {
-  const { currentUser, isKepsek } = useAuth();
+  const { users, currentUser, isKepsek } = useAuth();
   const { schoolSettings } = useAppData();
 
   // PIN Protection State
@@ -49,6 +64,7 @@ export default function KombelSebatikAdminPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<EvaluasiSebatik | null>(null);
+  const [isResetting, setIsResetting] = useState<boolean>(false);
 
   // Automatically unlock if user is logged in as Kepala Sekolah
   useEffect(() => {
@@ -85,17 +101,113 @@ export default function KombelSebatikAdminPage() {
     }
   };
 
-  // Filtered List
-  const filteredList = list.filter((item) => {
+  // Reset demo data to 0
+  const handleResetData = async () => {
+    if (
+      window.confirm(
+        "Apakah Anda yakin ingin mengosongkan respon uji coba? Seluruh data demo akan dibersihkan dan dasbor kembali ke 0 respon siap untuk pengisian riil dewan guru."
+      )
+    ) {
+      setIsResetting(true);
+      try {
+        await resetEvaluasiSebatik();
+        await loadData();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsResetting(false);
+      }
+    }
+  };
+
+  // Daftar Dewan Guru Resmi SMK Bayt Al-Hikmah (Di luar akun Kepala Sekolah & TU)
+  const dewanGuruResmi = useMemo(() => {
+    return users.filter(
+      (u) => u.role !== "kepala_sekolah" && u.role !== "tata_usaha"
+    );
+  }, [users]);
+
+  // Gabungkan daftar guru terdaftar dengan hasil respon evaluasi yang sudah masuk
+  const mergedTeacherList: TeacherRowData[] = useMemo(() => {
+    const rows: TeacherRowData[] = [];
+    const matchedEvalIds = new Set<string>();
+
+    dewanGuruResmi.forEach((guru) => {
+      // Cari respon yang sesuai berdasarkan ID atau kemiripan nama
+      const evalMatch = list.find((item) => {
+        if (item.user_id && item.user_id === guru.id) return true;
+        const cleanItemName = (item.nama_guru || "").toLowerCase().replace(/[^a-z]/g, "");
+        const cleanGuruName = (guru.name || "").toLowerCase().replace(/[^a-z]/g, "");
+        return (
+          cleanItemName.length > 3 &&
+          cleanGuruName.length > 3 &&
+          (cleanItemName.includes(cleanGuruName) || cleanGuruName.includes(cleanItemName))
+        );
+      });
+
+      if (evalMatch) {
+        matchedEvalIds.add(evalMatch.id);
+        rows.push({
+          id: guru.id,
+          nama: guru.name,
+          niy: guru.niy,
+          mapel: evalMatch.mata_pelajaran || guru.jabatan || "Dewan Guru",
+          isSubmitted: true,
+          sesiDiikuti: evalMatch.sesi_diikuti || [],
+          skorBagianA: evalMatch.skor_bagian_a,
+          isWaktuTuntas: evalMatch.is_waktu_tuntas,
+          evaluasiData: evalMatch,
+          submittedAt: evalMatch.created_at,
+        });
+      } else {
+        rows.push({
+          id: guru.id,
+          nama: guru.name,
+          niy: guru.niy,
+          mapel: guru.jabatan || "Dewan Guru",
+          isSubmitted: false,
+          sesiDiikuti: [],
+          skorBagianA: null,
+          isWaktuTuntas: null,
+          evaluasiData: null,
+        });
+      }
+    });
+
+    // Tambahkan respon lain yang masuk namun belum terpetakan ke daftar akun terdaftar
+    list.forEach((item) => {
+      if (!matchedEvalIds.has(item.id)) {
+        rows.push({
+          id: item.id,
+          nama: item.nama_guru,
+          mapel: item.mata_pelajaran,
+          isSubmitted: true,
+          sesiDiikuti: item.sesi_diikuti || [],
+          skorBagianA: item.skor_bagian_a,
+          isWaktuTuntas: item.is_waktu_tuntas,
+          evaluasiData: item,
+          submittedAt: item.created_at,
+        });
+      }
+    });
+
+    return rows;
+  }, [dewanGuruResmi, list]);
+
+  // Filtered List berdasarkan pencarian nama atau mapel
+  const filteredRows = mergedTeacherList.filter((row) => {
     const q = searchQuery.toLowerCase();
     return (
-      item.nama_guru.toLowerCase().includes(q) ||
-      item.mata_pelajaran.toLowerCase().includes(q)
+      row.nama.toLowerCase().includes(q) ||
+      row.mapel.toLowerCase().includes(q)
     );
   });
 
-  // Calculate Metrics
+  // Kalkulasi Metrik dari respon riil yang ada
   const metrics = calculateSebatikMetrics(list);
+  const totalGuruMengisi = list.length;
+  const totalTargetGuru = Math.max(dewanGuruResmi.length, 1);
+  const persenPartisipasi = Math.round((totalGuruMengisi / totalTargetGuru) * 100);
 
   // Trigger Native Print Dialog
   const handlePrint = () => {
@@ -167,7 +279,7 @@ export default function KombelSebatikAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 print:p-0 print:m-0 print:bg-white">
       {/* ========================================================================= */}
       {/* 1. VIEW SCREEN / WEB UI (HIDDEN WHEN PRINTING) */}
       {/* ========================================================================= */}
@@ -180,7 +292,7 @@ export default function KombelSebatikAdminPage() {
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-800 transition-colors mb-1"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Kembali ke Halaman Instrumen</span>
+              <span>Kembali ke Halaman Formulir Instrumen</span>
             </Link>
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -197,11 +309,28 @@ export default function KombelSebatikAdminPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Tombol Bersihkan / Reset Data Demo */}
+            <button
+              type="button"
+              onClick={handleResetData}
+              disabled={isResetting}
+              className="inline-flex items-center gap-1.5 py-2 px-3 rounded-xl bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-700 font-semibold text-xs border border-slate-300 hover:border-rose-300 shadow-2xs transition-all cursor-pointer"
+              title="Bersihkan data uji coba / reset respon ke 0"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} />
+              <span>Reset Data (0 Respon)</span>
+            </button>
+
             <button
               type="button"
               onClick={() => exportSebatikToCsv(list)}
-              className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-300 shadow-2xs transition-all cursor-pointer"
-              title="Unduh format spreadsheet"
+              disabled={list.length === 0}
+              className={`inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl font-bold text-xs border shadow-2xs transition-all ${
+                list.length > 0
+                  ? "bg-white hover:bg-slate-50 text-slate-700 border-slate-300 cursor-pointer"
+                  : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+              }`}
+              title="Unduh format spreadsheet CSV"
             >
               <Download className="w-3.5 h-3.5 text-emerald-700" />
               <span>Download CSV / Excel</span>
@@ -230,16 +359,26 @@ export default function KombelSebatikAdminPage() {
                 <Users className="w-5 h-5" />
               </div>
             </div>
-            <div className="mt-3">
-              <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-                {metrics.totalRespon} / {Math.max(metrics.totalRespon, 9)} Guru
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono">
+                {totalGuruMengisi} / {totalTargetGuru} Guru
               </span>
-              <span className="text-xs font-bold text-emerald-700 ml-2 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                100% Mengisi
+              <span
+                className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
+                  totalGuruMengisi === totalTargetGuru && totalGuruMengisi > 0
+                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    : totalGuruMengisi > 0
+                    ? "text-amber-700 bg-amber-50 border-amber-200"
+                    : "text-slate-500 bg-slate-100 border-slate-200"
+                }`}
+              >
+                {persenPartisipasi}% Mengisi
               </span>
             </div>
             <p className="text-[11px] text-slate-400 mt-2">
-              Seluruh dewan guru terdata telah berpartisipasi aktif
+              {totalGuruMengisi === 0
+                ? "Pelaksanaan pengisian instrumen belum dimulai (0 respon)."
+                : `${totalGuruMengisi} dari ${totalTargetGuru} dewan guru telah mengirim evaluasi.`}
             </p>
           </div>
 
@@ -253,14 +392,18 @@ export default function KombelSebatikAdminPage() {
                 <Award className="w-5 h-5" />
               </div>
             </div>
-            <div className="mt-3">
+            <div className="mt-3 flex items-baseline gap-1">
               <span className="text-2xl sm:text-3xl font-extrabold text-amber-600 font-mono">
-                {metrics.rataRataSkorA}
+                {totalGuruMengisi > 0 ? metrics.rataRataSkorA : "-"}
               </span>
-              <span className="text-xs text-slate-500 ml-1 font-bold">/ 100 Poin</span>
+              <span className="text-xs text-slate-500 font-bold">
+                {totalGuruMengisi > 0 ? "/ 100 Poin" : "(Belum Ada Respon)"}
+              </span>
             </div>
             <p className="text-[11px] text-slate-400 mt-2">
-              Tingkat akurasi konsep apersepsi pemantik vs asesmen
+              {totalGuruMengisi > 0
+                ? "Tingkat akurasi konsep apersepsi pemantik vs asesmen"
+                : "Skor akan terhitung otomatis saat guru mulai mengisi"}
             </p>
           </div>
 
@@ -274,200 +417,248 @@ export default function KombelSebatikAdminPage() {
                 <Clock className="w-5 h-5" />
               </div>
             </div>
-            <div className="mt-3">
-              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-700">
-                {metrics.persenWaktuTuntas}%
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-700 font-mono">
+                {totalGuruMengisi > 0 ? `${metrics.persenWaktuTuntas}%` : "-"}
               </span>
-              <span className="text-xs text-slate-500 ml-2">Tuntas (Opsi A & B)</span>
+              <span className="text-xs text-slate-500">
+                {totalGuruMengisi > 0 ? "Tuntas (Opsi A & B)" : "(Belum Ada Respon)"}
+              </span>
             </div>
             <p className="text-[11px] text-slate-400 mt-2">
-              Keterlaksanaan alokasi menit pendahuluan, inti & penutup
+              {totalGuruMengisi > 0
+                ? "Keterlaksanaan alokasi menit pendahuluan, inti & penutup"
+                : "Menunggu respon refleksi manajemen waktu dari guru"}
             </p>
           </div>
         </div>
 
-        {/* 3 VISUAL DISTRIBUTION CHARTS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Chart 1: Distribusi Skor */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <Award className="w-4 h-4 text-emerald-700" />
-                <span>Distribusi Skor Pemahaman</span>
-              </h3>
+        {/* 3 VISUAL DISTRIBUTION CHARTS (HANYA DITAMPILKAN JIKA SUDAH ADA RESPON) */}
+        {totalGuruMengisi > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* Chart 1: Distribusi Skor */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <Award className="w-4 h-4 text-emerald-700" />
+                  <span>Distribusi Skor Pemahaman</span>
+                </h3>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <div className="flex justify-between font-semibold mb-1">
+                    <span className="text-emerald-800 font-bold">Skor 100 (Sempurna)</span>
+                    <span className="font-mono text-slate-700">
+                      {metrics.distribusiSkor.skor100} Guru (
+                      {Math.round((metrics.distribusiSkor.skor100 / metrics.totalRespon) * 100)}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-emerald-600 h-full rounded-full"
+                      style={{
+                        width: `${(metrics.distribusiSkor.skor100 / metrics.totalRespon) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between font-semibold mb-1">
+                    <span className="text-blue-800 font-bold">Skor 75 (1 Kurang Tepat)</span>
+                    <span className="font-mono text-slate-700">
+                      {metrics.distribusiSkor.skor75} Guru (
+                      {Math.round((metrics.distribusiSkor.skor75 / metrics.totalRespon) * 100)}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-blue-500 h-full rounded-full"
+                      style={{
+                        width: `${(metrics.distribusiSkor.skor75 / metrics.totalRespon) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between font-semibold mb-1">
+                    <span className="text-amber-800 font-bold">Skor ≤ 50 (Perlu Pendampingan)</span>
+                    <span className="font-mono text-slate-700">
+                      {metrics.distribusiSkor.skor50kebawah} Guru (
+                      {Math.round((metrics.distribusiSkor.skor50kebawah / metrics.totalRespon) * 100)}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-amber-500 h-full rounded-full"
+                      style={{
+                        width: `${(metrics.distribusiSkor.skor50kebawah / metrics.totalRespon) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div>
-                <div className="flex justify-between font-semibold mb-1">
-                  <span className="text-emerald-800 font-bold">Skor 100 (Sempurna)</span>
-                  <span className="font-mono text-slate-700">
-                    {metrics.distribusiSkor.skor100} Guru (
-                    {Math.round((metrics.distribusiSkor.skor100 / metrics.totalRespon) * 100)}%)
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-emerald-600 h-full rounded-full"
-                    style={{
-                      width: `${(metrics.distribusiSkor.skor100 / metrics.totalRespon) * 100}%`,
-                    }}
-                  />
-                </div>
+            {/* Chart 2: Ketuntasan Waktu Mengajar */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-emerald-700" />
+                  <span>Keterlaksanaan Waktu (Soal 7)</span>
+                </h3>
               </div>
 
-              <div>
-                <div className="flex justify-between font-semibold mb-1">
-                  <span className="text-blue-800 font-bold">Skor 75 (1 Kurang Tepat)</span>
-                  <span className="font-mono text-slate-700">
-                    {metrics.distribusiSkor.skor75} Guru (
-                    {Math.round((metrics.distribusiSkor.skor75 / metrics.totalRespon) * 100)}%)
-                  </span>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <div className="flex justify-between font-semibold mb-1">
+                    <span className="text-emerald-800">Selalu Tuntas Tepat Waktu</span>
+                    <span className="font-mono font-bold text-slate-700">
+                      {metrics.distribusiWaktu.tuntas} Guru
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-emerald-600 h-full rounded-full"
+                      style={{
+                        width: `${(metrics.distribusiWaktu.tuntas / metrics.totalRespon) * 100}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-blue-500 h-full rounded-full"
-                    style={{
-                      width: `${(metrics.distribusiSkor.skor75 / metrics.totalRespon) * 100}%`,
-                    }}
-                  />
+
+                <div>
+                  <div className="flex justify-between font-semibold mb-1">
+                    <span className="text-teal-800">Sebagian Besar Tuntas</span>
+                    <span className="font-mono font-bold text-slate-700">
+                      {metrics.distribusiWaktu.sebagian} Guru
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-teal-500 h-full rounded-full"
+                      style={{
+                        width: `${(metrics.distribusiWaktu.sebagian / metrics.totalRespon) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between font-semibold mb-1">
+                    <span className="text-rose-700">Sering Molor / Terlewat</span>
+                    <span className="font-mono font-bold text-slate-700">
+                      {metrics.distribusiWaktu.seringMolor + metrics.distribusiWaktu.kesulitan} Guru
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-rose-500 h-full rounded-full"
+                      style={{
+                        width: `${
+                          ((metrics.distribusiWaktu.seringMolor + metrics.distribusiWaktu.kesulitan) /
+                            metrics.totalRespon) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <div className="flex justify-between font-semibold mb-1">
-                  <span className="text-amber-800 font-bold">Skor ≤ 50 (Perlu Pendampingan)</span>
-                  <span className="font-mono text-slate-700">
-                    {metrics.distribusiSkor.skor50kebawah} Guru (
-                    {Math.round((metrics.distribusiSkor.skor50kebawah / metrics.totalRespon) * 100)}%)
+            {/* Chart 3: Faktor Utama Overtime */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-emerald-700" />
+                  <span>Penyebab Overtime (Soal 8)</span>
+                </h3>
+              </div>
+
+              <div className="space-y-2.5 text-xs">
+                <div className="flex items-center justify-between text-slate-700">
+                  <span>Praktik/Diskusi Santri Lambat:</span>
+                  <span className="font-bold font-mono bg-slate-100 px-2 py-0.5 rounded">
+                    {metrics.faktorOvertime.praktikLambat} Guru
                   </span>
                 </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-amber-500 h-full rounded-full"
-                    style={{
-                      width: `${(metrics.distribusiSkor.skor50kebawah / metrics.totalRespon) * 100}%`,
-                    }}
-                  />
+                <div className="flex items-center justify-between text-slate-700">
+                  <span>Penjelasan Guru Terlalu Panjang:</span>
+                  <span className="font-bold font-mono bg-slate-100 px-2 py-0.5 rounded">
+                    {metrics.faktorOvertime.pengantarPanjang} Guru
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-slate-700">
+                  <span>Tidak Pakai Timer Visual:</span>
+                  <span className="font-bold font-mono bg-slate-100 px-2 py-0.5 rounded">
+                    {metrics.faktorOvertime.tanpaTimer} Guru
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-emerald-800 font-semibold">
+                  <span>Selalu Tepat Waktu (Nol Overtime):</span>
+                  <span className="font-bold font-mono bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200">
+                    {metrics.faktorOvertime.tepatWaktu} Guru
+                  </span>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Chart 2: Ketuntasan Waktu Mengajar */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <Clock className="w-4 h-4 text-emerald-700" />
-                <span>Keterlaksanaan Waktu (Soal 7)</span>
-              </h3>
+        ) : (
+          /* TAMPILAN STANDBY KETIKA BELUM ADA GURU YANG MENGISI */
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-8 shadow-xs text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center mx-auto border border-emerald-200">
+              <BarChart3 className="w-6 h-6" />
             </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <div className="flex justify-between font-semibold mb-1">
-                  <span className="text-emerald-800">Selalu Tuntas Tepat Waktu</span>
-                  <span className="font-mono font-bold text-slate-700">
-                    {metrics.distribusiWaktu.tuntas} Guru
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-emerald-600 h-full rounded-full"
-                    style={{
-                      width: `${(metrics.distribusiWaktu.tuntas / metrics.totalRespon) * 100}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between font-semibold mb-1">
-                  <span className="text-teal-800">Sebagian Besar Tuntas</span>
-                  <span className="font-mono font-bold text-slate-700">
-                    {metrics.distribusiWaktu.sebagian} Guru
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-teal-500 h-full rounded-full"
-                    style={{
-                      width: `${(metrics.distribusiWaktu.sebagian / metrics.totalRespon) * 100}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between font-semibold mb-1">
-                  <span className="text-rose-700">Sering Molor / Terlewat</span>
-                  <span className="font-mono font-bold text-slate-700">
-                    {metrics.distribusiWaktu.seringMolor + metrics.distribusiWaktu.kesulitan} Guru
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-rose-500 h-full rounded-full"
-                    style={{
-                      width: `${
-                        ((metrics.distribusiWaktu.seringMolor + metrics.distribusiWaktu.kesulitan) /
-                          metrics.totalRespon) *
-                        100
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
+            <h3 className="text-sm font-bold text-slate-800">
+              Visualisasi Grafik Siap Ditampilkan
+            </h3>
+            <p className="text-xs text-slate-500 max-w-xl mx-auto leading-relaxed">
+              Instrumen evaluasi Kombel SEBATIK saat ini dalam status <strong>siap disosialisasikan</strong>. Grafik distribusi skor pemahaman dan persentase manajemen waktu akan otomatis terhitung dan muncul secara langsung begitu dewan guru mulai mengirimkan respon.
+            </p>
           </div>
+        )}
 
-          {/* Chart 3: Faktor Utama Overtime */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-emerald-700" />
-                <span>Penyebab Overtime (Soal 8)</span>
-              </h3>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              <div className="flex items-center justify-between text-slate-700">
-                <span>Praktik/Diskusi Santri Lambat:</span>
-                <span className="font-bold font-mono bg-slate-100 px-2 py-0.5 rounded">
-                  {metrics.faktorOvertime.praktikLambat} Guru
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-slate-700">
-                <span>Penjelasan Guru Terlalu Panjang:</span>
-                <span className="font-bold font-mono bg-slate-100 px-2 py-0.5 rounded">
-                  {metrics.faktorOvertime.pengantarPanjang} Guru
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-slate-700">
-                <span>Tidak Pakai Timer Visual:</span>
-                <span className="font-bold font-mono bg-slate-100 px-2 py-0.5 rounded">
-                  {metrics.faktorOvertime.tanpaTimer} Guru
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-emerald-800 font-semibold">
-                <span>Selalu Tepat Waktu (Nol Overtime):</span>
-                <span className="font-bold font-mono bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200">
-                  {metrics.faktorOvertime.tepatWaktu} Guru
-                </span>
-              </div>
-            </div>
+        {/* PENJELASAN MENU AKSI / DETAIL ESAI */}
+        <div className="bg-emerald-50/90 border border-emerald-200/90 rounded-2xl p-4 flex items-start gap-3.5 shadow-2xs">
+          <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <HelpCircle className="w-4 h-4" />
+          </div>
+          <div className="text-xs text-emerald-950 space-y-1">
+            <h4 className="font-bold text-emerald-900 text-[13px] flex items-center gap-1.5">
+              <span>Penjelasan Menu & Kolom "Aksi (Detail Esai)"</span>
+            </h4>
+            <p className="text-slate-600 leading-relaxed">
+              Tombol <strong>"Lihat Detail Esai"</strong> pada kolom Aksi disediakan untuk Kepala Sekolah dan Asesor VBPG guna meninjau jawaban kualitatif/esai mendalam setiap guru yang tidak dapat direpresentasikan hanya dengan angka pilihan ganda. Detail esai tersebut mencakup:
+            </p>
+            <ul className="list-disc list-inside text-slate-700 space-y-0.5 pt-0.5 font-medium">
+              <li><strong>Soal 5:</strong> Contoh konkret Pertanyaan Pemantik vs Soal Asesmen Awal/Akhir sesuai mata pelajaran guru.</li>
+              <li><strong>Soal 6:</strong> Strategi perancangan Asesmen Akhir (Exit Ticket 5–7 menit) yang tidak membebani koreksi guru.</li>
+              <li><strong>Soal 10:</strong> Trik manajemen waktu nyata yang efektif diterapkan di kelas agar durasi 2×30' tidak molor.</li>
+              <li><strong>Soal 11:</strong> Komitmen perbaikan spesifik guru untuk pertemuan KBM berikutnya.</li>
+            </ul>
+            <p className="text-[11px] text-emerald-800 font-semibold pt-1">
+              *Catatan: Guru yang belum mengisi formulir akan berstatus <em>"Menunggu Pengisian"</em> dan nilai skor akan berstatus strip (-).
+            </p>
           </div>
         </div>
 
-        {/* DETAIL TABLE OF TEACHERS' RESPONSES */}
+        {/* DETAIL TABLE OF TEACHERS' RESPONSES & MONITORING STATUS */}
         <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Daftar Hasil Isian Evaluasi Seluruh Guru ({filteredList.length})
-              </h3>
-              <p className="text-xs text-slate-500">
-                Klik tombol "Lihat Detail" untuk memeriksa jawaban esai contoh pemantik, asesmen, dan komitmen perbaikan.
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900">
+                  Daftar Monitoring Evaluasi Seluruh Guru SMK ({filteredRows.length})
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                  {totalGuruMengisi} Selesai • {totalTargetGuru - totalGuruMengisi} Belum Mengisi
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Daftar seluruh dewan guru SMK Bayt Al-Hikmah terdaftar, status pengisian formulir, skor pemahaman, dan detail esai.
               </p>
             </div>
 
@@ -490,60 +681,97 @@ export default function KombelSebatikAdminPage() {
                 <tr>
                   <th className="py-3 px-3 w-10 text-center">No</th>
                   <th className="py-3 px-4">Nama Guru & Mapel</th>
-                  <th className="py-3 px-4">Sesi Diikuti</th>
+                  <th className="py-3 px-3 text-center">Status Form</th>
+                  <th className="py-3 px-3 text-center">Sesi Diikuti</th>
                   <th className="py-3 px-3 text-center">Skor Bagian A</th>
                   <th className="py-3 px-3 text-center">Ketuntasan Waktu</th>
-                  <th className="py-3 px-3 text-center">Aksi</th>
+                  <th className="py-3 px-3 text-center">Aksi (Detail Esai)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredList.map((item, idx) => (
-                  <tr key={item.id || idx} className="hover:bg-slate-50/70 transition-colors">
+                {filteredRows.map((row, idx) => (
+                  <tr key={row.id || idx} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3 px-3 text-center font-bold text-slate-500">
                       {idx + 1}
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-bold text-slate-900">{item.nama_guru}</div>
-                      <div className="text-[11px] text-slate-500">{item.mata_pelajaran}</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-[11px] text-slate-600 font-medium">
-                        {item.sesi_diikuti.length} Sesi Praktik Baik
-                      </span>
+                      <div className="font-bold text-slate-900">{row.nama}</div>
+                      <div className="text-[11px] text-slate-500">
+                        {row.mapel} {row.niy ? `• NIY: ${row.niy}` : ""}
+                      </div>
                     </td>
                     <td className="py-3 px-3 text-center">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full font-bold font-mono text-[11px] ${
-                          item.skor_bagian_a === 100
-                            ? "bg-emerald-100 text-emerald-800"
-                            : item.skor_bagian_a === 75
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-amber-100 text-amber-800"
-                        }`}
-                      >
-                        {item.skor_bagian_a} Poin
-                      </span>
+                      {row.isSubmitted ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>Sudah Mengisi</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold text-[10px] bg-slate-100 text-slate-600 border border-slate-200">
+                          <span>Belum Mengisi</span>
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-3 text-center">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                          item.is_waktu_tuntas
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-rose-50 text-rose-700 border border-rose-200"
-                        }`}
-                      >
-                        {item.is_waktu_tuntas ? "✓ Tuntas Tepat Waktu" : "⚠ Sering Molor"}
-                      </span>
+                      {row.isSubmitted ? (
+                        <span className="text-[11px] text-slate-700 font-medium">
+                          {row.sesiDiikuti.length} Sesi Praktik
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-mono">-</span>
+                      )}
                     </td>
                     <td className="py-3 px-3 text-center">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedItem(item)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-semibold text-[11px] transition-colors cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Detail Esai</span>
-                      </button>
+                      {row.isSubmitted && row.skorBagianA !== null ? (
+                        <span
+                          className={`inline-block px-2.5 py-0.5 rounded-full font-bold font-mono text-[11px] ${
+                            row.skorBagianA === 100
+                              ? "bg-emerald-100 text-emerald-800"
+                              : row.skorBagianA === 75
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {row.skorBagianA} Poin
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-mono font-bold">-</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {row.isSubmitted && row.isWaktuTuntas !== null ? (
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                            row.isWaktuTuntas
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : "bg-rose-50 text-rose-700 border border-rose-200"
+                          }`}
+                        >
+                          {row.isWaktuTuntas ? "✓ Tuntas Tepat Waktu" : "⚠ Sering Molor"}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-mono">-</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {row.isSubmitted && row.evaluasiData ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedItem(row.evaluasiData)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-semibold text-[11px] transition-colors cursor-pointer border border-emerald-200/60 shadow-2xs"
+                          title="Buka jawaban esai pemantik, asesmen, dan refleksi waktu guru"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Lihat Detail Esai</span>
+                        </button>
+                      ) : (
+                        <span
+                          className="text-[11px] text-slate-400 italic px-2 py-1 rounded bg-slate-50 cursor-default"
+                          title="Guru belum mengirim respon evaluasi"
+                        >
+                          Menunggu Pengisian
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -585,7 +813,7 @@ export default function KombelSebatikAdminPage() {
                   Soal 5: Contoh Pertanyaan Pemantik vs Soal Asesmen
                 </span>
                 <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
-                  {selectedItem.jawaban_soal_5}
+                  {selectedItem.jawaban_soal_5 || "-"}
                 </p>
               </div>
 
@@ -595,7 +823,7 @@ export default function KombelSebatikAdminPage() {
                   Soal 6: Strategi Exit Ticket 5–7 Menit
                 </span>
                 <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
-                  {selectedItem.jawaban_soal_6}
+                  {selectedItem.jawaban_soal_6 || "-"}
                 </p>
               </div>
 
@@ -605,7 +833,7 @@ export default function KombelSebatikAdminPage() {
                   Soal 10: Perubahan Nyata & Trik Efektif Pengendalian Waktu
                 </span>
                 <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
-                  {selectedItem.jawaban_soal_10}
+                  {selectedItem.jawaban_soal_10 || "-"}
                 </p>
               </div>
 
@@ -615,7 +843,7 @@ export default function KombelSebatikAdminPage() {
                   Soal 11: Komitmen Perbaikan KBM Berikutnya
                 </span>
                 <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
-                  {selectedItem.jawaban_soal_11}
+                  {selectedItem.jawaban_soal_11 || "-"}
                 </p>
               </div>
             </div>
@@ -624,7 +852,7 @@ export default function KombelSebatikAdminPage() {
               <button
                 type="button"
                 onClick={() => setSelectedItem(null)}
-                className="py-2 px-5 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700"
+                className="py-2 px-5 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 cursor-pointer"
               >
                 Tutup Pratinjau
               </button>
@@ -636,42 +864,49 @@ export default function KombelSebatikAdminPage() {
       {/* ========================================================================= */}
       {/* 3. DOKUMEN CETAK RESMI PDF (VBPG FORMAT) - VISIBLE ONLY WHEN PRINTING */}
       {/* ========================================================================= */}
-      <div className="hidden print:block text-black bg-white p-4 max-w-4xl mx-auto font-serif">
-        {/* Official Kop Surat */}
-        <OfficialKopSurat />
+      <div className="hidden print:block text-black bg-white p-2 sm:p-4 max-w-4xl mx-auto font-serif text-[10pt] leading-normal print-container">
+        {/* Official Kop Surat Resmi Sekolah */}
+        <OfficialKopSurat className="mb-2" />
 
-        <div className="text-center space-y-1 pb-4 border-b-2 border-black mb-5">
-          <h2 className="text-sm font-bold uppercase tracking-wider">
-            LAPORAN HASIL EVALUASI PEMAHAMAN KONSEP & REFLEKSI KEDISIPLINAN WAKTU MENGAJAR
+        {/* Judul Dokumen Cetak */}
+        <div className="text-center space-y-0.5 pb-2.5 border-b-2 border-black mb-3">
+          <h2 className="text-[12pt] font-bold uppercase tracking-wider">
+            LAPORAN EVALUASI PEMAHAMAN KONSEP & REFLEKSI KEDISIPLINAN WAKTU MENGAJAR
           </h2>
-          <h3 className="text-xs font-bold uppercase tracking-wide">
+          <h3 className="text-[10.5pt] font-bold uppercase tracking-wide">
             KOMUNITAS BELAJAR (KOMBEL) SEBATIK – PROGRAM GURU MENYELA
           </h3>
-          <p className="text-[11px] italic">
-            Lampiran Bukti Fisik Verifikasi & Validasi Bukti Kinerja Kepala Sekolah (VBPG) Periode November 2026
+          <p className="text-[9.5pt] italic text-gray-700">
+            Bukti Fisik Verifikasi & Validasi Bukti Kinerja Kepala Sekolah (VBPG) Periode November 2026
           </p>
         </div>
 
-        {/* Ringkasan Eksekutif Cetak */}
-        <div className="mb-4 text-xs space-y-2">
-          <h4 className="font-bold underline uppercase text-[11px]">I. Ringkasan Capaian Kolektif:</h4>
-          <table className="w-full border-collapse border border-black text-[11px]">
+        {/* I. Ringkasan Capaian Kolektif */}
+        <div className="mb-3 text-[10pt] space-y-1">
+          <h4 className="font-bold underline uppercase text-[10pt]">I. Ringkasan Capaian Partisipasi:</h4>
+          <table className="w-full border-collapse border border-black text-[9.5pt]">
             <tbody>
               <tr>
-                <td className="border border-black p-1.5 font-bold w-1/3">Total Responden Dewan Guru</td>
-                <td className="border border-black p-1.5">: {metrics.totalRespon} Orang Guru (100% Mengisi)</td>
+                <td className="border border-black p-1 font-bold w-1/3">Total Partisipasi Dewan Guru</td>
+                <td className="border border-black p-1">
+                  : {totalGuruMengisi} dari {totalTargetGuru} Orang Guru ({persenPartisipasi}% Mengisi)
+                </td>
               </tr>
               <tr>
-                <td className="border border-black p-1.5 font-bold">Rata-Rata Skor Pemahaman Konsep (Bagian A)</td>
-                <td className="border border-black p-1.5 font-bold">: {metrics.rataRataSkorA} / 100 Poin</td>
+                <td className="border border-black p-1 font-bold">Rata-Rata Skor Pemahaman (Bagian A)</td>
+                <td className="border border-black p-1 font-bold">
+                  : {totalGuruMengisi > 0 ? `${metrics.rataRataSkorA} / 100 Poin` : "- (Instrumen Belum Dimulai)"}
+                </td>
               </tr>
               <tr>
-                <td className="border border-black p-1.5 font-bold">Persentase Ketuntasan Waktu Mengajar (2×30 Menit)</td>
-                <td className="border border-black p-1.5">: {metrics.persenWaktuTuntas}% Dewan Guru Tuntas</td>
+                <td className="border border-black p-1 font-bold">Ketuntasan Waktu KBM (2×30 Menit)</td>
+                <td className="border border-black p-1">
+                  : {totalGuruMengisi > 0 ? `${metrics.persenWaktuTuntas}% Dewan Guru Tuntas` : "- (Belum Ada Respon Masuk)"}
+                </td>
               </tr>
               <tr>
-                <td className="border border-black p-1.5 font-bold">Fokus Praktik Baik yang Dikuatkan</td>
-                <td className="border border-black p-1.5">
+                <td className="border border-black p-1 font-bold">Fokus Praktik Baik SEBATIK</td>
+                <td className="border border-black p-1">
                   : 1) Strategi MELODY, 2) LKPD Kontekstual & Rubrik, 3) Media & Public Speaking
                 </td>
               </tr>
@@ -679,32 +914,44 @@ export default function KombelSebatikAdminPage() {
           </table>
         </div>
 
-        {/* Tabel Rekapitulasi Cetak */}
-        <div className="mb-6 text-xs space-y-2">
-          <h4 className="font-bold underline uppercase text-[11px]">II. Rekapitulasi Respon Dewan Guru:</h4>
-          <table className="w-full border-collapse border border-black text-[10px]">
+        {/* II. Tabel Rekapitulasi Respon Dewan Guru */}
+        <div className="mb-4 text-[10pt] space-y-1">
+          <h4 className="font-bold underline uppercase text-[10pt]">II. Rekapitulasi Status & Respon Dewan Guru:</h4>
+          <table className="w-full border-collapse border border-black text-[9pt]">
             <thead>
               <tr className="bg-gray-100">
                 <th className="border border-black p-1 text-center w-8">No</th>
                 <th className="border border-black p-1 text-left">Nama Guru & Gelar</th>
                 <th className="border border-black p-1 text-left">Mata Pelajaran</th>
-                <th className="border border-black p-1 text-center w-16">Skor A</th>
-                <th className="border border-black p-1 text-center w-24">Status Waktu</th>
+                <th className="border border-black p-1 text-center w-24">Status Pengisian</th>
+                <th className="border border-black p-1 text-center w-14">Skor A</th>
+                <th className="border border-black p-1 text-center w-20">Status Waktu</th>
                 <th className="border border-black p-1 text-left">Trik / Komitmen Utama</th>
               </tr>
             </thead>
             <tbody>
-              {list.map((item, idx) => (
+              {mergedTeacherList.map((row, idx) => (
                 <tr key={idx}>
                   <td className="border border-black p-1 text-center">{idx + 1}</td>
-                  <td className="border border-black p-1 font-bold">{item.nama_guru}</td>
-                  <td className="border border-black p-1">{item.mata_pelajaran}</td>
-                  <td className="border border-black p-1 text-center font-bold">{item.skor_bagian_a}</td>
-                  <td className="border border-black p-1 text-center">
-                    {item.is_waktu_tuntas ? "Tuntas" : "Overtime"}
+                  <td className="border border-black p-1 font-bold">{row.nama}</td>
+                  <td className="border border-black p-1">{row.mapel}</td>
+                  <td className="border border-black p-1 text-center text-[8.5pt]">
+                    {row.isSubmitted ? "Sudah Mengisi" : "Belum Mengisi"}
                   </td>
-                  <td className="border border-black p-1 text-[9px] leading-tight">
-                    {item.jawaban_soal_10.substring(0, 90)}...
+                  <td className="border border-black p-1 text-center font-bold">
+                    {row.skorBagianA !== null ? row.skorBagianA : "-"}
+                  </td>
+                  <td className="border border-black p-1 text-center text-[8.5pt]">
+                    {row.isWaktuTuntas !== null
+                      ? row.isWaktuTuntas
+                        ? "Tuntas"
+                        : "Overtime"
+                      : "-"}
+                  </td>
+                  <td className="border border-black p-1 text-[8.5pt] leading-tight">
+                    {row.evaluasiData?.jawaban_soal_10
+                      ? row.evaluasiData.jawaban_soal_10.substring(0, 80) + "..."
+                      : "Menunggu pengisian instrumen"}
                   </td>
                 </tr>
               ))}
@@ -712,30 +959,37 @@ export default function KombelSebatikAdminPage() {
           </table>
         </div>
 
-        {/* Tanda Tangan Resmi Kepala Sekolah */}
-        <div className="pt-4 flex justify-end text-xs">
-          <div className="w-72 text-center space-y-1">
+        {/* III. Tanda Tangan & Stempel Resmi Kepala Sekolah (Proporsional & Anti Split) */}
+        <div className="pt-3 flex justify-end text-[10pt] font-serif break-inside-avoid page-break-avoid">
+          <div className="text-left w-64 space-y-0.5">
             <p>Pasuruan, 26 November 2026</p>
             <p className="font-bold">Kepala SMK Bayt Al-Hikmah,</p>
             
-            {/* Stempel & TTD overlay */}
-            <div className="relative h-20 flex items-center justify-center my-1">
-              <img
-                src={STEMPEL_SEKOLAH_DATA_URL}
-                alt="Stempel Sekolah"
-                className="absolute w-20 h-20 opacity-80 left-10 pointer-events-none"
-              />
-              <img
-                src={TTD_KEPSEK_DATA_URL}
-                alt="TTD Kepala Sekolah"
-                className="h-16 object-contain z-10"
-              />
+            {/* Stempel & Signature overlay resmi */}
+            <div className="relative h-24 my-1 flex items-center justify-start">
+              {/* Stempel Sekolah Proporsional (Sisi kiri TTD) */}
+              <div className="absolute -left-6 -top-2 pointer-events-none opacity-85 z-0">
+                <img
+                  src={schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL}
+                  alt="Stempel Sekolah"
+                  className="w-24 h-24 object-contain mix-blend-multiply"
+                />
+              </div>
+
+              {/* Tanda Tangan Digital Kepala Sekolah */}
+              <div className="relative z-10 left-6">
+                <img
+                  src={schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL}
+                  alt={`Tanda Tangan ${schoolSettings?.namaKepsek || "Kepala Sekolah"}`}
+                  className="h-20 max-w-[180px] object-contain mix-blend-multiply"
+                />
+              </div>
             </div>
 
-            <p className="font-bold underline tracking-wide">
+            <p className="font-bold underline tracking-wide text-[10.5pt]">
               {schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom"}
             </p>
-            <p className="text-[11px] font-mono">
+            <p className="text-[9.5pt] font-mono">
               NIY. {schoolSettings?.niyKepsek || "14215094"}
             </p>
           </div>

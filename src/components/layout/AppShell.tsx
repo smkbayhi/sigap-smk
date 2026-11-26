@@ -55,15 +55,19 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Fixed Sidebar on the Left */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="min-h-screen bg-slate-50 flex print:bg-white">
+      {/* Fixed Sidebar on the Left - Hidden completely when printing */}
+      <div className="print:hidden">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </div>
       
-      {/* Main Content Area (Offset by sidebar width 256px on desktop) */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-w-0 min-h-screen">
-        <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+      {/* Main Content Area (Offset by sidebar width 256px on desktop, reset on print) */}
+      <div className="flex-1 lg:pl-64 print:pl-0 flex flex-col min-w-0 min-h-screen print:min-h-0">
+        <div className="print:hidden">
+          <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        </div>
         
-        <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 max-w-7xl w-full mx-auto print:p-0 print:m-0 print:max-w-none">
           {children}
         </main>
       </div>

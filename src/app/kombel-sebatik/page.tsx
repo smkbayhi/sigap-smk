@@ -165,7 +165,7 @@ export default function KombelSebatikFormPage() {
       const waktuTuntas = cekWaktuTuntas(jawabanSoal7);
 
       const payload: EvaluasiSebatik = {
-        id: "seb-" + Date.now(),
+        id: "eval-" + Date.now(),
         user_id: currentUser?.id,
         nama_guru: namaGuru.trim(),
         mata_pelajaran: mataPelajaran.trim(),
