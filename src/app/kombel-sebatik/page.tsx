@@ -17,7 +17,7 @@ import {
   hitungSkorBagianA,
   cekWaktuTuntas,
 } from "@/lib/sebatikConstants";
-import { saveEvaluasiSebatik } from "@/lib/sebatikService";
+import { saveEvaluasiSebatik, getEvaluasiSebatikList } from "@/lib/sebatikService";
 import {
   ArrowLeft,
   ArrowRight,
@@ -67,7 +67,7 @@ export default function KombelSebatikFormPage() {
   // Submitted Result for Step 4
   const [submittedData, setSubmittedData] = useState<EvaluasiSebatik | null>(null);
 
-  // Prefill teacher info from auth context
+  // Prefill teacher info from auth context and check existing submission
   useEffect(() => {
     if (currentUser && currentUser.name) {
       setNamaGuru(currentUser.name);
@@ -77,6 +77,46 @@ export default function KombelSebatikFormPage() {
         setMataPelajaran(`Guru Bidang ${currentUser.bidang}`);
       }
     }
+
+    async function checkExistingSubmission() {
+      if (!currentUser) return;
+      try {
+        const list = await getEvaluasiSebatikList();
+        const found = list.find((item) => {
+          if (item.user_id && item.user_id === currentUser.id) return true;
+          const cleanItemName = (item.nama_guru || "").toLowerCase().replace(/[^a-z]/g, "");
+          const cleanUserName = (currentUser.name || "").toLowerCase().replace(/[^a-z]/g, "");
+          return (
+            cleanItemName.length > 3 &&
+            cleanUserName.length > 3 &&
+            (cleanItemName.includes(cleanUserName) || cleanUserName.includes(cleanItemName))
+          );
+        });
+
+        if (found) {
+          setSubmittedData(found);
+          setNamaGuru(found.nama_guru);
+          setMataPelajaran(found.mata_pelajaran);
+          setSesiDiikuti(found.sesi_diikuti || []);
+          setJawabanSoal1(found.jawaban_soal_1 || "");
+          setJawabanSoal2(found.jawaban_soal_2 || "");
+          setJawabanSoal3(found.jawaban_soal_3 || "");
+          setJawabanSoal4(found.jawaban_soal_4 || "");
+          setJawabanSoal5(found.jawaban_soal_5 || "");
+          setJawabanSoal6(found.jawaban_soal_6 || "");
+          setJawabanSoal7(found.jawaban_soal_7 || "");
+          setJawabanSoal8(found.jawaban_soal_8 || "");
+          setJawabanSoal9(found.jawaban_soal_9 || []);
+          setJawabanSoal10(found.jawaban_soal_10 || "");
+          setJawabanSoal11(found.jawaban_soal_11 || "");
+          setCurrentStep(4);
+        }
+      } catch (err) {
+        console.warn("Failed checking existing submission:", err);
+      }
+    }
+
+    checkExistingSubmission();
   }, [currentUser]);
 
   // Toggle Checkbox Helpers
@@ -211,14 +251,16 @@ export default function KombelSebatikFormPage() {
             <span>Kembali ke Dasbor SIGAP-SMK</span>
           </Link>
 
-          <Link
-            href="/kombel-sebatik/admin"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-all"
-            title="Akses Laporan & Analitik Kepala Sekolah"
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Dasbor Rekap VBPG (Admin)</span>
-          </Link>
+          {isKepsek && (
+            <Link
+              href="/kombel-sebatik/admin"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-all"
+              title="Akses Laporan & Analitik Kepala Sekolah"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Dasbor Rekap VBPG (Admin)</span>
+            </Link>
+          )}
         </div>
 
         {/* Hero Card Banner */}
@@ -898,13 +940,13 @@ export default function KombelSebatikFormPage() {
                   setCurrentStep(1);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Isi Ulang Form (Jika Perlu Revisi)</span>
+                <span>Ubah / Perbarui Jawaban Saya</span>
               </button>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Link
                   href="/"
                   className="flex-1 sm:flex-none text-center py-2.5 px-5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-md"
@@ -912,12 +954,14 @@ export default function KombelSebatikFormPage() {
                   Selesai & Ke Dasbor Utama
                 </Link>
 
-                <Link
-                  href="/kombel-sebatik/admin"
-                  className="flex-1 sm:flex-none text-center py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
-                >
-                  Lihat Rekapitulasi Kolektif
-                </Link>
+                {isKepsek && (
+                  <Link
+                    href="/kombel-sebatik/admin"
+                    className="flex-1 sm:flex-none text-center py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition-all"
+                  >
+                    Dasbor Rekap VBPG (Admin)
+                  </Link>
+                )}
               </div>
             </div>
           </div>

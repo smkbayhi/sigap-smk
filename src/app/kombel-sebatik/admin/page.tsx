@@ -205,8 +205,35 @@ export default function KombelSebatikAdminPage() {
               Akses Dasbor Kepala Sekolah & VBPG
             </h1>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Halaman ini memuat rekapitulasi data evaluasi Kombel SEBATIK untuk lampiran bukti fisik kinerja sekolah. Masukkan PIN akses pengawas/kepsek untuk melanjutkan.
+              Halaman ini memuat rekapitulasi kolektif evaluasi Kombel SEBATIK untuk lampiran bukti fisik kinerja sekolah (VBPG). Khusus diperuntukkan bagi Kepala Sekolah dan Pengawas.
             </p>
+          </div>
+
+          {/* Kotak Panduan untuk Dewan Guru yang Tersasar ke URL Ini */}
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-2 text-center">
+            <p className="font-bold text-emerald-900">
+              Bapak/Ibu Dewan Guru:
+            </p>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Untuk mengisi instrumen evaluasi Kombel SEBATIK atau melihat ulasan hasil jawaban Anda, silakan langsung menuju ke halaman instrumen guru:
+            </p>
+            <div>
+              <Link
+                href="/kombel-sebatik"
+                className="inline-flex items-center gap-1.5 py-2 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Buka Formulir / Hasil Evaluasi Guru</span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-slate-200"></div>
+            <span className="flex-shrink mx-3 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              Khusus Pengawas / Admin
+            </span>
+            <div className="flex-grow border-t border-slate-200"></div>
           </div>
 
           <form onSubmit={handleUnlockPin} className="space-y-4">
