@@ -186,8 +186,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                 </div>
               )}
 
-              {/* Live Presence Indicator for Management */}
-              {(currentUser.role === "kepala_sekolah" || currentUser.role === "tata_usaha") && (
+              {/* Live Presence Indicator (Khusus Kepala Sekolah) */}
+              {currentUser.role === "kepala_sekolah" && (
                 <Link
                   href="/"
                   title={`${onlineCount} Guru/Staf sedang online membuka webapp saat ini`}

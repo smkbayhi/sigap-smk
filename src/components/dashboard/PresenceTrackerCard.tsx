@@ -37,8 +37,8 @@ export function PresenceTrackerCard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Only Kepala Sekolah & TU can see this executive tracer
-  if (!isKepsek && !isTU) return null;
+  // Khusus Kepala Sekolah (Executive Live Tracer)
+  if (!isKepsek) return null;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

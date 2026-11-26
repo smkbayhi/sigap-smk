@@ -369,9 +369,6 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          {/* Radar Kehadiran Digital Staf & Guru */}
-          <PresenceTrackerCard />
-
           {/* TU Main Sections */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left 2 Cols: Monitoring Draf & Surat Keluar Siap Kirim */}
