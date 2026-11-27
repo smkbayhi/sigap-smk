@@ -50,25 +50,25 @@ export const OfficialKopSurat: React.FC<OfficialKopSuratProps> = ({
           <img
             src={logoYayasan}
             alt="Logo Yayasan PP Bayt Al-Hikmah"
-            className="w-20 h-20 sm:w-22 sm:h-22 object-contain"
+            className="w-20 h-20 sm:w-22 sm:h-22 print:w-[70px] print:h-[70px] object-contain"
           />
         </div>
 
         {/* Center: Official Institution Typography (Times New Roman) */}
         <div className="flex-1 text-center text-black leading-tight">
-          <h2 className="text-[13px] sm:text-[15px] font-bold tracking-wider uppercase">
+          <h2 className="text-[13px] sm:text-[15px] print:text-[12px] font-bold tracking-wider uppercase">
             YAYASAN PONDOK PESANTREN BAYT AL-HIKMAH
           </h2>
-          <h1 className="text-xl sm:text-2xl font-black tracking-wide uppercase mt-0.5">
+          <h1 className="text-xl sm:text-2xl print:text-[19px] font-black tracking-wide uppercase mt-0.5">
             SMK BAYT AL-HIKMAH
           </h1>
-          <p className="text-[10px] sm:text-[11px] mt-1 text-gray-800 leading-normal">
+          <p className="text-[10px] sm:text-[11px] print:text-[9.5px] mt-1 text-gray-800 leading-normal">
             Jalan Patiunus No. 25 Krampyangan Bugul Kidul Telp : (0343) 428544, Fax : (0343) 413549
           </p>
-          <p className="text-[9.5px] sm:text-[10.5px] text-gray-800 leading-normal">
+          <p className="text-[9.5px] sm:text-[10.5px] print:text-[9px] text-gray-800 leading-normal">
             Website : http://smk.baytalhikmah.sch.id, E-mail : smkbayhi@gmail.com Kode Pos. 67127
           </p>
-          <p className="text-xs sm:text-sm font-bold tracking-[0.45em] uppercase mt-0.5 text-black">
+          <p className="text-xs sm:text-sm print:text-xs font-bold tracking-[0.45em] uppercase mt-0.5 text-black">
             P A S U R U A N
           </p>
         </div>
@@ -78,13 +78,13 @@ export const OfficialKopSurat: React.FC<OfficialKopSuratProps> = ({
           <img
             src={logoSmk}
             alt="Logo SMK Bayt Al-Hikmah"
-            className="w-20 h-20 sm:w-22 sm:h-22 object-contain"
+            className="w-20 h-20 sm:w-22 sm:h-22 print:w-[70px] print:h-[70px] object-contain"
           />
         </div>
       </div>
 
       {/* Double Border Rule (Thick top rule, thin bottom rule) matching official letter */}
-      <div className="mt-3">
+      <div className="mt-2.5 print:mt-1.5">
         <div className="border-t-[3px] border-black w-full" />
         <div className="border-t-[1px] border-black w-full mt-[1.5px]" />
       </div>

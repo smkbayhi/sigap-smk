@@ -92,13 +92,23 @@ export default function PrintPresensiPage() {
       <style>{`
         @media print {
           @page {
-            size: auto;
-            margin: 8mm 10mm 8mm 10mm !important;
+            size: A4 portrait;
+            margin: 6mm 8mm 6mm 8mm !important;
           }
           body, html {
             background: white !important;
             margin: 0 !important;
             padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .print-doc-container {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
           }
         }
       `}</style>
@@ -130,10 +140,10 @@ export default function PrintPresensiPage() {
         </button>
       </div>
 
-      {/* F4 / Folio Paper Document Container */}
-      <div className="max-w-[215mm] mx-auto bg-white p-8 sm:p-12 shadow-lg print:shadow-none print:p-0 rounded-xl print:rounded-none">
+      {/* F4 / Folio / A4 Paper Document Container */}
+      <div className="print-doc-container max-w-[215mm] mx-auto bg-white p-6 sm:p-10 shadow-lg print:shadow-none print:p-0 rounded-xl print:rounded-none">
         {/* Official Kop Surat */}
-        <OfficialKopSurat className="!mb-2.5" />
+        <OfficialKopSurat className="!mb-1.5" />
 
         {!canManageAllPresensi && myTeacherRecord ? (
           /* ============================================================== */
@@ -291,24 +301,24 @@ export default function PrintPresensiPage() {
             </div>
 
             {/* Signatures for Personal Slip */}
-            <div className="flex items-start justify-between text-xs pt-4 break-inside-avoid page-break-avoid">
+            <div className="flex items-start justify-between text-xs pt-2 mt-1 break-inside-avoid page-break-avoid">
               {/* Left: Kepala Tata Usaha */}
               <div className="text-left w-64 space-y-0.5 break-inside-avoid">
-                <p className="font-normal text-xs">Pasuruan, {todayStr}</p>
-                <p className="font-bold text-xs">Mengetahui,</p>
-                <p className="font-bold text-xs">Kepala Tata Usaha,</p>
+                <p className="font-normal text-xs leading-tight">Pasuruan, {todayStr}</p>
+                <p className="font-bold text-xs leading-tight">Mengetahui,</p>
+                <p className="font-bold text-xs leading-tight">Kepala Tata Usaha,</p>
 
-                <div className="relative h-24 my-1 flex items-center justify-start">
+                <div className="relative h-[68px] flex items-center justify-start">
                   {ttdTu ? (
-                    <div className="relative z-10 left-6">
+                    <div className="relative z-10 left-7 flex items-center h-full">
                       <img
                         src={ttdTu}
                         alt={`Tanda Tangan ${namaTu}`}
-                        className="h-20 max-w-[180px] object-contain mix-blend-multiply"
+                        className="h-[68px] max-w-[180px] object-contain mix-blend-multiply"
                       />
                     </div>
                   ) : (
-                    <div className="w-48 h-20" />
+                    <div className="w-48 h-[68px]" />
                   )}
                 </div>
 
@@ -318,12 +328,12 @@ export default function PrintPresensiPage() {
 
               {/* Right: Guru / Pegawai yang bersangkutan */}
               <div className="text-left w-64 space-y-0.5 break-inside-avoid">
-                <p className="font-normal text-xs">&nbsp;</p>
-                <p className="font-bold text-xs">Pendidik / Tenaga Kependidikan,</p>
-                <p className="text-[10px] text-gray-500">(Yang Bersangkutan)</p>
+                <p className="font-normal text-xs leading-tight">&nbsp;</p>
+                <p className="font-bold text-xs leading-tight">Pendidik / Tenaga Kependidikan,</p>
+                <p className="text-[10px] text-gray-500 leading-tight">(Yang Bersangkutan)</p>
 
-                <div className="relative h-24 my-1 flex items-center justify-start">
-                  <div className="w-48 h-20" />
+                <div className="relative h-[68px] flex items-center justify-start">
+                  <div className="w-48 h-[68px]" />
                 </div>
 
                 <p className="font-bold underline text-xs tracking-wide">{myDisplayName}</p>
@@ -337,32 +347,32 @@ export default function PrintPresensiPage() {
           /* ============================================================== */
           <div>
             {/* Document Title */}
-            <div className="text-center my-2.5">
-              <h2 className="text-sm font-black uppercase tracking-wider underline">
+            <div className="text-center my-1.5">
+              <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider underline">
                 REKAPITULASI PRESENSI & EVALUASI KEDISIPLINAN GURU
               </h2>
-              <p className="text-[11px] font-bold text-gray-700 mt-0.5">
+              <p className="text-[10.5px] font-bold text-gray-700 mt-0.5">
                 PERIODE: {currentReport.rentangTanggal.toUpperCase()}
               </p>
             </div>
 
             {/* Main Table */}
-            <div className="mb-2.5">
-              <table className="w-full text-left text-[10px] border border-black border-collapse">
+            <div className="mb-1.5">
+              <table className="w-full text-left text-[9.5px] border border-black border-collapse">
                 <thead>
                   <tr className="bg-gray-100 font-bold text-center border-b border-black">
-                    <th className="border border-black p-1.5 w-7">NO</th>
-                    <th className="border border-black p-1.5 text-left">NAMA GURU & PEGAWAI</th>
-                    <th className="border border-black p-1.5 w-12">HARI KERJA</th>
-                    <th className="border border-black p-1.5 w-10">HADIR</th>
-                    <th className="border border-black p-1.5 w-14">TERLAMBAT (HARI)</th>
-                    <th className="border border-black p-1.5 w-14">TOTAL TELAT</th>
-                    <th className="border border-black p-1.5 w-14">% TELAT</th>
-                    <th className="border border-black p-1.5 w-16">STATUS KKM</th>
-                    <th className="border border-black p-1.5 w-8">IZIN</th>
-                    <th className="border border-black p-1.5 w-8">SAKIT</th>
-                    <th className="border border-black p-1.5 w-8">ALPHA</th>
-                    <th className="border border-black p-1.5 w-10">LUPA FINGER</th>
+                    <th className="border border-black py-1 px-1 w-7">NO</th>
+                    <th className="border border-black py-1 px-1 text-left">NAMA GURU & PEGAWAI</th>
+                    <th className="border border-black py-1 px-1 w-12">HARI KERJA</th>
+                    <th className="border border-black py-1 px-1 w-10">HADIR</th>
+                    <th className="border border-black py-1 px-1 w-14">TERLAMBAT (HARI)</th>
+                    <th className="border border-black py-1 px-1 w-14">TOTAL TELAT</th>
+                    <th className="border border-black py-1 px-1 w-14">% TELAT</th>
+                    <th className="border border-black py-1 px-1 w-16">STATUS KKM</th>
+                    <th className="border border-black py-1 px-1 w-8">IZIN</th>
+                    <th className="border border-black py-1 px-1 w-8">SAKIT</th>
+                    <th className="border border-black py-1 px-1 w-8">ALPHA</th>
+                    <th className="border border-black py-1 px-1 w-10">LUPA FINGER</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -377,28 +387,28 @@ export default function PrintPresensiPage() {
                           isTidakKkm ? "bg-red-50/50 font-bold" : ""
                         }`}
                       >
-                        <td className="border border-black p-1 text-center">{idx + 1}</td>
-                        <td className="border border-black p-1 font-semibold">{displayName}</td>
-                        <td className="border border-black p-1 text-center">{t.totalHariKerja}</td>
-                        <td className="border border-black p-1 text-center font-bold">{t.totalHadir}</td>
-                        <td className="border border-black p-1 text-center">{t.totalTerlambatHari}</td>
-                        <td className="border border-black p-1 text-center font-mono">
+                        <td className="border border-black py-0.5 px-1 text-center">{idx + 1}</td>
+                        <td className="border border-black py-0.5 px-1 font-semibold">{displayName}</td>
+                        <td className="border border-black py-0.5 px-1 text-center">{t.totalHariKerja}</td>
+                        <td className="border border-black py-0.5 px-1 text-center font-bold">{t.totalHadir}</td>
+                        <td className="border border-black py-0.5 px-1 text-center">{t.totalTerlambatHari}</td>
+                        <td className="border border-black py-0.5 px-1 text-center font-mono">
                           {t.totalMenitTerlambat > 0 ? `${t.totalMenitTerlambat} m` : "-"}
                         </td>
-                        <td className="border border-black p-1 text-center font-bold">
+                        <td className="border border-black py-0.5 px-1 text-center font-bold">
                           {t.persentaseTerlambat}%
                         </td>
                         <td
-                          className={`border border-black p-1 text-center font-black ${
+                          className={`border border-black py-0.5 px-1 text-center font-black ${
                             isTidakKkm ? "text-red-700" : ""
                           }`}
                         >
                           {t.statusKkm}
                         </td>
-                        <td className="border border-black p-1 text-center">{t.totalIzin || "-"}</td>
-                        <td className="border border-black p-1 text-center">{t.totalSakit || "-"}</td>
-                        <td className="border border-black p-1 text-center">{t.totalAlpha || "-"}</td>
-                        <td className="border border-black p-1 text-center font-bold text-orange-950">{t.totalLupaFinger || "-"}</td>
+                        <td className="border border-black py-0.5 px-1 text-center">{t.totalIzin || "-"}</td>
+                        <td className="border border-black py-0.5 px-1 text-center">{t.totalSakit || "-"}</td>
+                        <td className="border border-black py-0.5 px-1 text-center">{t.totalAlpha || "-"}</td>
+                        <td className="border border-black py-0.5 px-1 text-center font-bold text-orange-950">{t.totalLupaFinger || "-"}</td>
                       </tr>
                     );
                   })}
@@ -407,7 +417,7 @@ export default function PrintPresensiPage() {
             </div>
 
             {/* Catatan / Keterangan KKM */}
-            <div className="mb-2.5 p-2 px-3 border border-gray-300 rounded-lg text-[9.5px] space-y-0.5 bg-gray-50/50 print:bg-white break-inside-avoid">
+            <div className="mb-2 p-1.5 px-2.5 border border-gray-400 rounded-lg text-[9px] leading-snug space-y-0.5 bg-gray-50/50 print:bg-white break-inside-avoid">
               <p className="font-bold text-gray-900">Keterangan Standar Kedisiplinan Yayasan & Sekolah:</p>
               <ul className="list-disc list-inside space-y-0.5 text-gray-700">
                 <li>
@@ -421,42 +431,42 @@ export default function PrintPresensiPage() {
               </ul>
             </div>
 
-            {/* Signature Area */}
-            <div className="flex items-start justify-between text-xs pt-1 break-inside-avoid page-break-avoid">
-              {/* Left: Kepala Sekolah (Sesuai Benchmark Gambar 2, diperbesar mengisi jarak vertikal) */}
+            {/* Signature Area (Tanda Tangan & Stempel Proporsional Mengena Kedua Tulisan) */}
+            <div className="flex items-start justify-between text-xs pt-1.5 mt-1 break-inside-avoid page-break-avoid">
+              {/* Left: Kepala Sekolah */}
               <div className="text-left w-64 space-y-0.5 break-inside-avoid">
                 <p className="font-normal text-xs leading-tight">Mengetahui,</p>
                 <p className="font-bold text-xs leading-tight">Kepala SMK Bayt Al-Hikmah,</p>
 
-                {/* Stempel & Signature overlay resmi persis Gambar 2 (Diperbesar mengisi jarak) */}
-                <div className="relative h-28 my-1 flex items-center justify-start">
-                  {/* Stempel Sekolah Proporsional (Diperbesar: w-28 h-28) */}
+                {/* Stempel & Signature overlay resmi persis Gambar 2 (Proporsional & overlap kedua tulisan) */}
+                <div className="relative h-[68px] flex items-center justify-start">
+                  {/* Stempel Sekolah Proporsional (w-[108px] h-[108px], overlap teks Kepala Sekolah di atas dan Nama di bawah) */}
                   {stempel && (
-                    <div className="absolute -left-7 -top-2 pointer-events-none opacity-85 z-0">
+                    <div className="absolute -left-6 -top-5 pointer-events-none opacity-85 z-0">
                       <img
                         src={stempel}
                         alt="Stempel Sekolah"
-                        className="w-28 h-28 object-contain mix-blend-multiply"
+                        className="w-[108px] h-[108px] object-contain mix-blend-multiply"
                       />
                     </div>
                   )}
 
-                  {/* Tanda Tangan Digital Kepala Sekolah (Diperbesar: h-24 max-w-[200px]) */}
+                  {/* Tanda Tangan Digital Kepala Sekolah (h-[68px] max-w-[185px]) */}
                   {ttdKepsek && (
-                    <div className="relative z-10 left-8">
+                    <div className="relative z-10 left-7 flex items-center h-full">
                       <img
                         src={ttdKepsek}
                         alt={`Tanda Tangan ${namaKepsek}`}
-                        className="h-24 max-w-[200px] object-contain mix-blend-multiply"
+                        className="h-[68px] max-w-[185px] object-contain mix-blend-multiply"
                       />
                     </div>
                   )}
                 </div>
 
-                <p className="font-bold underline tracking-wide text-xs">
+                <p className="font-bold underline tracking-wide text-xs relative z-20">
                   {namaKepsek}
                 </p>
-                <p className="text-[10px] font-mono text-gray-800">
+                <p className="text-[10px] font-mono text-gray-800 relative z-20">
                   NIY. {niyKepsek}
                 </p>
               </div>
@@ -466,25 +476,25 @@ export default function PrintPresensiPage() {
                 <p className="font-normal text-xs leading-tight">Pasuruan, {todayStr}</p>
                 <p className="font-bold text-xs leading-tight">Kepala Tata Usaha,</p>
 
-                <div className="relative h-28 my-1 flex items-center justify-start">
+                <div className="relative h-[68px] flex items-center justify-start">
                   {ttdTu ? (
-                    <div className="relative z-10 left-8">
+                    <div className="relative z-10 left-7 flex items-center h-full">
                       <img
                         src={ttdTu}
                         alt={`Tanda Tangan ${namaTu}`}
-                        className="h-24 max-w-[200px] object-contain mix-blend-multiply"
+                        className="h-[68px] max-w-[180px] object-contain mix-blend-multiply"
                       />
                     </div>
                   ) : (
                     /* Ruang tanda tangan manual */
-                    <div className="w-48 h-24" />
+                    <div className="w-48 h-[68px]" />
                   )}
                 </div>
 
-                <p className="font-bold underline tracking-wide text-xs">
+                <p className="font-bold underline tracking-wide text-xs relative z-20">
                   {namaTu}
                 </p>
-                <p className="text-[10px] font-mono text-gray-800">
+                <p className="text-[10px] font-mono text-gray-800 relative z-20">
                   NIY. {niyTu}
                 </p>
               </div>

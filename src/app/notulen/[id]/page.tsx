@@ -423,22 +423,22 @@ export default function NotulenDetailPage() {
               <p className="font-bold text-slate-900">Kepala SMK Bayt Al-Hikmah,</p>
 
               {/* Signature Area */}
-              <div className="relative h-24 my-2 flex items-center justify-start">
+              <div className="relative h-[68px] my-1 flex items-center justify-start">
                 {isApproved && (schoolSettings?.stempelUrl || true) && (
-                  <div className="absolute -left-6 -top-2 pointer-events-none opacity-85 z-0">
+                  <div className="absolute -left-6 -top-5 pointer-events-none opacity-85 z-0">
                     <img
                       src={schoolSettings?.stempelUrl || "/stempel.png"}
                       alt="Stempel Sekolah"
-                      className="w-24 h-24 object-contain mix-blend-multiply"
+                      className="w-[108px] h-[108px] object-contain mix-blend-multiply"
                     />
                   </div>
                 )}
                 {isApproved && (schoolSettings?.ttdKepsekUrl || true) && (
-                  <div className="relative z-10 left-6">
+                  <div className="relative z-10 left-7 flex items-center h-full">
                     <img
                       src={schoolSettings?.ttdKepsekUrl || "/ttd.png"}
                       alt="TTD Kepala Sekolah"
-                      className="h-20 max-w-[180px] object-contain mix-blend-multiply"
+                      className="h-[68px] max-w-[185px] object-contain mix-blend-multiply"
                     />
                   </div>
                 )}
