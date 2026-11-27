@@ -9,6 +9,7 @@ import { matchUserWithTeacher, findTeacherRecordForUser } from "@/lib/presensiPa
 import { getBidangLabel } from "@/lib/utils";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import { Printer, ArrowLeft, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { TTD_KEPSEK_DATA_URL, STEMPEL_SEKOLAH_DATA_URL } from "@/lib/seedData";
 
 export default function PrintPresensiPage() {
   const { currentReport } = usePresensi();
@@ -36,8 +37,13 @@ export default function PrintPresensiPage() {
 
   const namaKepsek = schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom";
   const niyKepsek = schoolSettings?.niyKepsek || "14215094";
-  const ttdKepsek = schoolSettings?.ttdKepsekUrl;
-  const stempel = schoolSettings?.stempelUrl;
+  const ttdKepsek = schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL;
+  const stempel = schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL;
+
+  const tuUser = users.find((u) => u.role === "tata_usaha");
+  const namaTu = tuUser?.name || "AINIYATUL FITRIYAH, S.S";
+  const niyTu = tuUser?.niy || tuUser?.nip || "11861027";
+  const ttdTu = tuUser?.ttd_url;
 
   if (!currentReport) {
     return (
@@ -272,32 +278,34 @@ export default function PrintPresensiPage() {
             </div>
 
             {/* Signatures for Personal Slip */}
-            <div className="flex items-start justify-between text-xs pt-4">
+            <div className="flex items-start justify-between text-xs pt-4 break-inside-avoid page-break-avoid">
               {/* Left: Kepala Tata Usaha */}
-              <div className="text-center w-64">
-                <p>Pasuruan, {todayStr}</p>
-                <p className="font-bold">Mengetahui,</p>
-                <p className="font-bold">Kepala Tata Usaha</p>
-                <div className="h-20 my-1 flex items-center justify-center">
-                  {/* Space for signature */}
+              <div className="text-center w-72 break-inside-avoid">
+                <p className="font-normal text-xs">Pasuruan, {todayStr}</p>
+                <p className="font-bold text-xs">Mengetahui,</p>
+                <p className="font-bold text-xs">Kepala Tata Usaha</p>
+                <div className="h-24 my-1 flex items-center justify-center">
+                  {ttdTu ? (
+                    <img
+                      src={ttdTu}
+                      alt={`Tanda Tangan ${namaTu}`}
+                      className="h-20 max-w-[180px] w-auto object-contain mix-blend-multiply"
+                    />
+                  ) : null}
                 </div>
-                <p className="font-bold underline text-xs">
-                  {users.find((u) => u.role === "tata_usaha")?.name || "Ainiyatul Fitriyah, S.S"}
-                </p>
-                <p className="text-[10px] text-gray-600">
-                  NIY. {users.find((u) => u.role === "tata_usaha")?.niy || "11861027"}
-                </p>
+                <p className="font-bold underline text-xs tracking-wide">{namaTu}</p>
+                <p className="text-[10px] text-gray-600">NIY. {niyTu}</p>
               </div>
 
               {/* Right: Guru / Pegawai yang bersangkutan */}
-              <div className="text-center w-64">
-                <p>&nbsp;</p>
-                <p className="font-bold">Pendidik / Tenaga Kependidikan,</p>
-                <p className="text-[11px] text-gray-500">(Yang Bersangkutan)</p>
-                <div className="h-20 my-1 flex items-center justify-center">
+              <div className="text-center w-72 break-inside-avoid">
+                <p className="font-normal text-xs">&nbsp;</p>
+                <p className="font-bold text-xs">Pendidik / Tenaga Kependidikan,</p>
+                <p className="text-[10px] text-gray-500">(Yang Bersangkutan)</p>
+                <div className="h-24 my-1 flex items-center justify-center">
                   {/* Space for signature */}
                 </div>
-                <p className="font-bold underline text-xs">{myDisplayName}</p>
+                <p className="font-bold underline text-xs tracking-wide">{myDisplayName}</p>
                 <p className="text-[10px] text-gray-600">NIY / PIN. {myDisplayPin}</p>
               </div>
             </div>
@@ -378,63 +386,80 @@ export default function PrintPresensiPage() {
             </div>
 
             {/* Catatan / Keterangan KKM */}
-            <div className="mb-8 p-3 border border-gray-300 rounded-lg text-[10px] space-y-1">
-              <p className="font-bold text-gray-800">Keterangan Standar Kedisiplinan Yayasan & Sekolah:</p>
-              <ul className="list-disc list-inside space-y-0.5 text-gray-600">
+            <div className="mb-6 p-3.5 border border-gray-300 rounded-lg text-xs space-y-1.5 bg-gray-50/50 print:bg-white break-inside-avoid">
+              <p className="font-bold text-gray-900">Keterangan Standar Kedisiplinan Yayasan & Sekolah:</p>
+              <ul className="list-disc list-inside space-y-1 text-gray-700">
                 <li>
-                  Ambang Batas KKM (Kriteria Ketuntasan Minimal): Persentase keterlambatan jam kerja{" "}
-                  <strong>&lt; 50%</strong>.
+                  <strong>Ambang Batas KKM (Kriteria Ketuntasan Minimal):</strong> Persentase keterlambatan jam kerja{" "}
+                  <strong>kurang dari 50% (&lt; 50%)</strong> dari total hari kerja aktif.
                 </li>
                 <li>
-                  Guru dengan persentase keterlambatan <strong>$\ge 50.0\%$ (TIDAK KKM)</strong> diberikan
-                  surat pembinaan ketaatan jam kerja oleh pihak manajemen sekolah dan Kepala Tata Usaha.
+                  <strong>Tindak Lanjut Pembinaan:</strong> Guru dengan persentase keterlambatan{" "}
+                  <strong>mencapai 50% atau lebih (≥ 50.0% / TIDAK KKM)</strong> diberikan surat pembinaan ketaatan jam kerja oleh pihak manajemen sekolah dan Kepala Tata Usaha.
                 </li>
               </ul>
             </div>
 
             {/* Signature Area */}
-            <div className="flex items-start justify-between text-xs pt-4">
+            <div className="flex items-start justify-between text-xs pt-4 break-inside-avoid page-break-avoid">
               {/* Left: Kepala Sekolah */}
-              <div className="text-center w-64">
-                <p>Mengetahui,</p>
-                <p className="font-bold">Kepala SMK Bayt Al-Hikmah</p>
+              <div className="text-center w-72 break-inside-avoid">
+                <p className="font-normal text-xs">Mengetahui,</p>
+                <p className="font-bold text-xs">Kepala SMK Bayt Al-Hikmah</p>
 
-                {/* Signature & Stamp Overlay */}
-                <div className="relative h-24 my-1 flex items-center justify-center">
+                {/* Signature & Stamp Overlay: Proporsional & menindih 1/3 sisi kiri tanda tangan */}
+                <div className="relative h-28 my-1 flex items-center justify-center">
                   {stempel && (
-                    <img
-                      src={stempel}
-                      alt="Stempel Sekolah"
-                      className="absolute w-24 h-24 object-contain opacity-80 -left-2 pointer-events-none"
-                    />
+                    <div className="absolute left-2 sm:left-4 -top-1 pointer-events-none z-10 opacity-85">
+                      <img
+                        src={stempel}
+                        alt="Stempel Sekolah"
+                        className="w-28 h-28 object-contain mix-blend-multiply"
+                      />
+                    </div>
                   )}
                   {ttdKepsek && (
-                    <img
-                      src={ttdKepsek}
-                      alt="TTD Kepala Sekolah"
-                      className="h-20 max-w-full object-contain relative z-10"
-                    />
+                    <div className="relative z-0 flex items-center justify-center pl-8">
+                      <img
+                        src={ttdKepsek}
+                        alt={`Tanda Tangan ${namaKepsek}`}
+                        className="h-24 sm:h-28 max-w-[210px] w-auto object-contain mix-blend-multiply"
+                      />
+                    </div>
                   )}
                 </div>
 
-                <p className="font-bold underline text-xs">{namaKepsek}</p>
-                <p className="text-[10px] text-gray-600">NIY. {niyKepsek}</p>
+                <p className="font-bold underline text-xs tracking-wide relative z-20">
+                  {namaKepsek}
+                </p>
+                <p className="text-[10px] text-gray-600 relative z-20">
+                  NIY. {niyKepsek}
+                </p>
               </div>
 
               {/* Right: Kepala Tata Usaha */}
-              <div className="text-center w-64">
-                <p>Pasuruan, {todayStr}</p>
-                <p className="font-bold">Kepala Tata Usaha</p>
+              <div className="text-center w-72 break-inside-avoid">
+                <p className="font-normal text-xs">Pasuruan, {todayStr}</p>
+                <p className="font-bold text-xs">Kepala Tata Usaha</p>
 
-                <div className="h-24 my-1 flex items-center justify-center">
-                  {/* Space for manual or digital signature */}
+                <div className="relative h-28 my-1 flex items-center justify-center">
+                  {ttdTu ? (
+                    <img
+                      src={ttdTu}
+                      alt={`Tanda Tangan ${namaTu}`}
+                      className="h-24 sm:h-28 max-w-[190px] w-auto object-contain mix-blend-multiply"
+                    />
+                  ) : (
+                    /* Ruang tanda tangan manual */
+                    <div className="w-48 h-28" />
+                  )}
                 </div>
 
-                <p className="font-bold underline text-xs">
-                  {users.find((u) => u.role === "tata_usaha")?.name || "Ainiyatul Fitriyah, S.S"}
+                <p className="font-bold underline text-xs tracking-wide relative z-20">
+                  {namaTu}
                 </p>
-                <p className="text-[10px] text-gray-600">
-                  NIY. {users.find((u) => u.role === "tata_usaha")?.niy || "11861027"}
+                <p className="text-[10px] text-gray-600 relative z-20">
+                  NIY. {niyTu}
                 </p>
               </div>
             </div>

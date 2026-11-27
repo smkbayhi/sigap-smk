@@ -1139,8 +1139,8 @@ Wassalamu’alaikum Wr. Wb.
               Menampilkan <strong>{filteredTeachers.length}</strong> dari{" "}
               <strong>{currentReport.teachers.length}</strong> guru & pegawai SMK Bayt Al-Hikmah.
             </p>
-            <p className="text-[11px] text-gray-400">
-              *Ambang Batas KKM Disiplin: Keterlambatan $\ge 50.0\%$ dinyatakan <strong>TIDAK KKM</strong>.
+            <p className="text-[11px] text-gray-500">
+              *Ambang Batas KKM Disiplin: Keterlambatan mencapai 50% atau lebih (≥ 50.0%) dinyatakan <strong>TIDAK KKM</strong>.
             </p>
           </div>
         </div>
