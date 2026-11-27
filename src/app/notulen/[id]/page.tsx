@@ -417,26 +417,30 @@ export default function NotulenDetailPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
-            {/* Kiri: Mengetahui Kepala Sekolah */}
-            <div className="text-center">
+            {/* Kiri: Mengetahui Kepala Sekolah (Sesuai Gambar 2) */}
+            <div className="text-left w-64 space-y-0.5">
               <p className="text-slate-600">Mengetahui,</p>
-              <p className="font-bold text-slate-900">Kepala SMK Bayt Al-Hikmah</p>
+              <p className="font-bold text-slate-900">Kepala SMK Bayt Al-Hikmah,</p>
 
               {/* Signature Area */}
-              <div className="relative h-24 my-2 flex items-center justify-center">
-                {isApproved && schoolSettings?.stempelUrl && (
-                  <img
-                    src={schoolSettings.stempelUrl}
-                    alt="Stempel Sekolah"
-                    className="absolute w-24 h-24 object-contain opacity-85 -left-1 pointer-events-none"
-                  />
+              <div className="relative h-24 my-2 flex items-center justify-start">
+                {isApproved && (schoolSettings?.stempelUrl || true) && (
+                  <div className="absolute -left-6 -top-2 pointer-events-none opacity-85 z-0">
+                    <img
+                      src={schoolSettings?.stempelUrl || "/stempel.png"}
+                      alt="Stempel Sekolah"
+                      className="w-24 h-24 object-contain mix-blend-multiply"
+                    />
+                  </div>
                 )}
-                {isApproved && schoolSettings?.ttdKepsekUrl && (
-                  <img
-                    src={schoolSettings.ttdKepsekUrl}
-                    alt="TTD Kepala Sekolah"
-                    className="h-20 max-w-full object-contain relative z-10"
-                  />
+                {isApproved && (schoolSettings?.ttdKepsekUrl || true) && (
+                  <div className="relative z-10 left-6">
+                    <img
+                      src={schoolSettings?.ttdKepsekUrl || "/ttd.png"}
+                      alt="TTD Kepala Sekolah"
+                      className="h-20 max-w-[180px] object-contain mix-blend-multiply"
+                    />
+                  </div>
                 )}
                 {!isApproved && (
                   <div className="border border-dashed border-slate-300 rounded-lg p-2 text-slate-400 text-xs italic">

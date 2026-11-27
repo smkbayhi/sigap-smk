@@ -545,22 +545,22 @@ export default function MasterKopSuratPage() {
               <p>Pasuruan, 11 November 2026</p>
               <p className="font-bold">Kepala SMK Bayt Al-Hikmah</p>
 
-              <div className="relative h-28 my-1 flex items-center justify-start">
-                {/* Stamp preview (Ukuran proporsional diperbesar) */}
-                <div className="absolute -left-11 -top-10 pointer-events-none opacity-90 z-0">
+              <div className="relative h-24 my-1 flex items-center justify-start">
+                {/* Stamp preview (Sesuai Benchmark Gambar 2) */}
+                <div className="absolute -left-6 -top-2 pointer-events-none opacity-85 z-0">
                   <img
                     src={stempel}
                     alt="Stempel"
-                    className="w-[196px] h-[196px] object-contain mix-blend-multiply"
+                    className="w-24 h-24 object-contain mix-blend-multiply"
                   />
                 </div>
 
-                {/* Signature preview (Ukuran diperbesar seimbang dengan stempel) */}
-                <div className="relative z-10 left-9 -top-2">
+                {/* Signature preview (Sesuai Benchmark Gambar 2) */}
+                <div className="relative z-10 left-6">
                   <img
                     src={ttdKepsek}
                     alt="TTD"
-                    className="h-36 sm:h-[148px] max-w-[240px] w-auto object-contain mix-blend-multiply"
+                    className="h-20 max-w-[180px] object-contain mix-blend-multiply"
                   />
                 </div>
               </div>

@@ -255,51 +255,55 @@ export default function PrintNotulenPage() {
           </div>
 
           <div className="flex items-start justify-between">
-            {/* Kiri: Mengetahui Kepala Sekolah */}
-            <div className="text-center w-64">
+            {/* Kiri: Mengetahui Kepala Sekolah (Sesuai Gambar 2) */}
+            <div className="text-left w-64 space-y-0.5 break-inside-avoid">
               <p>Mengetahui,</p>
-              <p className="font-bold">Kepala Sekolah</p>
+              <p className="font-bold">Kepala SMK Bayt Al-Hikmah,</p>
 
-              {/* Signature & Stamp Area */}
-              <div className="relative h-24 my-1 flex items-center justify-center">
+              {/* Signature & Stamp Overlay Proporsional */}
+              <div className="relative h-24 my-1 flex items-center justify-start">
                 {isApproved && stempel && (
-                  <img
-                    src={stempel}
-                    alt="Stempel Sekolah"
-                    className="absolute w-24 h-24 object-contain opacity-85 -left-1 pointer-events-none"
-                  />
+                  <div className="absolute -left-6 -top-2 pointer-events-none opacity-85 z-0">
+                    <img
+                      src={stempel}
+                      alt="Stempel Sekolah"
+                      className="w-24 h-24 object-contain mix-blend-multiply"
+                    />
+                  </div>
                 )}
                 {isApproved && ttdKepsek && (
-                  <img
-                    src={ttdKepsek}
-                    alt="TTD Kepala Sekolah"
-                    className="h-20 max-w-full object-contain relative z-10"
-                  />
+                  <div className="relative z-10 left-6">
+                    <img
+                      src={ttdKepsek}
+                      alt={`Tanda Tangan ${namaKepsek}`}
+                      className="h-20 max-w-[180px] object-contain mix-blend-multiply"
+                    />
+                  </div>
                 )}
               </div>
 
-              <p className="font-bold underline">
+              <p className="font-bold underline tracking-wide">
                 {namaKepsek}
               </p>
-              <p className="text-[10pt]">
-                NIP. {niyKepsek}
+              <p className="text-[10pt] font-mono text-gray-800">
+                NIY. {niyKepsek}
               </p>
             </div>
 
             {/* Kanan: Dicatat oleh Notulis */}
-            <div className="text-center w-64">
+            <div className="text-left w-64 space-y-0.5 break-inside-avoid">
               <p>Dicatat oleh,</p>
-              <p className="font-bold">Notulis</p>
+              <p className="font-bold">Notulis Rapat,</p>
 
-              <div className="h-24 my-1 flex items-center justify-center">
-                {/* Space for Notulis handwritten signature */}
+              <div className="relative h-24 my-1 flex items-center justify-start">
+                <div className="w-48 h-20" />
               </div>
 
-              <p className="font-bold underline">
+              <p className="font-bold underline tracking-wide">
                 {notulen.notulis}
               </p>
-              <p className="text-[10pt]">
-                NIP. {notulen.notulis_nip || "-"}
+              <p className="text-[10pt] font-mono text-gray-800">
+                {notulen.notulis_nip ? `NIY. ${notulen.notulis_nip}` : "-"}
               </p>
             </div>
           </div>

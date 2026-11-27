@@ -280,33 +280,41 @@ export default function PrintPresensiPage() {
             {/* Signatures for Personal Slip */}
             <div className="flex items-start justify-between text-xs pt-4 break-inside-avoid page-break-avoid">
               {/* Left: Kepala Tata Usaha */}
-              <div className="text-center w-72 break-inside-avoid">
+              <div className="text-left w-64 space-y-0.5 break-inside-avoid">
                 <p className="font-normal text-xs">Pasuruan, {todayStr}</p>
                 <p className="font-bold text-xs">Mengetahui,</p>
-                <p className="font-bold text-xs">Kepala Tata Usaha</p>
-                <div className="h-24 my-1 flex items-center justify-center">
+                <p className="font-bold text-xs">Kepala Tata Usaha,</p>
+
+                <div className="relative h-24 my-1 flex items-center justify-start">
                   {ttdTu ? (
-                    <img
-                      src={ttdTu}
-                      alt={`Tanda Tangan ${namaTu}`}
-                      className="h-20 max-w-[180px] w-auto object-contain mix-blend-multiply"
-                    />
-                  ) : null}
+                    <div className="relative z-10 left-6">
+                      <img
+                        src={ttdTu}
+                        alt={`Tanda Tangan ${namaTu}`}
+                        className="h-20 max-w-[180px] object-contain mix-blend-multiply"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-48 h-20" />
+                  )}
                 </div>
+
                 <p className="font-bold underline text-xs tracking-wide">{namaTu}</p>
-                <p className="text-[10px] text-gray-600">NIY. {niyTu}</p>
+                <p className="text-[10px] font-mono text-gray-800">NIY. {niyTu}</p>
               </div>
 
               {/* Right: Guru / Pegawai yang bersangkutan */}
-              <div className="text-center w-72 break-inside-avoid">
+              <div className="text-left w-64 space-y-0.5 break-inside-avoid">
                 <p className="font-normal text-xs">&nbsp;</p>
                 <p className="font-bold text-xs">Pendidik / Tenaga Kependidikan,</p>
                 <p className="text-[10px] text-gray-500">(Yang Bersangkutan)</p>
-                <div className="h-24 my-1 flex items-center justify-center">
-                  {/* Space for signature */}
+
+                <div className="relative h-24 my-1 flex items-center justify-start">
+                  <div className="w-48 h-20" />
                 </div>
+
                 <p className="font-bold underline text-xs tracking-wide">{myDisplayName}</p>
-                <p className="text-[10px] text-gray-600">NIY / PIN. {myDisplayPin}</p>
+                <p className="text-[10px] font-mono text-gray-800">NIY / PIN. {myDisplayPin}</p>
               </div>
             </div>
           </div>
@@ -402,63 +410,68 @@ export default function PrintPresensiPage() {
 
             {/* Signature Area */}
             <div className="flex items-start justify-between text-xs pt-4 break-inside-avoid page-break-avoid">
-              {/* Left: Kepala Sekolah */}
-              <div className="text-center w-72 break-inside-avoid">
+              {/* Left: Kepala Sekolah (Sesuai Benchmark Gambar 2) */}
+              <div className="text-left w-64 space-y-0.5 break-inside-avoid">
                 <p className="font-normal text-xs">Mengetahui,</p>
-                <p className="font-bold text-xs">Kepala SMK Bayt Al-Hikmah</p>
+                <p className="font-bold text-xs">Kepala SMK Bayt Al-Hikmah,</p>
 
-                {/* Signature & Stamp Overlay: Proporsional & menindih 1/3 sisi kiri tanda tangan */}
-                <div className="relative h-28 my-1 flex items-center justify-center">
+                {/* Stempel & Signature overlay resmi persis Gambar 2 */}
+                <div className="relative h-24 my-1 flex items-center justify-start">
+                  {/* Stempel Sekolah Proporsional (Sisi kiri TTD) */}
                   {stempel && (
-                    <div className="absolute left-2 sm:left-4 -top-1 pointer-events-none z-10 opacity-85">
+                    <div className="absolute -left-6 -top-2 pointer-events-none opacity-85 z-0">
                       <img
                         src={stempel}
                         alt="Stempel Sekolah"
-                        className="w-28 h-28 object-contain mix-blend-multiply"
+                        className="w-24 h-24 object-contain mix-blend-multiply"
                       />
                     </div>
                   )}
+
+                  {/* Tanda Tangan Digital Kepala Sekolah */}
                   {ttdKepsek && (
-                    <div className="relative z-0 flex items-center justify-center pl-8">
+                    <div className="relative z-10 left-6">
                       <img
                         src={ttdKepsek}
                         alt={`Tanda Tangan ${namaKepsek}`}
-                        className="h-24 sm:h-28 max-w-[210px] w-auto object-contain mix-blend-multiply"
+                        className="h-20 max-w-[180px] object-contain mix-blend-multiply"
                       />
                     </div>
                   )}
                 </div>
 
-                <p className="font-bold underline text-xs tracking-wide relative z-20">
+                <p className="font-bold underline tracking-wide text-xs">
                   {namaKepsek}
                 </p>
-                <p className="text-[10px] text-gray-600 relative z-20">
+                <p className="text-[10px] font-mono text-gray-800">
                   NIY. {niyKepsek}
                 </p>
               </div>
 
               {/* Right: Kepala Tata Usaha */}
-              <div className="text-center w-72 break-inside-avoid">
+              <div className="text-left w-64 space-y-0.5 break-inside-avoid">
                 <p className="font-normal text-xs">Pasuruan, {todayStr}</p>
-                <p className="font-bold text-xs">Kepala Tata Usaha</p>
+                <p className="font-bold text-xs">Kepala Tata Usaha,</p>
 
-                <div className="relative h-28 my-1 flex items-center justify-center">
+                <div className="relative h-24 my-1 flex items-center justify-start">
                   {ttdTu ? (
-                    <img
-                      src={ttdTu}
-                      alt={`Tanda Tangan ${namaTu}`}
-                      className="h-24 sm:h-28 max-w-[190px] w-auto object-contain mix-blend-multiply"
-                    />
+                    <div className="relative z-10 left-6">
+                      <img
+                        src={ttdTu}
+                        alt={`Tanda Tangan ${namaTu}`}
+                        className="h-20 max-w-[180px] object-contain mix-blend-multiply"
+                      />
+                    </div>
                   ) : (
                     /* Ruang tanda tangan manual */
-                    <div className="w-48 h-28" />
+                    <div className="w-48 h-20" />
                   )}
                 </div>
 
-                <p className="font-bold underline text-xs tracking-wide relative z-20">
+                <p className="font-bold underline tracking-wide text-xs">
                   {namaTu}
                 </p>
-                <p className="text-[10px] text-gray-600 relative z-20">
+                <p className="text-[10px] font-mono text-gray-800">
                   NIY. {niyTu}
                 </p>
               </div>
