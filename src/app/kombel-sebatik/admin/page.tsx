@@ -959,22 +959,22 @@ export default function KombelSebatikAdminPage() {
             <p className="font-bold">Kepala SMK Bayt Al-Hikmah,</p>
             
             {/* Stempel & Signature overlay resmi */}
-            <div className="relative h-24 my-1 flex items-center justify-start">
+            <div className="relative h-28 my-1 flex items-center justify-start">
               {/* Stempel Sekolah Proporsional (Sisi kiri TTD) */}
-              <div className="absolute -left-6 -top-2 pointer-events-none opacity-85 z-0">
+              <div className="absolute -left-7 -top-2 pointer-events-none opacity-85 z-0">
                 <img
                   src={schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL}
                   alt="Stempel Sekolah"
-                  className="w-24 h-24 object-contain mix-blend-multiply"
+                  className="w-28 h-28 object-contain mix-blend-multiply"
                 />
               </div>
 
               {/* Tanda Tangan Digital Kepala Sekolah */}
-              <div className="relative z-10 left-6">
+              <div className="relative z-10 left-8">
                 <img
                   src={schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL}
                   alt={`Tanda Tangan ${schoolSettings?.namaKepsek || "Kepala Sekolah"}`}
-                  className="h-20 max-w-[180px] object-contain mix-blend-multiply"
+                  className="h-24 max-w-[200px] object-contain mix-blend-multiply"
                 />
               </div>
             </div>
