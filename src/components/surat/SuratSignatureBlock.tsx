@@ -40,28 +40,28 @@ export const SuratSignatureBlock: React.FC<SuratSignatureBlockProps> = ({
         <p className="font-bold text-gray-950">Kepala SMK Bayt Al-Hikmah,</p>
 
         {/* Stempel & Signature overlay resmi persis Gambar 2 (Proporsional & overlap kedua tulisan) */}
-        <div className="relative h-[68px] my-1 flex items-center justify-start">
+        <div className="relative h-[44px] my-1 flex items-center justify-start">
           {isApprovedOrHasStempel && displayStamp && (
-            <div className="absolute -left-6 -top-5 pointer-events-none opacity-85 z-0">
+            <div className="absolute -left-6 -top-[42px] pointer-events-none opacity-85 z-0">
               <img
                 src={displayStamp}
                 alt="Stempel Resmi"
-                className="w-[108px] h-[108px] object-contain mix-blend-multiply"
+                className="w-[130px] h-[130px] object-contain mix-blend-multiply"
               />
             </div>
           )}
 
           {isApprovedOrHasTtd && displayTtd ? (
-            <div className="relative z-10 left-7 flex items-center h-full">
+            <div className="absolute left-4 -top-[28px] z-10 pointer-events-none">
               <img
                 src={displayTtd}
                 alt={`Tanda Tangan ${namaKepsek}`}
-                className="h-[68px] max-w-[185px] object-contain mix-blend-multiply"
+                className="w-[115px] h-[115px] object-contain mix-blend-multiply"
               />
             </div>
           ) : (
             /* Ruang kosong putih bersih siap untuk tanda tangan & stempel basah fisik */
-            <div className="w-48 h-[68px]" />
+            <div className="w-48 h-[44px]" />
           )}
         </div>
 

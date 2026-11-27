@@ -37,8 +37,15 @@ export default function PrintPresensiPage() {
 
   const namaKepsek = schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom";
   const niyKepsek = schoolSettings?.niyKepsek || "14215094";
-  const ttdKepsek = schoolSettings?.ttdKepsekUrl || TTD_KEPSEK_DATA_URL;
-  const stempel = schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL;
+  const rawTtd = schoolSettings?.ttdKepsekUrl;
+  const ttdKepsek = (!rawTtd || rawTtd.startsWith("data:image/svg+xml"))
+    ? TTD_KEPSEK_DATA_URL
+    : rawTtd;
+
+  const rawStempel = schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL;
+  const stempel = rawStempel.startsWith("data:image/svg+xml;utf8,")
+    ? rawStempel.replace(";utf8,", ";charset=utf-8,")
+    : rawStempel;
 
   const tuUser = users.find((u) => u.role === "tata_usaha");
   const namaTu = tuUser?.name || "AINIYATUL FITRIYAH, S.S";
@@ -308,17 +315,17 @@ export default function PrintPresensiPage() {
                 <p className="font-bold text-xs leading-tight">Mengetahui,</p>
                 <p className="font-bold text-xs leading-tight">Kepala Tata Usaha,</p>
 
-                <div className="relative h-[68px] flex items-center justify-start">
+                <div className="relative h-[44px] flex items-center justify-start">
                   {ttdTu ? (
-                    <div className="relative z-10 left-7 flex items-center h-full">
+                    <div className="absolute left-4 -top-[28px] z-10 pointer-events-none">
                       <img
                         src={ttdTu}
                         alt={`Tanda Tangan ${namaTu}`}
-                        className="h-[68px] max-w-[180px] object-contain mix-blend-multiply"
+                        className="w-[115px] h-[115px] object-contain mix-blend-multiply"
                       />
                     </div>
                   ) : (
-                    <div className="w-48 h-[68px]" />
+                    <div className="w-48 h-[44px]" />
                   )}
                 </div>
 
@@ -332,8 +339,8 @@ export default function PrintPresensiPage() {
                 <p className="font-bold text-xs leading-tight">Pendidik / Tenaga Kependidikan,</p>
                 <p className="text-[10px] text-gray-500 leading-tight">(Yang Bersangkutan)</p>
 
-                <div className="relative h-[68px] flex items-center justify-start">
-                  <div className="w-48 h-[68px]" />
+                <div className="relative h-[44px] flex items-center justify-start">
+                  <div className="w-48 h-[44px]" />
                 </div>
 
                 <p className="font-bold underline text-xs tracking-wide">{myDisplayName}</p>
@@ -439,25 +446,25 @@ export default function PrintPresensiPage() {
                 <p className="font-bold text-xs leading-tight">Kepala SMK Bayt Al-Hikmah,</p>
 
                 {/* Stempel & Signature overlay resmi persis Gambar 2 (Proporsional & overlap kedua tulisan) */}
-                <div className="relative h-[68px] flex items-center justify-start">
-                  {/* Stempel Sekolah Proporsional (w-[108px] h-[108px], overlap teks Kepala Sekolah di atas dan Nama di bawah) */}
+                <div className="relative h-[44px] flex items-center justify-start">
+                  {/* Stempel Sekolah Proporsional (w-[130px] h-[130px], overlap teks Kepala Sekolah di atas dan Nama di bawah) */}
                   {stempel && (
-                    <div className="absolute -left-6 -top-5 pointer-events-none opacity-85 z-0">
+                    <div className="absolute -left-6 -top-[42px] pointer-events-none opacity-85 z-0">
                       <img
                         src={stempel}
                         alt="Stempel Sekolah"
-                        className="w-[108px] h-[108px] object-contain mix-blend-multiply"
+                        className="w-[130px] h-[130px] object-contain mix-blend-multiply"
                       />
                     </div>
                   )}
 
-                  {/* Tanda Tangan Digital Kepala Sekolah (h-[68px] max-w-[185px]) */}
+                  {/* Tanda Tangan Digital Kepala Sekolah (w-[115px] h-[115px]) */}
                   {ttdKepsek && (
-                    <div className="relative z-10 left-7 flex items-center h-full">
+                    <div className="absolute left-4 -top-[28px] z-10 pointer-events-none">
                       <img
                         src={ttdKepsek}
                         alt={`Tanda Tangan ${namaKepsek}`}
-                        className="h-[68px] max-w-[185px] object-contain mix-blend-multiply"
+                        className="w-[115px] h-[115px] object-contain mix-blend-multiply"
                       />
                     </div>
                   )}
@@ -476,18 +483,18 @@ export default function PrintPresensiPage() {
                 <p className="font-normal text-xs leading-tight">Pasuruan, {todayStr}</p>
                 <p className="font-bold text-xs leading-tight">Kepala Tata Usaha,</p>
 
-                <div className="relative h-[68px] flex items-center justify-start">
+                <div className="relative h-[44px] flex items-center justify-start">
                   {ttdTu ? (
-                    <div className="relative z-10 left-7 flex items-center h-full">
+                    <div className="absolute left-4 -top-[28px] z-10 pointer-events-none">
                       <img
                         src={ttdTu}
                         alt={`Tanda Tangan ${namaTu}`}
-                        className="h-[68px] max-w-[180px] object-contain mix-blend-multiply"
+                        className="w-[115px] h-[115px] object-contain mix-blend-multiply"
                       />
                     </div>
                   ) : (
                     /* Ruang tanda tangan manual */
-                    <div className="w-48 h-[68px]" />
+                    <div className="w-48 h-[44px]" />
                   )}
                 </div>
 

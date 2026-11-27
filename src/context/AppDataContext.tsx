@@ -205,7 +205,16 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem(STORAGE_KEYS.SCHOOL_SETTINGS);
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (!parsed.ttdKepsekUrl || parsed.ttdKepsekUrl.startsWith("data:image/svg+xml")) {
+            parsed.ttdKepsekUrl = TTD_KEPSEK_DATA_URL;
+          }
+          if (parsed.stempelUrl && parsed.stempelUrl.startsWith("data:image/svg+xml;utf8,")) {
+            parsed.stempelUrl = parsed.stempelUrl.replace(";utf8,", ";charset=utf-8,");
+          }
+          return parsed;
+        }
       } catch {
         return DEFAULT_SCHOOL_SETTINGS;
       }
@@ -708,7 +717,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         const storedSettings = localStorage.getItem(STORAGE_KEYS.SCHOOL_SETTINGS);
         if (storedSettings) {
           try {
-            setSchoolSettings(JSON.parse(storedSettings));
+            const parsed = JSON.parse(storedSettings);
+            if (!parsed.ttdKepsekUrl || parsed.ttdKepsekUrl.startsWith("data:image/svg+xml")) {
+              parsed.ttdKepsekUrl = TTD_KEPSEK_DATA_URL;
+            }
+            if (parsed.stempelUrl && parsed.stempelUrl.startsWith("data:image/svg+xml;utf8,")) {
+              parsed.stempelUrl = parsed.stempelUrl.replace(";utf8,", ";charset=utf-8,");
+            }
+            setSchoolSettings(parsed);
           } catch (e) {
             console.error("Failed to parse storedSettings", e);
           }

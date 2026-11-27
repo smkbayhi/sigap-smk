@@ -261,22 +261,22 @@ export default function PrintNotulenPage() {
               <p className="font-bold">Kepala SMK Bayt Al-Hikmah,</p>
 
               {/* Signature & Stamp Overlay Proporsional (Overlap kedua tulisan) */}
-              <div className="relative h-[68px] my-1 flex items-center justify-start">
+              <div className="relative h-[44px] my-1 flex items-center justify-start">
                 {isApproved && stempel && (
-                  <div className="absolute -left-6 -top-5 pointer-events-none opacity-85 z-0">
+                  <div className="absolute -left-6 -top-[42px] pointer-events-none opacity-85 z-0">
                     <img
                       src={stempel}
                       alt="Stempel Sekolah"
-                      className="w-[108px] h-[108px] object-contain mix-blend-multiply"
+                      className="w-[130px] h-[130px] object-contain mix-blend-multiply"
                     />
                   </div>
                 )}
                 {isApproved && ttdKepsek && (
-                  <div className="relative z-10 left-7 flex items-center h-full">
+                  <div className="absolute left-4 -top-[28px] z-10 pointer-events-none">
                     <img
                       src={ttdKepsek}
                       alt={`Tanda Tangan ${namaKepsek}`}
-                      className="h-[68px] max-w-[185px] object-contain mix-blend-multiply"
+                      className="w-[115px] h-[115px] object-contain mix-blend-multiply"
                     />
                   </div>
                 )}
