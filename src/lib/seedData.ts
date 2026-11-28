@@ -1,4 +1,4 @@
-import { User, MasterPerspektif, SuratKeluar, SuratMasuk, Disposisi, RKT, ActionPlan, ActionReport, SchoolSettings, NotulenRapat } from "./database.types";
+import { User, MasterPerspektif, SuratKeluar, SuratMasuk, Disposisi, RKT, ActionPlan, ActionReport, SchoolSettings, NotulenRapat, DokumentasiKegiatan } from "./database.types";
 
 // Official Logo Yayasan Pondok Pesantren Bayt Al-Hikmah (Left Logo)
 // Official Logo Yayasan PP Bayt Al-Hikmah (Authentic extracted from School Doc)
@@ -351,4 +351,76 @@ export const INITIAL_NOTULEN_RAPAT: NotulenRapat[] = [
     creator_name: "Siti Aminah, S.Pd.",
     created_at: "2026-11-16T09:00:00Z",
   },
+];
+
+export const INITIAL_DOKUMENTASI: DokumentasiKegiatan[] = [
+  {
+    id: "dok-1795834001",
+    judul_kegiatan: "Rapat Kerja Penyusunan Pedoman Sekolah & Sosialisasi KSP TA 2026/2027",
+    kategori: "akademik_kurikulum",
+    tanggal_kegiatan: "2026-07-06",
+    waktu_kegiatan: "08.30 - 12.00 WIB",
+    lokasi: "Ruang Rapat Pimpinan SMK Bayt Al-Hikmah",
+    deskripsi: "Rapat koordinasi pimpinan dan seluruh dewan guru mengenai pemutakhiran Kurikulum Satuan Pendidikan (KSP), Buku Saku Santri, dan SOP perlindungan data pribadi serta AI.",
+    foto_urls: [
+      "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800&auto=format&fit=crop&q=80"
+    ],
+    petugas_id: "user-1794453469307",
+    petugas_nama: "AINIYATUL FITRIYAH, S.S",
+    petugas_jabatan: "Kepala TU & Bendahara",
+    created_at: "2026-07-06T12:30:00Z"
+  },
+  {
+    id: "dok-1795834002",
+    judul_kegiatan: "Pembekalan & Pelepasan Santri PKL Jurusan Desain Komunikasi Visual (DKV)",
+    kategori: "humas_dudi",
+    tanggal_kegiatan: "2026-01-03",
+    waktu_kegiatan: "09.00 - 11.30 WIB",
+    lokasi: "Aula Utama Pondok Pesantren Bayt Al-Hikmah",
+    deskripsi: "Pemberian arahan dan pembekalan etika profesi kerja industri bagi santri Kelas XI DKV sebelum diterjunkan ke 15 mitra industri percetakan dan media kreatif di Pasuruan dan Surabaya.",
+    foto_urls: [
+      "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&auto=format&fit=crop&q=80"
+    ],
+    petugas_id: "user-luluk-wakasek",
+    petugas_nama: "Luluk Mamlu'atus S.,S.S",
+    petugas_jabatan: "Wakil Kepala Sekolah",
+    created_at: "2026-01-03T11:45:00Z"
+  },
+  {
+    id: "dok-1795834003",
+    judul_kegiatan: "Outing Class & Kunjungan Industri Santri ke BLK Komunitas Pasuruan",
+    kategori: "kesiswaan",
+    tanggal_kegiatan: "2026-02-14",
+    waktu_kegiatan: "07.30 - 14.00 WIB",
+    lokasi: "Balai Latihan Kerja (BLK) Komunitas Pasuruan",
+    deskripsi: "Praktik langsung perakitan jaringan komputer, pengenalan server, dan instalasi sistem operasi untuk peningkatan kompetensi keahlian santri kejuruan.",
+    foto_urls: [
+      "https://images.unsplash.com/photo-1581092921461-eab62e97a780?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop&q=80"
+    ],
+    petugas_id: "user-1794529320093",
+    petugas_nama: "Moh. Nasih Aminulloh, S.Mat, M.Si",
+    petugas_jabatan: "Waka Kurikulum",
+    created_at: "2026-02-14T14:30:00Z"
+  },
+  {
+    id: "dok-1795834004",
+    judul_kegiatan: "Apel Akbar Santri & Peringatan Hari Santri Nasional",
+    kategori: "keasramaan_pesantren",
+    tanggal_kegiatan: "2026-10-22",
+    waktu_kegiatan: "07.00 - 09.00 WIB",
+    lokasi: "Lapangan Kampus 2 Bayt Al-Hikmah Pasuruan",
+    deskripsi: "Upacara bendera dan apel peringatan Hari Santri Nasional yang diikuti oleh seluruh santri, dewan guru, dan pengasuh pesantren dengan khidmat dan disiplin.",
+    foto_urls: [
+      "https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&auto=format&fit=crop&q=80"
+    ],
+    petugas_id: "user-1794453469307",
+    petugas_nama: "AINIYATUL FITRIYAH, S.S",
+    petugas_jabatan: "Kepala TU & Bendahara",
+    created_at: "2026-10-22T09:30:00Z"
+  }
 ];

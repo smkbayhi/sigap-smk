@@ -22,6 +22,7 @@ import {
   Stamp,
   ClipboardList,
   Award,
+  Camera,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -33,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { currentUser, isKepsek, isTU, isKasubag, isGuru } = useAuth();
-  const { suratKeluar, disposisi, rkt, schoolSettings, notulenList } = useAppData();
+  const { suratKeluar, disposisi, rkt, schoolSettings, notulenList, dokumentasiList } = useAppData();
   const { currentReport } = usePresensi();
   const schoolLogo = schoolSettings?.logoSmkUrl || LOGO_SMK_DATA_URL;
 
@@ -43,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     (acc, n) => acc + (n.action_items || []).filter((a) => a.status === "pending").length,
     0
   );
+  const totalDokumentasi = (dokumentasiList || []).length;
   
   // Pending disposisi for current user or overall
   const myPendingDisp = disposisi.filter((d) => 
@@ -280,6 +282,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     className="text-[10px] bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded-full pointer-events-none"
                   >
                     {pendingActionItems}
+                  </span>
+                )}
+              </Link>
+
+              {/* Dokumentasi & Galeri Kegiatan */}
+              <Link
+                href="/dokumentasi"
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/dokumentasi")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
+                  isActive("/dokumentasi")
+                    ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
+                    : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
+                }`}
+              >
+                <div className="flex items-center gap-3 pointer-events-none">
+                  <Camera className="w-4 h-4 text-emerald-300" />
+                  <span>Dokumentasi Kegiatan</span>
+                </div>
+                {totalDokumentasi > 0 && (
+                  <span
+                    title={`${totalDokumentasi} album kegiatan`}
+                    className="text-[10px] bg-emerald-600/90 text-white font-semibold px-1.5 py-0.5 rounded-full pointer-events-none"
+                  >
+                    {totalDokumentasi}
                   </span>
                 )}
               </Link>

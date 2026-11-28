@@ -270,4 +270,42 @@ export interface EvaluasiSebatik {
   created_at: string;
 }
 
+// ====================================================================
+// DOKUMENTASI & GALERI KEGIATAN SEKOLAH
+// ====================================================================
+export type KategoriDokumentasi =
+  | 'akademik_kurikulum'
+  | 'kesiswaan'
+  | 'keasramaan_pesantren'
+  | 'humas_dudi'
+  | 'sarpras'
+  | 'rapat_dinas'
+  | 'keagamaan'
+  | 'lainnya';
+
+export interface FotoDokumentasiItem {
+  id: string;
+  url: string;
+  caption?: string;
+  uploaded_at: string;
+}
+
+export interface DokumentasiKegiatan {
+  id: string;
+  judul_kegiatan: string;
+  kategori: KategoriDokumentasi;
+  tanggal_kegiatan: string; // YYYY-MM-DD
+  waktu_kegiatan?: string;
+  lokasi?: string;
+  deskripsi?: string;
+  foto_urls: string[];
+  foto_items?: FotoDokumentasiItem[];
+  petugas_id: string;
+  petugas_nama: string;
+  petugas_jabatan?: string;
+  drive_url?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 

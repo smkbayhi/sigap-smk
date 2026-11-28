@@ -14,6 +14,7 @@ import {
   StatusRKT,
   SchoolSettings,
   NotulenRapat,
+  DokumentasiKegiatan,
 } from "@/lib/database.types";
 import {
   INITIAL_PERSPEKTIF,
@@ -24,6 +25,7 @@ import {
   INITIAL_ACTION_PLANS,
   INITIAL_ACTION_REPORTS,
   INITIAL_NOTULEN_RAPAT,
+  INITIAL_DOKUMENTASI,
   DEFAULT_SCHOOL_SETTINGS,
   TTD_KEPSEK_DATA_URL,
   STEMPEL_SEKOLAH_DATA_URL,
@@ -54,6 +56,7 @@ interface AppDataContextType {
   actionPlans: ActionPlan[];
   actionReports: ActionReport[];
   notulenList: NotulenRapat[];
+  dokumentasiList: DokumentasiKegiatan[];
   toasts: ToastMessage[];
 
   // School & Letter Settings (Logo, Stempel, TTD)
@@ -111,6 +114,11 @@ interface AppDataContextType {
   approveNotulen: (id: string, kepsekName: string) => void;
   toggleActionItemStatus: (notulenId: string, actionItemId: string) => void;
 
+  // Actions: Dokumentasi Kegiatan
+  addDokumentasi: (data: Omit<DokumentasiKegiatan, "id" | "created_at">) => DokumentasiKegiatan;
+  updateDokumentasi: (id: string, partial: Partial<DokumentasiKegiatan>) => void;
+  deleteDokumentasi: (id: string) => void;
+
   // System
   addToast: (type: ToastMessage["type"], title: string, message: string) => void;
   removeToast: (id: string) => void;
@@ -128,6 +136,7 @@ const STORAGE_KEYS = {
   ACTION_PLANS: "sigap_smk_action_plans",
   ACTION_REPORTS: "sigap_smk_action_reports",
   NOTULEN: "sigap_smk_notulen",
+  DOKUMENTASI: "sigap_smk_dokumentasi",
   SCHOOL_SETTINGS: "sigap_smk_school_settings",
 };
 
@@ -140,6 +149,7 @@ const DELETED_KEYS = {
   ACTION_PLANS: "sigap_smk_deleted_ap_ids",
   ACTION_REPORTS: "sigap_smk_deleted_ar_ids",
   NOTULEN: "sigap_smk_deleted_notulen_ids",
+  DOKUMENTASI: "sigap_smk_deleted_dok_ids",
 };
 
 // Legacy dummy seed IDs that must never be resurrected on any browser/device
@@ -370,6 +380,25 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       }
     }
     return INITIAL_NOTULEN_RAPAT;
+  });
+
+  const [dokumentasiList, setDokumentasiList] = useState<DokumentasiKegiatan[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const deleted = getDeletedIds(DELETED_KEYS.DOKUMENTASI);
+        const stored = localStorage.getItem(STORAGE_KEYS.DOKUMENTASI);
+        if (stored) {
+          const parsed: DokumentasiKegiatan[] = JSON.parse(stored);
+          return (Array.isArray(parsed) ? parsed : []).filter(
+            (d) => !deleted.includes(d.id)
+          );
+        }
+        return INITIAL_DOKUMENTASI;
+      } catch {
+        return INITIAL_DOKUMENTASI;
+      }
+    }
+    return INITIAL_DOKUMENTASI;
   });
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -1263,6 +1292,61 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     if (target) syncNotulenToCloud("upsert", target);
   };
 
+  // Safe background cloud sync for dokumentasi kegiatan
+  const syncDokumentasiToCloud = async (action: "upsert" | "delete", itemOrId: DokumentasiKegiatan | string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      if (action === "upsert") {
+        await (supabase.from("dokumentasi_kegiatan") as any).upsert(itemOrId);
+      } else {
+        await (supabase.from("dokumentasi_kegiatan") as any).delete().eq("id", itemOrId);
+      }
+    } catch {
+      // safe fallback
+    }
+  };
+
+  // Dokumentasi Kegiatan Actions
+  const addDokumentasi = (data: Omit<DokumentasiKegiatan, "id" | "created_at">): DokumentasiKegiatan => {
+    const newItem: DokumentasiKegiatan = {
+      ...data,
+      id: "dok-" + Date.now(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    unmarkDeletedId(DELETED_KEYS.DOKUMENTASI, newItem.id);
+    const updated = [newItem, ...dokumentasiList];
+    setDokumentasiList(updated);
+    saveToStorage(STORAGE_KEYS.DOKUMENTASI, updated);
+    syncDokumentasiToCloud("upsert", newItem);
+    addToast(
+      "success",
+      "Dokumentasi Berhasil Diunggah",
+      `Dokumentasi "${data.judul_kegiatan}" berhasil disimpan.`
+    );
+    return newItem;
+  };
+
+  const updateDokumentasi = (id: string, partial: Partial<DokumentasiKegiatan>) => {
+    const updated = dokumentasiList.map((d) =>
+      d.id === id ? { ...d, ...partial, updated_at: new Date().toISOString() } : d
+    );
+    setDokumentasiList(updated);
+    saveToStorage(STORAGE_KEYS.DOKUMENTASI, updated);
+    const target = updated.find((d) => d.id === id);
+    if (target) syncDokumentasiToCloud("upsert", target);
+    addToast("info", "Dokumentasi Diperbarui", "Perubahan album dokumentasi telah disimpan.");
+  };
+
+  const deleteDokumentasi = (id: string) => {
+    markDeletedId(DELETED_KEYS.DOKUMENTASI, id);
+    const updated = dokumentasiList.filter((d) => d.id !== id);
+    setDokumentasiList(updated);
+    saveToStorage(STORAGE_KEYS.DOKUMENTASI, updated);
+    syncDokumentasiToCloud("delete", id);
+    addToast("info", "Dokumentasi Dihapus", "Album dokumentasi kegiatan telah dihapus.");
+  };
+
   // School Settings Actions (Logo, Stempel, TTD)
   const updateSchoolSettings = async (partial: Partial<SchoolSettings>) => {
     const updated: SchoolSettings = { ...schoolSettings, ...partial };
@@ -1399,6 +1483,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setActionPlans(INITIAL_ACTION_PLANS);
     setActionReports(INITIAL_ACTION_REPORTS);
     setNotulenList(INITIAL_NOTULEN_RAPAT);
+    setDokumentasiList(INITIAL_DOKUMENTASI);
     addToast("info", "Data Demo Direset", "Semua data telah dikembalikan ke kondisi awal seeder.");
   };
 
@@ -1418,6 +1503,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         actionPlans,
         actionReports,
         notulenList,
+        dokumentasiList,
         toasts,
         addSuratKeluar,
         updateSuratKeluar,
@@ -1449,6 +1535,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         deleteNotulen,
         approveNotulen,
         toggleActionItemStatus,
+        addDokumentasi,
+        updateDokumentasi,
+        deleteDokumentasi,
         addToast,
         removeToast,
         resetAllData,
