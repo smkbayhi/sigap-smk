@@ -15,6 +15,7 @@ import {
   Search,
   Filter,
   Eye,
+  Edit3,
   PenTool,
   Printer,
   Trash2,
@@ -215,6 +216,15 @@ export default function SuratKeluarPage() {
                             title="Pratinjau Surat"
                           >
                             <Eye className="w-4 h-4" />
+                          </Link>
+
+                          {/* Edit / Koreksi Surat */}
+                          <Link
+                            href={`/surat-keluar/${surat.id}/edit`}
+                            className="p-1.5 text-gray-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors"
+                            title="Edit / Koreksi Surat"
+                          >
+                            <Edit3 className="w-4 h-4" />
                           </Link>
 
                           {/* Print / Cetak Langsung */}
