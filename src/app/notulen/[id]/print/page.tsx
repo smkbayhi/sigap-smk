@@ -4,8 +4,10 @@ import React, { useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAppData } from "@/context/AppDataContext";
+import { useAuth } from "@/context/AuthContext";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import { ArrowLeft, Printer } from "lucide-react";
+import { TTD_KEPSEK_DATA_URL, STEMPEL_SEKOLAH_DATA_URL, TTD_NOTULIS_DATA_URL } from "@/lib/seedData";
 
 export default function PrintNotulenPage() {
   const params = useParams();
@@ -38,11 +40,31 @@ export default function PrintNotulenPage() {
     );
   }
 
+  const { users } = useAuth();
+
   const isApproved = notulen.is_approved_by_kepsek || notulen.status === "disetujui";
-  const stempel = schoolSettings?.stempelUrl;
-  const ttdKepsek = schoolSettings?.ttdKepsekUrl;
+  const rawStempel = schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL;
+  const stempel = rawStempel.startsWith("data:image/svg+xml;utf8,")
+    ? rawStempel.replace(";utf8,", ";charset=utf-8,")
+    : rawStempel;
+
+  const rawTtd = schoolSettings?.ttdKepsekUrl;
+  const ttdKepsek = (!rawTtd || rawTtd.startsWith("data:image/svg+xml"))
+    ? TTD_KEPSEK_DATA_URL
+    : rawTtd;
+
   const namaKepsek = notulen.approved_by_name || schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom";
   const niyKepsek = notulen.pemimpin_nip || schoolSettings?.niyKepsek || "14215094";
+
+  // Find Notulis user from user list or match by name / NIY
+  const notulisUser = users.find(
+    (u) =>
+      (notulen.notulis_id && u.id === notulen.notulis_id) ||
+      (notulen.notulis_nip && (u.niy === notulen.notulis_nip || u.nip === notulen.notulis_nip)) ||
+      u.name.toLowerCase().includes(notulen.notulis.toLowerCase()) ||
+      notulen.notulis.toLowerCase().includes(u.name.toLowerCase())
+  );
+  const ttdNotulis = notulisUser?.ttd_url || TTD_NOTULIS_DATA_URL;
 
   // Date formatted
   let formattedTanggal = notulen.hari_tanggal;
@@ -249,16 +271,12 @@ export default function PrintNotulenPage() {
 
         {/* TANDA TANGAN / PENGESAHAN */}
         <div className="pt-4 text-[11pt] break-inside-avoid">
-          {/* Tanggal Surat */}
-          <div className="text-right mb-2 pr-4">
-            Pasuruan, {formattedTanggal}
-          </div>
-
           <div className="flex items-start justify-between">
             {/* Kiri: Mengetahui Kepala Sekolah (Sesuai Gambar 2) */}
             <div className="text-left w-64 space-y-0.5 break-inside-avoid">
-              <p>Mengetahui,</p>
-              <p className="font-bold">Kepala SMK Bayt Al-Hikmah,</p>
+              <p className="invisible select-none leading-tight">Pasuruan, {formattedTanggal}</p>
+              <p className="leading-tight">Mengetahui,</p>
+              <p className="font-bold leading-tight">Kepala SMK Bayt Al-Hikmah,</p>
 
               {/* Signature & Stamp Overlay Proporsional (Overlap kedua tulisan) */}
               <div className="relative h-[44px] my-1 flex items-center justify-start">
@@ -282,27 +300,39 @@ export default function PrintNotulenPage() {
                 )}
               </div>
 
-              <p className="font-bold underline tracking-wide">
+              <p className="font-bold underline tracking-wide leading-tight">
                 {namaKepsek}
               </p>
-              <p className="text-[10pt] font-mono text-gray-800">
+              <p className="text-[10pt] font-mono text-gray-800 leading-tight">
                 NIY. {niyKepsek}
               </p>
             </div>
 
-            {/* Kanan: Dicatat oleh Notulis */}
+            {/* Kanan: Dicatat oleh Notulis (Lurus dan Rapi dengan Tulisan Pasuruan) */}
             <div className="text-left w-64 space-y-0.5 break-inside-avoid">
-              <p>Dicatat oleh,</p>
-              <p className="font-bold">Notulis Rapat,</p>
+              <p className="leading-tight">Pasuruan, {formattedTanggal}</p>
+              <p className="leading-tight">Dicatat oleh,</p>
+              <p className="font-bold leading-tight">Notulis Rapat,</p>
 
-              <div className="relative h-24 my-1 flex items-center justify-start">
-                <div className="w-48 h-20" />
+              {/* Signature Notulis: Proporsional persis sama tingginya h-[44px] */}
+              <div className="relative h-[44px] my-1 flex items-center justify-start">
+                {ttdNotulis ? (
+                  <div className="absolute left-4 -top-[28px] z-10 pointer-events-none">
+                    <img
+                      src={ttdNotulis}
+                      alt={`Tanda Tangan ${notulen.notulis}`}
+                      className="w-[115px] h-[115px] object-contain mix-blend-multiply"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-48 h-[44px]" />
+                )}
               </div>
 
-              <p className="font-bold underline tracking-wide">
+              <p className="font-bold underline tracking-wide leading-tight">
                 {notulen.notulis}
               </p>
-              <p className="text-[10pt] font-mono text-gray-800">
+              <p className="text-[10pt] font-mono text-gray-800 leading-tight">
                 {notulen.notulis_nip ? `NIY. ${notulen.notulis_nip}` : "-"}
               </p>
             </div>

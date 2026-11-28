@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAppData } from "@/context/AppDataContext";
 import { useAuth } from "@/context/AuthContext";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
+import { TTD_KEPSEK_DATA_URL, STEMPEL_SEKOLAH_DATA_URL, TTD_NOTULIS_DATA_URL } from "@/lib/seedData";
 import {
   ArrowLeft,
   Printer,
@@ -31,7 +32,7 @@ export default function NotulenDetailPage() {
   const id = params?.id as string;
 
   const { notulenList, approveNotulen, deleteNotulen, toggleActionItemStatus, schoolSettings } = useAppData();
-  const { currentUser, isKepsek, isTU } = useAuth();
+  const { currentUser, isKepsek, isTU, users } = useAuth();
 
   const notulen = notulenList.find((n) => n.id === id);
 
@@ -55,6 +56,40 @@ export default function NotulenDetailPage() {
 
   const isApproved = notulen.is_approved_by_kepsek || notulen.status === "disetujui";
   const canEdit = isKepsek || isTU || notulen.created_by === currentUser.id;
+
+  const rawStempel = schoolSettings?.stempelUrl || STEMPEL_SEKOLAH_DATA_URL;
+  const stempel = rawStempel.startsWith("data:image/svg+xml;utf8,")
+    ? rawStempel.replace(";utf8,", ";charset=utf-8,")
+    : rawStempel;
+
+  const rawTtd = schoolSettings?.ttdKepsekUrl;
+  const ttdKepsek = (!rawTtd || rawTtd.startsWith("data:image/svg+xml"))
+    ? TTD_KEPSEK_DATA_URL
+    : rawTtd;
+
+  const namaKepsek = notulen.approved_by_name || schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom";
+  const niyKepsek = notulen.pemimpin_nip || schoolSettings?.niyKepsek || "14215094";
+
+  const notulisUser = users.find(
+    (u) =>
+      (notulen.notulis_id && u.id === notulen.notulis_id) ||
+      (notulen.notulis_nip && (u.niy === notulen.notulis_nip || u.nip === notulen.notulis_nip)) ||
+      u.name.toLowerCase().includes(notulen.notulis.toLowerCase()) ||
+      notulen.notulis.toLowerCase().includes(u.name.toLowerCase())
+  );
+  const ttdNotulis = notulisUser?.ttd_url || TTD_NOTULIS_DATA_URL;
+
+  let formattedTanggal = notulen.hari_tanggal;
+  if (notulen.tanggal) {
+    try {
+      const d = new Date(notulen.tanggal + "T00:00:00");
+      formattedTanggal = new Intl.DateTimeFormat("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(d);
+    } catch {}
+  }
 
   const handleShareWa = () => {
     const itemsText = notulen.action_items && notulen.action_items.length > 0
@@ -412,65 +447,74 @@ export default function NotulenDetailPage() {
 
         {/* Tanda Tangan / Pengesahan */}
         <div className="pt-8 border-t border-slate-200">
-          <div className="text-right text-xs text-slate-600 mb-2">
-            Pasuruan, {notulen.tanggal ? new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(new Date(notulen.tanggal)) : "16 November 2026"}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
+          <div className="flex items-start justify-between text-xs sm:text-sm">
             {/* Kiri: Mengetahui Kepala Sekolah (Sesuai Gambar 2) */}
             <div className="text-left w-64 space-y-0.5">
-              <p className="text-slate-600">Mengetahui,</p>
-              <p className="font-bold text-slate-900">Kepala SMK Bayt Al-Hikmah,</p>
+              <p className="invisible select-none leading-tight">Pasuruan, {formattedTanggal}</p>
+              <p className="text-slate-600 leading-tight">Mengetahui,</p>
+              <p className="font-bold text-slate-900 leading-tight">Kepala SMK Bayt Al-Hikmah,</p>
 
               {/* Signature Area */}
-              <div className="relative h-[68px] my-1 flex items-center justify-start">
-                {isApproved && (schoolSettings?.stempelUrl || true) && (
-                  <div className="absolute -left-6 -top-5 pointer-events-none opacity-85 z-0">
+              <div className="relative h-[44px] my-1 flex items-center justify-start">
+                {isApproved && stempel && (
+                  <div className="absolute -left-6 -top-[42px] pointer-events-none opacity-85 z-0">
                     <img
-                      src={schoolSettings?.stempelUrl || "/stempel.png"}
+                      src={stempel}
                       alt="Stempel Sekolah"
-                      className="w-[108px] h-[108px] object-contain mix-blend-multiply"
+                      className="w-[130px] h-[130px] object-contain mix-blend-multiply"
                     />
                   </div>
                 )}
-                {isApproved && (schoolSettings?.ttdKepsekUrl || true) && (
-                  <div className="relative z-10 left-7 flex items-center h-full">
+                {isApproved && ttdKepsek && (
+                  <div className="absolute left-4 -top-[28px] z-10 pointer-events-none">
                     <img
-                      src={schoolSettings?.ttdKepsekUrl || "/ttd.png"}
-                      alt="TTD Kepala Sekolah"
-                      className="h-[68px] max-w-[185px] object-contain mix-blend-multiply"
+                      src={ttdKepsek}
+                      alt={`Tanda Tangan ${namaKepsek}`}
+                      className="w-[115px] h-[115px] object-contain mix-blend-multiply"
                     />
                   </div>
                 )}
                 {!isApproved && (
-                  <div className="border border-dashed border-slate-300 rounded-lg p-2 text-slate-400 text-xs italic">
+                  <div className="border border-dashed border-slate-300 rounded-lg p-1.5 text-slate-400 text-[11px] italic">
                     (Menunggu Pengesahan)
                   </div>
                 )}
               </div>
 
-              <p className="font-bold underline text-slate-900">
-                {schoolSettings?.namaKepsek || "Mokhamat Ekhsan, S.Kom"}
+              <p className="font-bold underline text-slate-900 tracking-wide leading-tight">
+                {namaKepsek}
               </p>
-              <p className="text-[11px] font-mono text-slate-600">
-                NIY. {schoolSettings?.niyKepsek || "14215094"}
+              <p className="text-[11px] font-mono text-slate-600 leading-tight">
+                NIY. {niyKepsek}
               </p>
             </div>
 
-            {/* Kanan: Dicatat oleh Notulis */}
-            <div className="text-center">
-              <p className="text-slate-600">Dicatat oleh,</p>
-              <p className="font-bold text-slate-900">Notulis Rapat</p>
+            {/* Kanan: Dicatat oleh Notulis (Lurus dan Rapi dengan Tulisan Pasuruan) */}
+            <div className="text-left w-64 space-y-0.5">
+              <p className="text-slate-600 leading-tight">Pasuruan, {formattedTanggal}</p>
+              <p className="text-slate-600 leading-tight">Dicatat oleh,</p>
+              <p className="font-bold text-slate-900 leading-tight">Notulis Rapat,</p>
 
-              <div className="h-24 my-2 flex items-center justify-center">
-                {/* Space for Notulis */}
+              {/* Signature Notulis */}
+              <div className="relative h-[44px] my-1 flex items-center justify-start">
+                {ttdNotulis ? (
+                  <div className="absolute left-4 -top-[28px] z-10 pointer-events-none">
+                    <img
+                      src={ttdNotulis}
+                      alt={`Tanda Tangan ${notulen.notulis}`}
+                      className="w-[115px] h-[115px] object-contain mix-blend-multiply"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-48 h-[44px]" />
+                )}
               </div>
 
-              <p className="font-bold underline text-slate-900">
+              <p className="font-bold underline text-slate-900 tracking-wide leading-tight">
                 {notulen.notulis}
               </p>
-              <p className="text-[11px] font-mono text-slate-600">
-                {notulen.notulis_nip ? `NIY/NIP. ${notulen.notulis_nip}` : "-"}
+              <p className="text-[11px] font-mono text-slate-600 leading-tight">
+                {notulen.notulis_nip ? `NIY. ${notulen.notulis_nip}` : "-"}
               </p>
             </div>
           </div>
