@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { User, UserRole, BidangStruktural } from "@/lib/database.types";
+import { User, UserRole, BidangStruktural, JenjangKarierItem } from "@/lib/database.types";
 import { INITIAL_USERS } from "@/lib/seedData";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 
@@ -12,6 +12,9 @@ interface AuthContextType {
   updateUser: (userId: string, data: Partial<User>) => Promise<void>;
   addUser: (data: Omit<User, "id">) => Promise<User>;
   deleteUser: (userId: string) => Promise<void> | void;
+  addJenjangKarier: (userId: string, item: Omit<JenjangKarierItem, "id">) => Promise<void>;
+  updateJenjangKarier: (userId: string, itemId: string, item: Partial<JenjangKarierItem>) => Promise<void>;
+  deleteJenjangKarier: (userId: string, itemId: string) => Promise<void>;
   login: (identifier: string, password?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -77,9 +80,16 @@ const unmarkUserAsDeleted = (userId: string) => {
 };
 
 const mapDbRowToUser = (row: any): User => {
-  let userPassword = row.id === "user-kepsek" ? "14215094" : "123456";
-  let userAvatar = row.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
-  let userBidang = row.bidang;
+  const seedUser = INITIAL_USERS.find((u) => u.id === row.id);
+  let userPassword = seedUser?.password || (row.id === "user-kepsek" ? "14215094" : "123456");
+  let userAvatar = row.avatar || seedUser?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
+  let userBidang = row.bidang || seedUser?.bidang;
+  let userTahunMasuk = seedUser?.tahun_masuk;
+  let userPendidikanTerakhir = seedUser?.pendidikan_terakhir;
+  let userStatusKepegawaian = seedUser?.status_kepegawaian;
+  let userTempatTanggalLahir = seedUser?.tempat_tanggal_lahir;
+  let userAlamat = seedUser?.alamat;
+  let userJenjangKarier = seedUser?.jenjang_karier;
 
   if (row.avatar && typeof row.avatar === "string" && row.avatar.startsWith("{")) {
     try {
@@ -95,6 +105,24 @@ const mapDbRowToUser = (row: any): User => {
       if (parsed.bidang) {
         userBidang = parsed.bidang;
       }
+      if (parsed.tahun_masuk) {
+        userTahunMasuk = parsed.tahun_masuk;
+      }
+      if (parsed.pendidikan_terakhir) {
+        userPendidikanTerakhir = parsed.pendidikan_terakhir;
+      }
+      if (parsed.status_kepegawaian) {
+        userStatusKepegawaian = parsed.status_kepegawaian;
+      }
+      if (parsed.tempat_tanggal_lahir) {
+        userTempatTanggalLahir = parsed.tempat_tanggal_lahir;
+      }
+      if (parsed.alamat) {
+        userAlamat = parsed.alamat;
+      }
+      if (parsed.jenjang_karier) {
+        userJenjangKarier = parsed.jenjang_karier;
+      }
     } catch {
       // fallback
     }
@@ -104,8 +132,8 @@ const mapDbRowToUser = (row: any): User => {
 
   return {
     id: row.id,
-    niy: row.nip || row.niy || "",
-    nip: row.nip || "",
+    niy: row.nip || row.niy || seedUser?.niy || "",
+    nip: row.nip || seedUser?.nip || "",
     name: row.name,
     email: row.email,
     password: userPassword,
@@ -114,8 +142,14 @@ const mapDbRowToUser = (row: any): User => {
     bidang: userBidang || undefined,
     phone: row.phone || "",
     avatar: userAvatar,
-    ttd_url: row.ttd_url,
-    stempel_url: row.stempel_url,
+    ttd_url: row.ttd_url || seedUser?.ttd_url,
+    stempel_url: row.stempel_url || seedUser?.stempel_url,
+    tahun_masuk: userTahunMasuk,
+    pendidikan_terakhir: userPendidikanTerakhir,
+    status_kepegawaian: userStatusKepegawaian,
+    tempat_tanggal_lahir: userTempatTanggalLahir,
+    alamat: userAlamat,
+    jenjang_karier: userJenjangKarier,
   };
 };
 
@@ -152,12 +186,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (user.bidang) {
             obj.bidang = user.bidang;
           }
+          if (user.tahun_masuk) obj.tahun_masuk = user.tahun_masuk;
+          if (user.pendidikan_terakhir) obj.pendidikan_terakhir = user.pendidikan_terakhir;
+          if (user.status_kepegawaian) obj.status_kepegawaian = user.status_kepegawaian;
+          if (user.tempat_tanggal_lahir) obj.tempat_tanggal_lahir = user.tempat_tanggal_lahir;
+          if (user.alamat) obj.alamat = user.alamat;
+          if (user.jenjang_karier) obj.jenjang_karier = user.jenjang_karier;
           avatarPayload = JSON.stringify(obj);
         } catch {
           avatarPayload = JSON.stringify({
             url: user.avatar,
             password: user.password || "14215094",
             bidang: user.bidang,
+            tahun_masuk: user.tahun_masuk,
+            pendidikan_terakhir: user.pendidikan_terakhir,
+            status_kepegawaian: user.status_kepegawaian,
+            tempat_tanggal_lahir: user.tempat_tanggal_lahir,
+            alamat: user.alamat,
+            jenjang_karier: user.jenjang_karier,
           });
         }
       } else {
@@ -165,6 +211,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           url: user.avatar && !user.avatar.startsWith("{") ? user.avatar : "",
           password: user.password || "123456",
           bidang: user.bidang || "",
+          tahun_masuk: user.tahun_masuk || "",
+          pendidikan_terakhir: user.pendidikan_terakhir || "",
+          status_kepegawaian: user.status_kepegawaian || "",
+          tempat_tanggal_lahir: user.tempat_tanggal_lahir || "",
+          alamat: user.alamat || "",
+          jenjang_karier: user.jenjang_karier || [],
         });
       }
 
@@ -384,6 +436,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const addJenjangKarier = async (userId: string, item: Omit<JenjangKarierItem, "id">) => {
+    const newItem: JenjangKarierItem = {
+      ...item,
+      id: "jk-" + Date.now(),
+      created_at: new Date().toISOString(),
+    };
+    const target = users.find((u) => u.id === userId);
+    const existing = target?.jenjang_karier || [];
+    const updatedKarier = [...existing, newItem];
+    await updateUser(userId, { jenjang_karier: updatedKarier });
+  };
+
+  const updateJenjangKarier = async (userId: string, itemId: string, item: Partial<JenjangKarierItem>) => {
+    const target = users.find((u) => u.id === userId);
+    const existing = target?.jenjang_karier || [];
+    const updatedKarier = existing.map((k) =>
+      k.id === itemId ? { ...k, ...item, updated_at: new Date().toISOString() } : k
+    );
+    await updateUser(userId, { jenjang_karier: updatedKarier });
+  };
+
+  const deleteJenjangKarier = async (userId: string, itemId: string) => {
+    const target = users.find((u) => u.id === userId);
+    const existing = target?.jenjang_karier || [];
+    const updatedKarier = existing.filter((k) => k.id !== itemId);
+    await updateUser(userId, { jenjang_karier: updatedKarier });
+  };
+
   const login = async (
     identifier: string,
     password?: string
@@ -486,6 +566,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateUser,
         addUser,
         deleteUser,
+        addJenjangKarier,
+        updateJenjangKarier,
+        deleteJenjangKarier,
         login,
         logout,
         isAuthenticated,

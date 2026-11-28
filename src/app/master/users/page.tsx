@@ -24,10 +24,12 @@ import {
   Stamp,
   Search,
   KeyRound,
+  Briefcase,
+  GraduationCap,
 } from "lucide-react";
 
 export default function MasterUsersPage() {
-  const { users, currentUser, isKepsek, setCurrentUserById, updateUser, addUser, deleteUser } = useAuth();
+  const { users, currentUser, isKepsek, isTU, setCurrentUserById, updateUser, addUser, deleteUser } = useAuth();
   const { addToast } = useAppData();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -220,7 +222,7 @@ export default function MasterUsersPage() {
     return matchesSearch && matchesRole;
   });
 
-  if (!isKepsek) {
+  if (!isKepsek && !isTU) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 bg-white rounded-2xl border border-gray-200 shadow-xs">
         <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl font-bold mb-3">
@@ -228,7 +230,7 @@ export default function MasterUsersPage() {
         </div>
         <h2 className="text-base font-bold text-gray-900">Akses Terbatas</h2>
         <p className="text-xs text-gray-500 mt-1 max-w-sm">
-          Menu Pengguna & Hak Akses hanya dapat dikelola oleh akun Kepala Sekolah (Administrator).
+          Menu Pengguna & Kepegawaian hanya dapat dikelola oleh Kepala Sekolah dan Kepala Tata Usaha.
         </p>
         <Link
           href="/"
@@ -390,12 +392,31 @@ export default function MasterUsersPage() {
                       {user.email}
                     </span>
                   </div>
+
+                  {user.tahun_masuk && (
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                      <span className="text-gray-400 text-[10.5px]">Masuk Yayasan:</span>
+                      <span className="text-emerald-800 font-bold text-[10.5px]">
+                        Tahun {user.tahun_masuk}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Action Buttons Directly on Card Outside (Edit, Hapus, Switch) */}
-              <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between gap-1.5">
-                <div className="flex items-center gap-1.5">
+              {/* Action Buttons Directly on Card Outside (Edit, Hapus, Jenjang Karier, Switch) */}
+              <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* JENJANG KARIER BUTTON */}
+                  <Link
+                    href={`/biodata?userId=${user.id}`}
+                    className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1"
+                    title="Kelola Riwayat & Jenjang Karier Pegawai"
+                  >
+                    <Briefcase className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Karier ({(user.jenjang_karier || []).length})</span>
+                  </Link>
+
                   {/* EDIT BUTTON OUTSIDE */}
                   <button
                     type="button"

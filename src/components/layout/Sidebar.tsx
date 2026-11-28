@@ -23,6 +23,7 @@ import {
   ClipboardList,
   Award,
   Camera,
+  GraduationCap,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -189,6 +190,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                       ? "Dashboard Struktural"
                       : "Dashboard Guru"}
                   </span>
+                </div>
+              </Link>
+
+              {/* Biodata & Jenjang Karier Pegawai */}
+              <Link
+                href="/biodata"
+                prefetch={false}
+                onClick={(e) => handleNav(e, "/biodata")}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none ${
+                  isActive("/biodata")
+                    ? "bg-emerald-700/80 text-white font-semibold shadow-inner border-l-4 border-gold-400"
+                    : "text-emerald-100 hover:bg-emerald-800/60 hover:text-white"
+                }`}
+              >
+                <div className="flex items-center gap-3 pointer-events-none">
+                  <GraduationCap className="w-4 h-4 text-emerald-300" />
+                  <span>Biodata & Jenjang Karier</span>
                 </div>
               </Link>
             </nav>
@@ -421,8 +439,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             </nav>
           </div>
 
-          {/* Master Data (Khusus Kepala Sekolah / Admin) */}
-          {isKepsek && (
+          {/* Master Data (Kepala Sekolah & Kepala TU) */}
+          {(isKepsek || isTU) && (
             <div>
               <p className="px-3 text-[10px] font-bold text-emerald-300 uppercase tracking-widest mb-2">
                 Master Data

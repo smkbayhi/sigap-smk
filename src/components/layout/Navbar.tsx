@@ -24,6 +24,8 @@ import {
   User as UserIcon,
   KeyRound,
   ShieldCheck,
+  GraduationCap,
+  Briefcase,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -322,13 +324,34 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                         </div>
 
                         {currentUser.bidang && (
-                          <div className="flex items-center justify-between py-1">
+                          <div className="flex items-center justify-between py-1 border-b border-gray-100">
                             <span className="text-gray-500">Bidang Struktural:</span>
                             <span className="font-semibold text-emerald-800">
                               {getBidangLabel(currentUser.bidang)}
                             </span>
                           </div>
                         )}
+
+                        {currentUser.tahun_masuk && (
+                          <div className="flex items-center justify-between py-1">
+                            <span className="text-gray-500">Pengabdian Yayasan:</span>
+                            <span className="font-bold text-emerald-800">
+                              Sejak {currentUser.tahun_masuk} (± {Math.max(0, new Date().getFullYear() - (parseInt(currentUser.tahun_masuk, 10) || new Date().getFullYear()))} th)
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Link to Biodata & Karier */}
+                      <div className="px-4 py-2 bg-emerald-50/80 border-t border-emerald-100">
+                        <Link
+                          href="/biodata"
+                          onClick={() => setShowProfileModal(false)}
+                          className="w-full py-2 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+                        >
+                          <GraduationCap className="w-4 h-4 text-emerald-200" />
+                          <span>Biodata & Jenjang Karier</span>
+                        </Link>
                       </div>
 
                       {/* Actions: Edit Profil & Keluar */}

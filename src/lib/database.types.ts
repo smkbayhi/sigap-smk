@@ -2,6 +2,28 @@ export type UserRole = 'kepala_sekolah' | 'tata_usaha' | 'kasubag' | 'guru';
 
 export type BidangStruktural = 'wakasek' | 'kurikulum' | 'kesiswaan' | 'sarpras' | 'humas_bkk' | 'wakil_kepala_sekolah';
 
+export type KategoriJenjangKarier =
+  | 'struktural'
+  | 'fungsional_guru'
+  | 'wali_kelas'
+  | 'tenaga_kependidikan'
+  | 'pengabdian'
+  | 'tugas_tambahan'
+  | 'lainnya';
+
+export interface JenjangKarierItem {
+  id: string;
+  tahun_mulai: string; // e.g. "2018"
+  tahun_selesai?: string; // e.g. "2021" atau "Sekarang" / "Saat Ini"
+  posisi_jabatan: string; // e.g. "Guru Produktif DKV", "Wali Kelas X DKV", "Kepala Lab Komputer"
+  unit_kerja?: string; // e.g. "Yayasan PP Bayt Al-Hikmah", "SMK Bayt Al-Hikmah"
+  kategori?: KategoriJenjangKarier;
+  nomor_sk?: string; // e.g. "SK/012/YPP-BAYHI/VII/2019"
+  keterangan?: string; // Catatan amanah, tanggung jawab, atau prestasi
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface User {
   id: string;
   niy: string;
@@ -16,6 +38,15 @@ export interface User {
   avatar: string;
   ttd_url?: string;
   stempel_url?: string;
+  is_active?: boolean;
+
+  // Biodata & Jenjang Karier Kepegawaian (Dikelola oleh Kepala TU)
+  tahun_masuk?: string; // Tahun pertama masuk / mengabdi di Yayasan Bayt Al-Hikmah (e.g. "2016")
+  pendidikan_terakhir?: string; // e.g. "S1 Pendidikan Komputer & Informatika"
+  status_kepegawaian?: string; // e.g. "Guru Tetap Yayasan (GTY)", "Guru Tidak Tetap (GTT)", "Tenaga Kependidikan"
+  tempat_tanggal_lahir?: string; // e.g. "Pasuruan, 12 Agustus 1988"
+  alamat?: string;
+  jenjang_karier?: JenjangKarierItem[];
 }
 
 export interface SchoolSettings {
