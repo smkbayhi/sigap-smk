@@ -52,7 +52,7 @@ interface TeacherRowData {
 
 export default function KombelSebatikAdminPage() {
   const { users, currentUser, isKepsek } = useAuth();
-  const { schoolSettings } = useAppData();
+  const { schoolSettings, addToast } = useAppData();
 
   // PIN Protection State
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
@@ -141,8 +141,18 @@ export default function KombelSebatikAdminPage() {
     try {
       const data = await getEvaluasiSebatikList();
       setList(data);
+      if (!showMainSpinner && addToast) {
+        addToast(
+          "success",
+          "Sinkronisasi Sukses",
+          `Berhasil memuat ${data.length} respon evaluasi dewan guru dari database server cloud.`
+        );
+      }
     } catch (e) {
       console.error("Gagal memuat respon SEBATIK:", e);
+      if (addToast) {
+        addToast("error", "Gagal Memuat Data", "Terjadi kendala jaringan saat memuat respon dari cloud.");
+      }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

@@ -84,7 +84,8 @@ export default function KombelSebatikFormPage() {
         
         let found: EvaluasiSebatik | undefined = undefined;
 
-        if (currentUser) {
+        // 1. Jika guru sedang login dengan akun SIGAP-SMK, cocokkan secara ketat dengan akun/nama guru tersebut
+        if (currentUser && currentUser.name) {
           found = list.find((item) => {
             if (item.user_id && item.user_id === currentUser.id) return true;
             const cleanItemName = (item.nama_guru || "").toLowerCase().replace(/[^a-z]/g, "");
@@ -97,18 +98,18 @@ export default function KombelSebatikFormPage() {
           });
         }
 
-        // Jika guru membuka dari browser HP tanpa login akun SIGAP-SMK, cek apakah ada respon tersimpan di HP ini
+        // 2. Jika tidak login, HANYA periksa respon yang secara spesifik pernah disubmit oleh HP ini sendiri (jangan pernah ambil punya guru lain!)
         if (!found && typeof window !== "undefined") {
-          const raw = localStorage.getItem("sigap_evaluasi_sebatik_list");
-          if (raw) {
-            try {
-              const parsed: EvaluasiSebatik[] = JSON.parse(raw);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                found = parsed[0];
-              }
-            } catch {
-              // ignore
-            }
+          const myOwnId = localStorage.getItem("sigap_my_own_sebatik_submission_id");
+          const myOwnNama = localStorage.getItem("sigap_my_own_sebatik_nama");
+          if (myOwnId) {
+            found = list.find((item) => item.id === myOwnId);
+          } else if (myOwnNama) {
+            const cleanSavedNama = myOwnNama.toLowerCase().replace(/[^a-z]/g, "");
+            found = list.find((item) => {
+              const cleanItemName = (item.nama_guru || "").toLowerCase().replace(/[^a-z]/g, "");
+              return cleanItemName.length > 3 && cleanSavedNama.length > 3 && cleanItemName === cleanSavedNama;
+            });
           }
         }
 
@@ -137,6 +138,40 @@ export default function KombelSebatikFormPage() {
 
     checkExistingSubmission();
   }, [currentUser]);
+
+  // Tombol reset bagi guru yang ingin mengisi formulir baru atau jika sebelumnya sempat terdeteksi akun lain
+  const handleResetForm = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("sigap_my_own_sebatik_submission_id");
+      localStorage.removeItem("sigap_my_own_sebatik_nama");
+    }
+    setSubmittedData(null);
+    if (currentUser && currentUser.name) {
+      setNamaGuru(currentUser.name);
+      if (currentUser.jabatan && !currentUser.jabatan.toLowerCase().includes("kepala")) {
+        setMataPelajaran(currentUser.jabatan);
+      } else {
+        setMataPelajaran("");
+      }
+    } else {
+      setNamaGuru("");
+      setMataPelajaran("");
+    }
+    setSesiDiikuti([SEBATIK_SESI_OPTIONS[0]]);
+    setJawabanSoal1("");
+    setJawabanSoal2("");
+    setJawabanSoal3("");
+    setJawabanSoal4("");
+    setJawabanSoal5("");
+    setJawabanSoal6("");
+    setJawabanSoal7("");
+    setJawabanSoal8("");
+    setJawabanSoal9([]);
+    setJawabanSoal10("");
+    setJawabanSoal11("");
+    setCurrentStep(1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // Toggle Checkbox Helpers
   const toggleSesi = (sesi: string) => {
@@ -246,6 +281,10 @@ export default function KombelSebatikFormPage() {
       };
 
       await saveEvaluasiSebatik(payload);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("sigap_my_own_sebatik_submission_id", payload.id);
+        localStorage.setItem("sigap_my_own_sebatik_nama", payload.nama_guru);
+      }
       setSubmittedData(payload);
       setCurrentStep(4);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -961,15 +1000,26 @@ export default function KombelSebatikFormPage() {
                 <span>Selesai & Kembali ke Dasbor Utama</span>
               </Link>
 
-              {isKepsek && (
-                <Link
-                  href="/kombel-sebatik/admin"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition-all"
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={handleResetForm}
+                  className="text-xs font-semibold text-slate-500 hover:text-emerald-800 underline underline-offset-4 cursor-pointer"
+                  title="Jika nama di atas bukan nama Anda atau ingin menginput formulir baru"
                 >
-                  <LayoutDashboard className="w-3.5 h-3.5" />
-                  <span>Dasbor Rekap VBPG (Admin)</span>
-                </Link>
-              )}
+                  Bukan nama Anda? / Isi Formulir Baru
+                </button>
+
+                {isKepsek && (
+                  <Link
+                    href="/kombel-sebatik/admin"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition-all"
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    <span>Dasbor Rekap VBPG (Admin)</span>
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
         )}
