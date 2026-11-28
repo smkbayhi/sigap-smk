@@ -7,6 +7,7 @@ import { useAppData } from "@/context/AppDataContext";
 import { EvaluasiSebatik } from "@/lib/database.types";
 import {
   getEvaluasiSebatikList,
+  saveEvaluasiSebatik,
   calculateSebatikMetrics,
   exportSebatikToCsv,
 } from "@/lib/sebatikService";
@@ -65,12 +66,70 @@ export default function KombelSebatikAdminPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<EvaluasiSebatik | null>(null);
 
+  // Manual Verification by Kepala Sekolah State
+  const [verifyingTeacher, setVerifyingTeacher] = useState<TeacherRowData | null>(null);
+  const [verifySkor, setVerifySkor] = useState<number>(100);
+  const [verifyTuntasWaktu, setVerifyTuntasWaktu] = useState<boolean>(true);
+  const [verifyCatatan, setVerifyCatatan] = useState<string>("");
+  const [isSavingVerification, setIsSavingVerification] = useState<boolean>(false);
+
   // Automatically unlock if user is logged in as Kepala Sekolah
   useEffect(() => {
     if (isKepsek) {
       setIsUnlocked(true);
     }
   }, [isKepsek]);
+
+  const handleOpenVerifyModal = (row: TeacherRowData) => {
+    setVerifyingTeacher(row);
+    setVerifySkor(100);
+    setVerifyTuntasWaktu(true);
+    setVerifyCatatan(`Telah mengonfirmasi pemahaman konsep kunci dan aktif menerapkan manajemen waktu KBM pada mata pelajaran ${row.mapel}.`);
+  };
+
+  const handleSaveVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verifyingTeacher) return;
+    setIsSavingVerification(true);
+    try {
+      const payload: EvaluasiSebatik = {
+        id: "eval-kepsek-" + Date.now(),
+        user_id: verifyingTeacher.id,
+        nama_guru: verifyingTeacher.nama,
+        mata_pelajaran: verifyingTeacher.mapel,
+        sesi_diikuti: [
+          "Sesi 1: Strategi MELODY – Dari RPP ke Bukti Belajar (Ustadzah Luluk Mamluatus S., S.S)",
+          "Sesi 2: Penguatan LKPD Kontekstual & Rubrik Terukur (Ustadz Akhmad Khoiron, Lc.)",
+          "Sesi 3: Media Kreatif & Public Speaking dalam KBM (Ustadz M. Fajarul Afthon, S.Pd.)",
+        ],
+        jawaban_soal_1: "A",
+        jawaban_soal_2: "A",
+        jawaban_soal_3: "A",
+        jawaban_soal_4: "A",
+        jawaban_soal_5: `Pertanyaan Pemantik: Memantik pemahaman konsep inti KBM sesuai kompetensi keahlian ${verifyingTeacher.mapel}.`,
+        jawaban_soal_6: "Exit Ticket 5–7 menit berbasis rubrik ringkas / checklist cepat di akhir KBM.",
+        skor_bagian_a: verifySkor,
+        jawaban_soal_7: verifyTuntasWaktu ? "A" : "B",
+        is_waktu_tuntas: verifyTuntasWaktu,
+        jawaban_soal_8: verifyTuntasWaktu ? "E" : "B",
+        jawaban_soal_9: [
+          "Mencantumkan rincian pembagian menit secara eksplisit di Modul Ajar/RPP.",
+          "Memasang timer visual di depan kelas / layar monitor.",
+        ],
+        jawaban_soal_10: verifyCatatan,
+        jawaban_soal_11: "Komitmen konsisten mengawal kualitas pembelajaran dan ketuntasan waktu KBM 2×30 menit santri SMK.",
+        created_at: new Date().toISOString(),
+      };
+
+      await saveEvaluasiSebatik(payload);
+      await loadData(false);
+      setVerifyingTeacher(null);
+    } catch (e) {
+      console.error("Gagal simpan verifikasi mandiri:", e);
+    } finally {
+      setIsSavingVerification(false);
+    }
+  };
 
   // Load responses from Cloud & Local
   const loadData = async (showMainSpinner = true) => {
@@ -804,12 +863,17 @@ export default function KombelSebatikAdminPage() {
                           <span>Lihat Detail Esai</span>
                         </button>
                       ) : (
-                        <span
-                          className="text-[11px] text-slate-400 italic px-2 py-1 rounded bg-slate-50 cursor-default"
-                          title="Guru belum mengirim respon evaluasi"
-                        >
-                          Menunggu Pengisian
-                        </span>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenVerifyModal(row)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-[11px] transition-colors cursor-pointer border border-emerald-200/80 shadow-2xs"
+                            title="Pengesahan / Verifikasi pengisian guru oleh Kepala Sekolah"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>+ Verifikasi Mandiri</span>
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -901,8 +965,133 @@ export default function KombelSebatikAdminPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* 3. DOKUMEN CETAK RESMI PDF (VBPG FORMAT) - VISIBLE ONLY WHEN PRINTING */}
+      {/* 2b. MODAL VERIFIKASI / PENGESAHAN MANDIRI OLEH KEPALA SEKOLAH */}
       {/* ========================================================================= */}
+      {verifyingTeacher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs print:hidden animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 border border-slate-200 animate-scale-up">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Pengesahan Evaluasi Guru (VBPG)
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Verifikasi partisipasi & ketuntasan KBM langsung oleh Kepala Sekolah
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVerifyingTeacher(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveVerification} className="space-y-4 text-xs">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                <div className="font-bold text-slate-900 text-sm">
+                  {verifyingTeacher.nama}
+                </div>
+                <div className="text-slate-600">
+                  {verifyingTeacher.mapel} {verifyingTeacher.niy ? `• NIY: ${verifyingTeacher.niy}` : ""}
+                </div>
+              </div>
+
+              {/* Skor Uji Pemahaman */}
+              <div className="space-y-1.5">
+                <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+                  Skor Pemahaman Konsep (Bagian A)
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[100, 75, 50].map((skor) => (
+                    <button
+                      key={skor}
+                      type="button"
+                      onClick={() => setVerifySkor(skor)}
+                      className={`py-2 px-3 rounded-xl border text-center font-bold text-xs transition-all ${
+                        verifySkor === skor
+                          ? "bg-emerald-800 text-white border-emerald-800 shadow-xs"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      {skor} Poin
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ketuntasan Waktu */}
+              <div className="space-y-1.5">
+                <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+                  Keterlaksanaan Waktu KBM (2×30 Menit)
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setVerifyTuntasWaktu(true)}
+                    className={`py-2 px-3 rounded-xl border text-center font-bold text-xs transition-all ${
+                      verifyTuntasWaktu
+                        ? "bg-emerald-800 text-white border-emerald-800 shadow-xs"
+                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    ✓ Tuntas Tepat Waktu
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVerifyTuntasWaktu(false)}
+                    className={`py-2 px-3 rounded-xl border text-center font-bold text-xs transition-all ${
+                      !verifyTuntasWaktu
+                        ? "bg-rose-700 text-white border-rose-700 shadow-xs"
+                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    ⚠ Kadang Molor
+                  </button>
+                </div>
+              </div>
+
+              {/* Catatan / Trik Efektif */}
+              <div className="space-y-1.5">
+                <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+                  Catatan Supervisi / Trik KBM Guru
+                </label>
+                <textarea
+                  rows={2}
+                  value={verifyCatatan}
+                  onChange={(e) => setVerifyCatatan(e.target.value)}
+                  placeholder="Catatan penerapan manajemen waktu atau komitmen KBM guru..."
+                  className="w-full text-xs font-medium p-3 border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-600 bg-white"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setVerifyingTeacher(null)}
+                  className="py-2 px-4 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 font-bold"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingVerification}
+                  className="py-2 px-5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold shadow-md cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isSavingVerification ? "Menyimpan..." : "Simpan & Sahkan Status"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       <div className="hidden print:block text-black bg-white p-2 sm:p-4 max-w-4xl mx-auto font-serif text-[10pt] leading-normal print-container">
         {/* Official Kop Surat Resmi Sekolah */}
         <OfficialKopSurat className="mb-2" />
