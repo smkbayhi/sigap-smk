@@ -168,19 +168,27 @@ export function generateJadwalPelaksanaanHtml(data: {
 
       let inner = "";
       if (isNumbered) {
-        inner = `<ol style="margin: 0; padding-left: 18px; line-height: 1.5;">\n`;
-        lines.forEach((l) => {
-          const clean = l.replace(/^\d+[\.\)]\s*/, "");
-          inner += `      <li>${clean}</li>\n`;
+        inner = `<div style="line-height: 1.5;">\n`;
+        lines.forEach((l, idx) => {
+          const matchNum = l.match(/^(\d+)[\.\)]\s+(.+)$/);
+          const num = matchNum ? `${matchNum[1]}.` : `${idx + 1}.`;
+          const text = matchNum ? matchNum[2] : l;
+          inner += `        <div style="display: flex; align-items: flex-start; margin-bottom: 2px;">\n`;
+          inner += `          <span style="width: 20px; flex-shrink: 0; font-weight: inherit;">${num}</span>\n`;
+          inner += `          <span style="flex: 1;">${text}</span>\n`;
+          inner += `        </div>\n`;
         });
-        inner += `    </ol>`;
+        inner += `      </div>`;
       } else if (isBullet) {
-        inner = `<ul style="margin: 0; padding-left: 18px; line-height: 1.5;">\n`;
+        inner = `<div style="line-height: 1.5;">\n`;
         lines.forEach((l) => {
           const clean = l.replace(/^[-•*]\s*/, "");
-          inner += `      <li>${clean}</li>\n`;
+          inner += `        <div style="display: flex; align-items: flex-start; margin-bottom: 2px;">\n`;
+          inner += `          <span style="width: 14px; flex-shrink: 0; font-weight: inherit;">•</span>\n`;
+          inner += `          <span style="flex: 1;">${clean}</span>\n`;
+          inner += `        </div>\n`;
         });
-        inner += `    </ul>`;
+        inner += `      </div>`;
       } else {
         inner = `<div style="line-height: 1.5;">${lines.join("<br/>")}</div>`;
       }
@@ -188,7 +196,7 @@ export function generateJadwalPelaksanaanHtml(data: {
       html += `  <tr>
     <td style="padding: 3px 0; vertical-align: top;">Agenda / Acara</td>
     <td style="padding: 3px 0; vertical-align: top;">
-      <div style="display: flex; gap: 4px; align-items: flex-start;">
+      <div style="display: flex; gap: 6px; align-items: flex-start;">
         <span style="font-weight: inherit;">:</span>
         <div style="flex: 1;">
           ${inner}

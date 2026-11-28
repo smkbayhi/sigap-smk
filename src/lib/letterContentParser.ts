@@ -87,7 +87,32 @@ export function parseLetterContent(rawHtml: string): ParsedLetterContent {
         if (!m) return "";
         const cellHtml = m[1];
 
-        // 1. If it has <li>, extract each item
+        // 1. If it has item rows with width: 20px (our explicit numbered flex divs)
+        const numRowRegex = /<span[^>]*width:\s*20px[^>]*>([^<]*)<\/span>\s*<span[^>]*flex:\s*1[^>]*>([\s\S]*?)<\/span>/gi;
+        const numRows: string[] = [];
+        let matchNum: RegExpExecArray | null;
+        while ((matchNum = numRowRegex.exec(cellHtml)) !== null) {
+          const num = cleanHtmlText(matchNum[1]);
+          const text = cleanHtmlText(matchNum[2]);
+          numRows.push(`${num} ${text}`);
+        }
+        if (numRows.length > 0) {
+          return numRows.join("\n");
+        }
+
+        // 2. If it has bullet rows with width: 14px
+        const bulletRowRegex = /<span[^>]*width:\s*14px[^>]*>[^<]*<\/span>\s*<span[^>]*flex:\s*1[^>]*>([\s\S]*?)<\/span>/gi;
+        const bulletRows: string[] = [];
+        let matchBullet: RegExpExecArray | null;
+        while ((matchBullet = bulletRowRegex.exec(cellHtml)) !== null) {
+          const text = cleanHtmlText(matchBullet[1]);
+          bulletRows.push(`- ${text}`);
+        }
+        if (bulletRows.length > 0) {
+          return bulletRows.join("\n");
+        }
+
+        // 3. Fallback: If it has <li>, extract each item
         if (cellHtml.includes("<li")) {
           const liMatches = cellHtml.match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
           if (liMatches && liMatches.length > 0) {
@@ -100,7 +125,7 @@ export function parseLetterContent(rawHtml: string): ParsedLetterContent {
           }
         }
 
-        // 2. If it has <br>, convert to newline
+        // 4. Fallback: Convert <br> or clean text
         let clean = cellHtml.replace(/<br\s*\/?>/gi, "\n");
         clean = clean.replace(/<[^>]+>/g, " ");
         clean = clean.replace(/^\s*:\s*/, "");
