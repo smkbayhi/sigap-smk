@@ -74,10 +74,14 @@ export default function NotulenDetailPage() {
     (u) =>
       (notulen.notulis_id && u.id === notulen.notulis_id) ||
       (notulen.notulis_nip && (u.niy === notulen.notulis_nip || u.nip === notulen.notulis_nip)) ||
-      u.name.toLowerCase().includes(notulen.notulis.toLowerCase()) ||
-      notulen.notulis.toLowerCase().includes(u.name.toLowerCase())
+      (notulen.notulis && u.name && (u.name.toLowerCase().includes(notulen.notulis.toLowerCase()) || notulen.notulis.toLowerCase().includes(u.name.toLowerCase())))
   );
-  const ttdNotulis = notulisUser?.ttd_url || TTD_NOTULIS_DATA_URL;
+  const isAiniyatul =
+    notulen.notulis?.toLowerCase().includes("ainiyatul") ||
+    notulen.notulis?.toLowerCase().includes("aniyatul") ||
+    notulen.notulis_nip === "11861027";
+
+  const ttdNotulis = notulisUser?.ttd_url || (isAiniyatul ? TTD_NOTULIS_DATA_URL : undefined);
 
   let formattedTanggal = notulen.hari_tanggal;
   if (notulen.tanggal) {
