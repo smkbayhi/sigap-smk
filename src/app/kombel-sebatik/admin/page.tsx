@@ -33,6 +33,7 @@ import {
   Info,
   Calendar,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
 
 interface TeacherRowData {
@@ -60,6 +61,7 @@ export default function KombelSebatikAdminPage() {
   // Data State
   const [list, setList] = useState<EvaluasiSebatik[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<EvaluasiSebatik | null>(null);
 
@@ -70,21 +72,42 @@ export default function KombelSebatikAdminPage() {
     }
   }, [isKepsek]);
 
-  // Load responses
-  const loadData = async () => {
-    setIsLoading(true);
+  // Load responses from Cloud & Local
+  const loadData = async (showMainSpinner = true) => {
+    if (showMainSpinner) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     try {
       const data = await getEvaluasiSebatikList();
       setList(data);
     } catch (e) {
-      console.error(e);
+      console.error("Gagal memuat respon SEBATIK:", e);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
+
+    // Auto-refresh data saat window focus (misal Kepala Sekolah kembali ke tab ini)
+    const handleFocus = () => {
+      loadData(false);
+    };
+    window.addEventListener("focus", handleFocus);
+
+    // Auto-polling ringan setiap 20 detik untuk memantau guru yang baru submit
+    const interval = setInterval(() => {
+      loadData(false);
+    }, 20000);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      clearInterval(interval);
+    };
   }, []);
 
   // Handle PIN unlock
@@ -314,6 +337,17 @@ export default function KombelSebatikAdminPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => loadData(false)}
+              disabled={isRefreshing || isLoading}
+              className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl font-bold text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 shadow-2xs transition-all cursor-pointer disabled:opacity-60"
+              title="Sinkronkan data respon terbaru dari cloud"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-700 ${isRefreshing ? "animate-spin" : ""}`} />
+              <span>{isRefreshing ? "Menyinkronkan..." : "Sinkron / Refresh"}</span>
+            </button>
+
             <button
               type="button"
               onClick={() => exportSebatikToCsv(list)}
@@ -695,12 +729,24 @@ export default function KombelSebatikAdminPage() {
                     </td>
                     <td className="py-3 px-3 text-center">
                       {row.isSubmitted ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Sudah Mengisi</span>
-                        </span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Sudah Mengisi</span>
+                          </span>
+                          {row.submittedAt && (
+                            <span className="text-[10px] text-slate-400 font-mono" title={new Date(row.submittedAt).toLocaleString("id-ID")}>
+                              {new Date(row.submittedAt).toLocaleDateString("id-ID", {
+                                day: "numeric",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          )}
+                        </div>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold text-[10px] bg-slate-100 text-slate-600 border border-slate-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold text-[10px] bg-slate-100 text-slate-500 border border-slate-200">
                           <span>Belum Mengisi</span>
                         </span>
                       )}

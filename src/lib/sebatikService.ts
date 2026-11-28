@@ -2,6 +2,9 @@ import { EvaluasiSebatik } from "./database.types";
 import { SEED_EVALUASI_SEBATIK } from "./sebatikConstants";
 import { supabase, isSupabaseConfigured } from "./supabaseClient";
 
+export const SEBATIK_CLOUD_ROW_ID = "sebatik-evaluasi-cloud-data";
+export const SEBATIK_CLOUD_KODE = "SEBATIK_SYNC";
+
 const LOCAL_STORAGE_KEY = "sigap_evaluasi_sebatik_list";
 
 // Daftar ID data demo/uji coba bawaan yang harus diabaikan/dibersihkan
@@ -19,8 +22,8 @@ const DUMMY_SEED_IDS = new Set([
 
 /**
  * Mendapatkan semua data respon evaluasi Kombel SEBATIK.
- * Mengambil respon riil dari guru. Jika belum ada pengisian, mengembalikan array kosong [].
- * Otomatis membersihkan data demo/dummy lawas.
+ * Mengambil respon riil dari guru yang tersinkronisasi lintas perangkat melalui Supabase Cloud
+ * dan tersimpan di cache lokal peramban (localStorage).
  */
 export async function getEvaluasiSebatikList(): Promise<EvaluasiSebatik[]> {
   let localData: EvaluasiSebatik[] = [];
@@ -30,12 +33,7 @@ export async function getEvaluasiSebatikList(): Promise<EvaluasiSebatik[]> {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (stored) {
         const parsed: EvaluasiSebatik[] = JSON.parse(stored);
-        // Saring data demo bawaan, hanya simpan respon riil
         localData = parsed.filter((item) => !DUMMY_SEED_IDS.has(item.id));
-        // Jika ada perubahan setelah penyaringan demo, simpan kembali
-        if (localData.length !== parsed.length) {
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(localData));
-        }
       }
     } catch (e) {
       console.warn("Failed to read SEBATIK from localStorage:", e);
@@ -43,16 +41,66 @@ export async function getEvaluasiSebatikList(): Promise<EvaluasiSebatik[]> {
     }
   }
 
-  // Coba ambil dari Supabase jika terkonfigurasi
+  // 1. Ambil data dari Supabase Cloud (master_perspektif channel yang handal dan stabil)
   if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: cloudRow, error: cloudErr } = await supabase
+        .from("master_perspektif")
+        .select("deskripsi")
+        .eq("id", SEBATIK_CLOUD_ROW_ID)
+        .maybeSingle();
+
+      if (!cloudErr && cloudRow?.deskripsi) {
+        try {
+          const parsedCloud = JSON.parse(cloudRow.deskripsi);
+          const cloudList: EvaluasiSebatik[] = Array.isArray(parsedCloud?.list)
+            ? parsedCloud.list.filter((item: EvaluasiSebatik) => !DUMMY_SEED_IDS.has(item.id))
+            : [];
+
+          if (cloudList.length > 0 || localData.length > 0) {
+            // Gabungkan respon Cloud & Lokal berdasarkan kemiripan nama / user_id
+            const mergedMap = new Map<string, EvaluasiSebatik>();
+
+            // Masukkan data cloud terlebih dahulu
+            cloudList.forEach((c) => {
+              const key = c.user_id || (c.nama_guru || "").toLowerCase().trim();
+              if (key) mergedMap.set(key, c);
+            });
+
+            // Masukkan data lokal jika ada yang belum terunggah ke cloud
+            localData.forEach((l) => {
+              const key = l.user_id || (l.nama_guru || "").toLowerCase().trim();
+              if (key && !mergedMap.has(key)) {
+                mergedMap.set(key, l);
+              }
+            });
+
+            const mergedList = Array.from(mergedMap.values()).sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+
+            if (typeof window !== "undefined") {
+              localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mergedList));
+            }
+
+            return mergedList;
+          }
+        } catch (parseErr) {
+          console.warn("Failed parsing SEBATIK cloud JSON:", parseErr);
+        }
+      }
+    } catch (err) {
+      console.warn("Supabase master_perspektif SEBATIK fetch failed, using local:", err);
+    }
+
+    // 2. Fallback tabel mandiri jika ada
     try {
       const { data, error } = await supabase
         .from("evaluasi_sebatik_guru")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!error && data) {
-        // Map Supabase rows to EvaluasiSebatik dan saring data demo
+      if (!error && data && data.length > 0) {
         const mappedFromDb: EvaluasiSebatik[] = data
           .filter((row: any) => !DUMMY_SEED_IDS.has(row.id))
           .map((row: any) => ({
@@ -84,8 +132,8 @@ export async function getEvaluasiSebatikList(): Promise<EvaluasiSebatik[]> {
           return mappedFromDb;
         }
       }
-    } catch (err) {
-      console.warn("Supabase fetch evaluasi_sebatik_guru failed, using local:", err);
+    } catch {
+      // ignore
     }
   }
 
@@ -101,15 +149,22 @@ export async function resetEvaluasiSebatik(): Promise<void> {
   }
   if (isSupabaseConfigured && supabase) {
     try {
+      await supabase.from("master_perspektif").upsert({
+        id: SEBATIK_CLOUD_ROW_ID,
+        kode: SEBATIK_CLOUD_KODE,
+        nama: "Cloud Sync Evaluasi Kombel SEBATIK Guru",
+        deskripsi: JSON.stringify({ list: [], updated_at: new Date().toISOString() }),
+        is_active: false,
+      });
       await supabase.from("evaluasi_sebatik_guru").delete().neq("id", "none");
     } catch (err) {
-      console.warn("Failed to clear Supabase evaluasi_sebatik_guru:", err);
+      console.warn("Failed to reset SEBATIK cloud data:", err);
     }
   }
 }
 
 /**
- * Menyimpan respon baru dari guru ke localStorage dan Supabase (bila aktif).
+ * Menyimpan respon baru dari guru ke localStorage dan menyinkronkan langsung ke Supabase Cloud.
  */
 export async function saveEvaluasiSebatik(evaluasi: EvaluasiSebatik): Promise<EvaluasiSebatik> {
   let existingList: EvaluasiSebatik[] = [];
@@ -117,15 +172,16 @@ export async function saveEvaluasiSebatik(evaluasi: EvaluasiSebatik): Promise<Ev
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
       existingList = stored ? JSON.parse(stored) : [];
-      // Saring demo data
       existingList = existingList.filter((item) => !DUMMY_SEED_IDS.has(item.id));
-    } catch (e) {
+    } catch {
       existingList = [];
     }
 
     // Jika guru yang sama sudah pernah mengisi, perbarui data sebelumnya
     const index = existingList.findIndex(
-      (e) => (e.user_id && e.user_id === evaluasi.user_id) || e.nama_guru.toLowerCase() === evaluasi.nama_guru.toLowerCase()
+      (e) =>
+        (e.user_id && evaluasi.user_id && e.user_id === evaluasi.user_id) ||
+        e.nama_guru.toLowerCase().trim() === evaluasi.nama_guru.toLowerCase().trim()
     );
 
     if (index >= 0) {
@@ -137,8 +193,53 @@ export async function saveEvaluasiSebatik(evaluasi: EvaluasiSebatik): Promise<Ev
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existingList));
   }
 
-  // Sinkronisasi ke Supabase di latar belakang
+  // Sinkronisasi ke Supabase Cloud (master_perspektif channel)
   if (isSupabaseConfigured && supabase) {
+    try {
+      // Ambil list cloud saat ini agar respon guru lain dari HP berbeda tidak tertimpa
+      let cloudList: EvaluasiSebatik[] = [];
+      const { data: cloudRow } = await supabase
+        .from("master_perspektif")
+        .select("deskripsi")
+        .eq("id", SEBATIK_CLOUD_ROW_ID)
+        .maybeSingle();
+
+      if (cloudRow?.deskripsi) {
+        try {
+          const parsed = JSON.parse(cloudRow.deskripsi);
+          if (Array.isArray(parsed?.list)) {
+            cloudList = parsed.list.filter((item: EvaluasiSebatik) => !DUMMY_SEED_IDS.has(item.id));
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Gabungkan data baru ke cloud list
+      const idx = cloudList.findIndex(
+        (c) =>
+          (c.user_id && evaluasi.user_id && c.user_id === evaluasi.user_id) ||
+          c.nama_guru.toLowerCase().trim() === evaluasi.nama_guru.toLowerCase().trim()
+      );
+
+      if (idx >= 0) {
+        cloudList[idx] = evaluasi;
+      } else {
+        cloudList.unshift(evaluasi);
+      }
+
+      await supabase.from("master_perspektif").upsert({
+        id: SEBATIK_CLOUD_ROW_ID,
+        kode: SEBATIK_CLOUD_KODE,
+        nama: "Cloud Sync Evaluasi Kombel SEBATIK Guru",
+        deskripsi: JSON.stringify({ list: cloudList, updated_at: new Date().toISOString() }),
+        is_active: false,
+      });
+    } catch (err) {
+      console.warn("Failed to sync SEBATIK evaluation to master_perspektif:", err);
+    }
+
+    // Coba juga upsert ke tabel evaluasi_sebatik_guru jika ada
     try {
       await supabase.from("evaluasi_sebatik_guru").upsert({
         id: evaluasi.id,
@@ -161,8 +262,8 @@ export async function saveEvaluasiSebatik(evaluasi: EvaluasiSebatik): Promise<Ev
         jawaban_soal_11: evaluasi.jawaban_soal_11,
         created_at: evaluasi.created_at,
       });
-    } catch (err) {
-      console.warn("Failed to sync new SEBATIK evaluation to Supabase:", err);
+    } catch {
+      // ignore
     }
   }
 

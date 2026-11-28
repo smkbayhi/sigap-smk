@@ -548,7 +548,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
             p.kode !== DOKUMENTASI_CLOUD_KODE &&
             p.id !== NOTULEN_CLOUD_ROW_ID &&
             p.kode !== NOTULEN_CLOUD_KODE &&
-            p.id !== "user-presence-tracker"
+            p.id !== "user-presence-tracker" &&
+            p.id !== "sebatik-evaluasi-cloud-data" &&
+            p.kode !== "SEBATIK_SYNC"
         );
         setPerspektif((prev) => {
           const cloudIds = new Set(activeCloudPers.map((p) => p.id));

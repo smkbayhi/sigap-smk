@@ -244,7 +244,9 @@ export const cloudSync = {
                 p.kode !== "DOKUMENTASI_SYNC" &&
                 p.id !== "notulen-cloud-data" &&
                 p.kode !== "NOTULEN_SYNC" &&
-                p.id !== "user-presence-tracker"
+                p.id !== "user-presence-tracker" &&
+                p.id !== "sebatik-evaluasi-cloud-data" &&
+                p.kode !== "SEBATIK_SYNC"
             )
           : null,
         rkt: rktRes.data ? rktRes.data.map(mapDbToRkt) : null,
