@@ -50,43 +50,64 @@ export async function getEvaluasiSebatikList(): Promise<EvaluasiSebatik[]> {
         .eq("id", SEBATIK_CLOUD_ROW_ID)
         .maybeSingle();
 
-      if (!cloudErr && cloudRow?.deskripsi) {
-        try {
-          const parsedCloud = JSON.parse(cloudRow.deskripsi);
-          const cloudList: EvaluasiSebatik[] = Array.isArray(parsedCloud?.list)
-            ? parsedCloud.list.filter((item: EvaluasiSebatik) => !DUMMY_SEED_IDS.has(item.id))
-            : [];
-
-          if (cloudList.length > 0 || localData.length > 0) {
-            // Gabungkan respon Cloud & Lokal berdasarkan kemiripan nama / user_id
-            const mergedMap = new Map<string, EvaluasiSebatik>();
-
-            // Masukkan data cloud terlebih dahulu
-            cloudList.forEach((c) => {
-              const key = c.user_id || (c.nama_guru || "").toLowerCase().trim();
-              if (key) mergedMap.set(key, c);
-            });
-
-            // Masukkan data lokal jika ada yang belum terunggah ke cloud
-            localData.forEach((l) => {
-              const key = l.user_id || (l.nama_guru || "").toLowerCase().trim();
-              if (key && !mergedMap.has(key)) {
-                mergedMap.set(key, l);
-              }
-            });
-
-            const mergedList = Array.from(mergedMap.values()).sort(
-              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            );
-
-            if (typeof window !== "undefined") {
-              localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mergedList));
+      if (!cloudErr) {
+        let cloudList: EvaluasiSebatik[] = [];
+        if (cloudRow?.deskripsi) {
+          try {
+            const parsedCloud = JSON.parse(cloudRow.deskripsi);
+            if (Array.isArray(parsedCloud?.list)) {
+              cloudList = parsedCloud.list.filter((item: EvaluasiSebatik) => !DUMMY_SEED_IDS.has(item.id));
             }
-
-            return mergedList;
+          } catch (parseErr) {
+            console.warn("Failed parsing SEBATIK cloud JSON:", parseErr);
           }
-        } catch (parseErr) {
-          console.warn("Failed parsing SEBATIK cloud JSON:", parseErr);
+        }
+
+        if (cloudList.length > 0 || localData.length > 0) {
+          // Gabungkan respon Cloud & Lokal berdasarkan kemiripan nama / user_id
+          const mergedMap = new Map<string, EvaluasiSebatik>();
+
+          // Masukkan data cloud terlebih dahulu
+          cloudList.forEach((c) => {
+            const key = c.user_id || (c.nama_guru || "").toLowerCase().trim();
+            if (key) mergedMap.set(key, c);
+          });
+
+          let hasNewLocalToUpload = false;
+
+          // Masukkan data lokal jika ada yang belum terunggah ke cloud (misal hasil submit sebelum sinkronisasi aktif)
+          localData.forEach((l) => {
+            const key = l.user_id || (l.nama_guru || "").toLowerCase().trim();
+            if (key && !mergedMap.has(key)) {
+              mergedMap.set(key, l);
+              hasNewLocalToUpload = true;
+            }
+          });
+
+          const mergedList = Array.from(mergedMap.values()).sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+
+          if (typeof window !== "undefined") {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mergedList));
+          }
+
+          // OTOMATIS UNGGAH KE CLOUD: Jika di HP guru tersimpan respon yang belum masuk ke database Supabase
+          if (hasNewLocalToUpload) {
+            try {
+              await supabase.from("master_perspektif").upsert({
+                id: SEBATIK_CLOUD_ROW_ID,
+                kode: SEBATIK_CLOUD_KODE,
+                nama: "Cloud Sync Evaluasi Kombel SEBATIK Guru",
+                deskripsi: JSON.stringify({ list: mergedList, updated_at: new Date().toISOString() }),
+                is_active: false,
+              });
+            } catch (upErr) {
+              console.warn("Auto-upload local SEBATIK submission to cloud failed:", upErr);
+            }
+          }
+
+          return mergedList;
         }
       }
     } catch (err) {

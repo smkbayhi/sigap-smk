@@ -78,19 +78,39 @@ export default function KombelSebatikFormPage() {
     }
 
     async function checkExistingSubmission() {
-      if (!currentUser) return;
       try {
+        // getEvaluasiSebatikList() akan otomatis memeriksa cloud dan mengunggah respon lokal HP jika belum tersinkron
         const list = await getEvaluasiSebatikList();
-        const found = list.find((item) => {
-          if (item.user_id && item.user_id === currentUser.id) return true;
-          const cleanItemName = (item.nama_guru || "").toLowerCase().replace(/[^a-z]/g, "");
-          const cleanUserName = (currentUser.name || "").toLowerCase().replace(/[^a-z]/g, "");
-          return (
-            cleanItemName.length > 3 &&
-            cleanUserName.length > 3 &&
-            (cleanItemName.includes(cleanUserName) || cleanUserName.includes(cleanItemName))
-          );
-        });
+        
+        let found: EvaluasiSebatik | undefined = undefined;
+
+        if (currentUser) {
+          found = list.find((item) => {
+            if (item.user_id && item.user_id === currentUser.id) return true;
+            const cleanItemName = (item.nama_guru || "").toLowerCase().replace(/[^a-z]/g, "");
+            const cleanUserName = (currentUser.name || "").toLowerCase().replace(/[^a-z]/g, "");
+            return (
+              cleanItemName.length > 3 &&
+              cleanUserName.length > 3 &&
+              (cleanItemName.includes(cleanUserName) || cleanUserName.includes(cleanItemName))
+            );
+          });
+        }
+
+        // Jika guru membuka dari browser HP tanpa login akun SIGAP-SMK, cek apakah ada respon tersimpan di HP ini
+        if (!found && typeof window !== "undefined") {
+          const raw = localStorage.getItem("sigap_evaluasi_sebatik_list");
+          if (raw) {
+            try {
+              const parsed: EvaluasiSebatik[] = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                found = parsed[0];
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
 
         if (found) {
           setSubmittedData(found);
