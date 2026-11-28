@@ -157,7 +157,48 @@ export function generateJadwalPelaksanaanHtml(data: {
     html += `  <tr><td style="padding: 3px 0; vertical-align: top;">Tempat</td><td style="padding: 3px 0; vertical-align: top;">: ${tempat.trim()}</td></tr>\n`;
   }
   if (agenda) {
-    html += `  <tr><td style="padding: 3px 0; vertical-align: top;">Agenda / Acara</td><td style="padding: 3px 0; vertical-align: top;">: ${agenda.trim()}</td></tr>\n`;
+    const rawAgenda = agenda.trim();
+    const lines = rawAgenda.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const hasMultipleLines = lines.length > 1;
+    const isFirstNumbered = lines.length >= 1 && /^(\d+[\.\)]|[-•*])\s+/.test(lines[0]);
+
+    if (hasMultipleLines || isFirstNumbered) {
+      const isNumbered = lines.some((l) => /^\d+[\.\)]\s+/.test(l));
+      const isBullet = lines.some((l) => /^[-•*]\s+/.test(l));
+
+      let inner = "";
+      if (isNumbered) {
+        inner = `<ol style="margin: 0; padding-left: 18px; line-height: 1.5;">\n`;
+        lines.forEach((l) => {
+          const clean = l.replace(/^\d+[\.\)]\s*/, "");
+          inner += `      <li>${clean}</li>\n`;
+        });
+        inner += `    </ol>`;
+      } else if (isBullet) {
+        inner = `<ul style="margin: 0; padding-left: 18px; line-height: 1.5;">\n`;
+        lines.forEach((l) => {
+          const clean = l.replace(/^[-•*]\s*/, "");
+          inner += `      <li>${clean}</li>\n`;
+        });
+        inner += `    </ul>`;
+      } else {
+        inner = `<div style="line-height: 1.5;">${lines.join("<br/>")}</div>`;
+      }
+
+      html += `  <tr>
+    <td style="padding: 3px 0; vertical-align: top;">Agenda / Acara</td>
+    <td style="padding: 3px 0; vertical-align: top;">
+      <div style="display: flex; gap: 4px; align-items: flex-start;">
+        <span style="font-weight: inherit;">:</span>
+        <div style="flex: 1;">
+          ${inner}
+        </div>
+      </div>
+    </td>
+  </tr>\n`;
+    } else {
+      html += `  <tr><td style="padding: 3px 0; vertical-align: top;">Agenda / Acara</td><td style="padding: 3px 0; vertical-align: top;">: ${rawAgenda}</td></tr>\n`;
+    }
   }
   html += `</table>\n`;
   return html;

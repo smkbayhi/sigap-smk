@@ -81,6 +81,36 @@ export function parseLetterContent(rawHtml: string): ParsedLetterContent {
         return m ? cleanHtmlText(m[1]) : "";
       };
 
+      const getAgendaVal = (): string => {
+        const re = new RegExp(`<td[^>]*>(?:Agenda\\s*\\/\\s*Acara|Agenda|Acara)[\\s\\S]*?<\\/td>\\s*<td[^>]*>([\\s\\S]*?)<\\/td>`, "i");
+        const m = tableHtml.match(re);
+        if (!m) return "";
+        const cellHtml = m[1];
+
+        // 1. If it has <li>, extract each item
+        if (cellHtml.includes("<li")) {
+          const liMatches = cellHtml.match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
+          if (liMatches && liMatches.length > 0) {
+            return liMatches
+              .map((li, idx) => {
+                const cleanTxt = cleanHtmlText(li.replace(/<[^>]+>/g, ""));
+                return `${idx + 1}. ${cleanTxt}`;
+              })
+              .join("\n");
+          }
+        }
+
+        // 2. If it has <br>, convert to newline
+        let clean = cellHtml.replace(/<br\s*\/?>/gi, "\n");
+        clean = clean.replace(/<[^>]+>/g, " ");
+        clean = clean.replace(/^\s*:\s*/, "");
+        return clean
+          .split("\n")
+          .map((l) => cleanHtmlText(l))
+          .filter(Boolean)
+          .join("\n");
+      };
+
       const hariTanggal = getRowVal("Hari\\s*\\/\\s*Tanggal");
       let hari = "";
       let tanggal = "";
@@ -98,7 +128,7 @@ export function parseLetterContent(rawHtml: string): ParsedLetterContent {
         tanggal: tanggal || "3 Januari 2026",
         waktu: getRowVal("Pukul\\s*\\/\\s*Waktu") || getRowVal("Waktu") || "09.00 WIB s.d selesai",
         tempat: getRowVal("Tempat") || "Ruang Rapat Pimpinan SMK",
-        agenda: getRowVal("Agenda\\s*\\/\\s*Acara") || getRowVal("Agenda") || getRowVal("Acara") || "",
+        agenda: getAgendaVal(),
       };
     }
   } else if (meta.tipeTabel === "daftar_siswa") {

@@ -1791,14 +1791,22 @@ export function SuratKeluarEditor({ mode = "create", initialSuratId }: SuratKelu
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block font-semibold text-gray-700 mb-1">Agenda / Acara:</label>
-                      <input
-                        type="text"
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block font-semibold text-gray-700">Agenda / Acara Kegiatan:</label>
+                        <span className="text-[10px] text-amber-800 font-medium bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                          Mendukung 1 acara atau daftar berurutan (1, 2, 3...)
+                        </span>
+                      </div>
+                      <textarea
+                        rows={4}
                         value={jadwalData.agenda}
                         onChange={(e) => setJadwalData({ ...jadwalData, agenda: e.target.value })}
-                        placeholder="Contoh: Pembekalan Peserta Praktik Kerja Lapangan (PKL)"
-                        className="w-full text-xs rounded-lg border border-gray-300 p-2"
+                        placeholder={"Contoh:\n1. Penetapan & Sosialisasi Struktur Organisasi dan Pembagian Tugas TA 2026/2027\n2. Sosialisasi Kurikulum Satuan Pendidikan (KSP) & Peraturan Akademik SMK\n3. Sosialisasi Buku Saku Pegawai & Buku Panduan Santri"}
+                        className="w-full text-xs rounded-lg border border-gray-300 p-2.5 font-sans focus:ring-2 focus:ring-brand-500 leading-relaxed"
                       />
+                      <p className="text-[10px] text-gray-500 mt-1">
+                        Tips: Tekan Enter untuk membuat baris baru. Format nomor otomatis (1., 2., dst.) akan tersusun rapi dengan nomor dan teks yang sejajar pada dokumen A4.
+                      </p>
                     </div>
                   </div>
                 </div>
