@@ -8,6 +8,7 @@ import { EvaluasiSebatik } from "@/lib/database.types";
 import {
   getEvaluasiSebatikList,
   saveEvaluasiSebatik,
+  deleteEvaluasiSebatikSingle,
   calculateSebatikMetrics,
   exportSebatikToCsv,
 } from "@/lib/sebatikService";
@@ -40,6 +41,7 @@ import {
   Calendar,
   Sparkles,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 
 interface TeacherRowData {
@@ -108,10 +110,11 @@ export default function KombelSebatikAdminPage() {
           "Sesi 2: Penguatan LKPD Kontekstual & Rubrik Terukur (Ustadz Akhmad Khoiron, Lc.)",
           "Sesi 3: Media Kreatif & Public Speaking dalam KBM (Ustadz M. Fajarul Afthon, S.Pd.)",
         ],
-        jawaban_soal_1: "A",
-        jawaban_soal_2: "A",
+        // Selaraskan kunci pilihan ganda dengan skor yang disahkan Kepala Sekolah
+        jawaban_soal_1: verifySkor >= 100 ? "C" : "B",
+        jawaban_soal_2: verifySkor >= 75 ? "B" : "A",
         jawaban_soal_3: "A",
-        jawaban_soal_4: "A",
+        jawaban_soal_4: verifySkor >= 50 ? "C" : "B",
         jawaban_soal_5: `Pertanyaan Pemantik: Memantik pemahaman konsep inti KBM sesuai kompetensi keahlian ${verifyingTeacher.mapel}.`,
         jawaban_soal_6: "Exit Ticket 5–7 menit berbasis rubrik ringkas / checklist cepat di akhir KBM.",
         skor_bagian_a: verifySkor,
@@ -122,7 +125,7 @@ export default function KombelSebatikAdminPage() {
           "Mencantumkan rincian pembagian menit secara eksplisit di Modul Ajar/RPP.",
           "Memasang timer visual di depan kelas / layar monitor.",
         ],
-        jawaban_soal_10: verifyCatatan,
+        jawaban_soal_10: verifyCatatan || "Disahkan mandiri oleh Kepala Sekolah (VBPG).",
         jawaban_soal_11: "Komitmen konsisten mengawal kualitas pembelajaran dan ketuntasan waktu KBM 2×30 menit santri SMK.",
         created_at: new Date().toISOString(),
       };
@@ -134,6 +137,32 @@ export default function KombelSebatikAdminPage() {
       console.error("Gagal simpan verifikasi mandiri:", e);
     } finally {
       setIsSavingVerification(false);
+    }
+  };
+
+  const handleCancelVerification = async (id: string, teacherName: string) => {
+    if (
+      !confirm(
+        `Batalkan status verifikasi untuk ${teacherName}?\n\nData pengesahan ini akan dihapus dari server sehingga status kembali menjadi 'Belum Mengisi' dan guru dapat mengisi formulir sendiri dari HP.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await deleteEvaluasiSebatikSingle(id);
+      if (selectedItem?.id === id) {
+        setSelectedItem(null);
+      }
+      await loadData(false);
+      if (addToast) {
+        addToast(
+          "success",
+          "Verifikasi Dibatalkan",
+          `Status pengesahan untuk ${teacherName} berhasil dihapus. Guru kini dapat mengisi kembali secara mandiri.`
+        );
+      }
+    } catch (err) {
+      console.error("Gagal membatalkan verifikasi:", err);
     }
   };
 
@@ -809,6 +838,11 @@ export default function KombelSebatikAdminPage() {
                             <CheckCircle2 className="w-3 h-3" />
                             <span>Sudah Mengisi</span>
                           </span>
+                          {row.evaluasiData?.id.startsWith("eval-kepsek-") && (
+                            <span className="text-[10px] text-amber-700 font-semibold bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                              Verifikasi Kepsek
+                            </span>
+                          )}
                           {row.submittedAt && (
                             <span className="text-[10px] text-slate-400 font-mono" title={new Date(row.submittedAt).toLocaleString("id-ID")}>
                               {new Date(row.submittedAt).toLocaleDateString("id-ID", {
@@ -869,18 +903,30 @@ export default function KombelSebatikAdminPage() {
                     </td>
                     <td className="py-3 px-3 text-center">
                       {row.isSubmitted && row.evaluasiData ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedItem(row.evaluasiData);
-                            setDetailTab("pilihan_ganda");
-                          }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-semibold text-[11px] transition-colors cursor-pointer border border-emerald-200/60 shadow-2xs"
-                          title="Buka rincian jawaban pilihan ganda, kunci jawaban, dan esai guru"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Lihat Jawaban & Kunci</span>
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedItem(row.evaluasiData);
+                              setDetailTab("pilihan_ganda");
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-semibold text-[11px] transition-colors cursor-pointer border border-emerald-200/60 shadow-2xs"
+                            title="Buka rincian jawaban pilihan ganda, kunci jawaban, dan esai guru"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Lihat Jawaban & Kunci</span>
+                          </button>
+                          {row.evaluasiData.id.startsWith("eval-kepsek-") && (
+                            <button
+                              type="button"
+                              onClick={() => handleCancelVerification(row.evaluasiData!.id, row.nama)}
+                              className="p-1 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors border border-rose-200 cursor-pointer"
+                              title="Batalkan status verifikasi mandiri ini agar guru dapat mengisi sendiri instrumen dari HP"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <div className="flex items-center justify-center gap-1.5">
                           <button
@@ -943,6 +989,32 @@ export default function KombelSebatikAdminPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Alert Pengesahan Kepsek */}
+            {selectedItem.id.startsWith("eval-kepsek-") && (
+              <div className="p-3.5 bg-amber-50/90 border-b border-amber-200/80 text-xs text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-amber-900 block text-[12px]">
+                      Status: Pengesahan Mandiri oleh Kepala Sekolah (VBPG)
+                    </span>
+                    <span className="text-[11px] text-amber-800 leading-relaxed block mt-0.5">
+                      Data ini disahkan langsung oleh Kepala Sekolah. Kunci pilihan ganda diselaraskan dengan skor verifikasi ({selectedItem.skor_bagian_a} Poin). Jika guru bersangkutan ingin mengisi instrumen sendiri dari HP, Anda dapat membatalkan status ini.
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCancelVerification(selectedItem.id, selectedItem.nama_guru)}
+                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  title="Hapus status pengesahan ini agar guru dapat mengisi sendiri instrumen dari HP"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Batalkan & Izinkan Guru Isi Mandiri</span>
+                </button>
+              </div>
+            )}
 
             {/* Tab Navigation */}
             <div className="flex border-b border-slate-200 bg-slate-100/50 px-5 pt-2 gap-2 text-xs font-bold">

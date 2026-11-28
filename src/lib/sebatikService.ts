@@ -185,6 +185,52 @@ export async function resetEvaluasiSebatik(): Promise<void> {
 }
 
 /**
+ * Menghapus satu respon guru spesifik (misal membatalkan verifikasi mandiri kepsek agar guru bisa mengisi sendiri)
+ */
+export async function deleteEvaluasiSebatikSingle(id: string): Promise<void> {
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (stored) {
+        const parsed: EvaluasiSebatik[] = JSON.parse(stored);
+        const filtered = parsed.filter((item) => item.id !== id && item.user_id !== id);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
+      }
+    } catch (e) {
+      console.warn("Failed deleting from localStorage:", e);
+    }
+  }
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: cloudRow } = await supabase
+        .from("master_perspektif")
+        .select("deskripsi")
+        .eq("id", SEBATIK_CLOUD_ROW_ID)
+        .maybeSingle();
+
+      if (cloudRow?.deskripsi) {
+        const parsed = JSON.parse(cloudRow.deskripsi);
+        if (Array.isArray(parsed?.list)) {
+          const updatedList = parsed.list.filter(
+            (item: EvaluasiSebatik) => item.id !== id && item.user_id !== id
+          );
+          await supabase.from("master_perspektif").upsert({
+            id: SEBATIK_CLOUD_ROW_ID,
+            kode: SEBATIK_CLOUD_KODE,
+            nama: "Cloud Sync Evaluasi Kombel SEBATIK Guru",
+            deskripsi: JSON.stringify({ list: updatedList, updated_at: new Date().toISOString() }),
+            is_active: false,
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Failed deleting single SEBATIK cloud data:", err);
+    }
+  }
+}
+
+/**
  * Menyimpan respon baru dari guru ke localStorage dan menyinkronkan langsung ke Supabase Cloud.
  */
 export async function saveEvaluasiSebatik(evaluasi: EvaluasiSebatik): Promise<EvaluasiSebatik> {
