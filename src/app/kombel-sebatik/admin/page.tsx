@@ -11,6 +11,11 @@ import {
   calculateSebatikMetrics,
   exportSebatikToCsv,
 } from "@/lib/sebatikService";
+import {
+  SOAL_BAGIAN_A_PILIHAN,
+  SOAL_7_OPSI,
+  SOAL_8_OPSI,
+} from "@/lib/sebatikConstants";
 import { OfficialKopSurat } from "@/components/kop-surat/OfficialKopSurat";
 import { TTD_KEPSEK_DATA_URL, STEMPEL_SEKOLAH_DATA_URL } from "@/lib/seedData";
 import {
@@ -65,6 +70,7 @@ export default function KombelSebatikAdminPage() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<EvaluasiSebatik | null>(null);
+  const [detailTab, setDetailTab] = useState<"pilihan_ganda" | "esai">("pilihan_ganda");
 
   // Manual Verification by Kepala Sekolah State
   const [verifyingTeacher, setVerifyingTeacher] = useState<TeacherRowData | null>(null);
@@ -724,10 +730,10 @@ export default function KombelSebatikAdminPage() {
           </div>
           <div className="text-xs text-emerald-950 space-y-1">
             <h4 className="font-bold text-emerald-900 text-[13px] flex items-center gap-1.5">
-              <span>Penjelasan Menu & Kolom "Aksi (Detail Esai)"</span>
+              <span>Penjelasan Menu & Kolom "Aksi (Detail & Kunci Jawaban)"</span>
             </h4>
             <p className="text-slate-600 leading-relaxed">
-              Tombol <strong>"Lihat Detail Esai"</strong> pada kolom Aksi disediakan untuk Kepala Sekolah dan Asesor VBPG guna meninjau jawaban kualitatif/esai mendalam setiap guru yang tidak dapat direpresentasikan hanya dengan angka pilihan ganda. Detail esai tersebut mencakup:
+              Tombol <strong>"Lihat Jawaban & Kunci"</strong> pada kolom Aksi disediakan untuk Kepala Sekolah dan Asesor VBPG guna meninjau seluruh rincian respon guru: uji pemahaman pilihan ganda (beserta kunci dan pembahasannya), keterlaksanaan waktu 2×30', serta jawaban esai kualitatif. Detail tersebut mencakup:
             </p>
             <ul className="list-disc list-inside text-slate-700 space-y-0.5 pt-0.5 font-medium">
               <li><strong>Soal 5:</strong> Contoh konkret Pertanyaan Pemantik vs Soal Asesmen Awal/Akhir sesuai mata pelajaran guru.</li>
@@ -781,7 +787,7 @@ export default function KombelSebatikAdminPage() {
                   <th className="py-3 px-3 text-center">Sesi Diikuti</th>
                   <th className="py-3 px-3 text-center">Skor Bagian A</th>
                   <th className="py-3 px-3 text-center">Ketuntasan Waktu</th>
-                  <th className="py-3 px-3 text-center">Aksi (Detail Esai)</th>
+                  <th className="py-3 px-3 text-center">Aksi (Detail & Kunci)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -865,12 +871,15 @@ export default function KombelSebatikAdminPage() {
                       {row.isSubmitted && row.evaluasiData ? (
                         <button
                           type="button"
-                          onClick={() => setSelectedItem(row.evaluasiData)}
+                          onClick={() => {
+                            setSelectedItem(row.evaluasiData);
+                            setDetailTab("pilihan_ganda");
+                          }}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-semibold text-[11px] transition-colors cursor-pointer border border-emerald-200/60 shadow-2xs"
-                          title="Buka jawaban esai pemantik, asesmen, dan refleksi waktu guru"
+                          title="Buka rincian jawaban pilihan ganda, kunci jawaban, dan esai guru"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          <span>Lihat Detail Esai</span>
+                          <span>Lihat Jawaban & Kunci</span>
                         </button>
                       ) : (
                         <div className="flex items-center justify-center gap-1.5">
@@ -895,77 +904,303 @@ export default function KombelSebatikAdminPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. MODAL DETAIL JAWABAN ESAI GURU */}
+      {/* 2. MODAL DETAIL JAWABAN & KUNCI EVALUASI GURU */}
       {/* ========================================================================= */}
       {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs print:hidden">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-5 border border-slate-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs print:hidden animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between gap-4">
               <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {selectedItem.nama_guru}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Mapel: {selectedItem.mata_pelajaran} • Skor Bagian A:{" "}
-                  <strong>{selectedItem.skor_bagian_a} Poin</strong>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base font-bold text-slate-900">
+                    {selectedItem.nama_guru}
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[11px] font-bold">
+                    Skor: {selectedItem.skor_bagian_a} / 100 Poin
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[11px] font-semibold ${
+                      selectedItem.is_waktu_tuntas
+                        ? "bg-teal-100 text-teal-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {selectedItem.is_waktu_tuntas ? "Waktu: Tuntas Tepat Waktu" : "Waktu: Perlu Optimasi"}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Mata Pelajaran: <strong>{selectedItem.mata_pelajaran}</strong> • Waktu Pengisian:{" "}
+                  {selectedItem.created_at ? new Date(selectedItem.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) : "-"}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedItem(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+                title="Tutup Modal"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
-              {/* Soal 5 */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-                <span className="font-bold text-emerald-800 uppercase tracking-wider text-[10px]">
-                  Soal 5: Contoh Pertanyaan Pemantik vs Soal Asesmen
+            {/* Tab Navigation */}
+            <div className="flex border-b border-slate-200 bg-slate-100/50 px-5 pt-2 gap-2 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setDetailTab("pilihan_ganda")}
+                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+                  detailTab === "pilihan_ganda"
+                    ? "border-emerald-600 text-emerald-800 font-extrabold bg-white rounded-t-lg shadow-2xs"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <span>Pilihan Ganda & Kunci (Soal 1–4)</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px]">
+                  {selectedItem.skor_bagian_a} Pts
                 </span>
-                <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
-                  {selectedItem.jawaban_soal_5 || "-"}
-                </p>
-              </div>
-
-              {/* Soal 6 */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-                <span className="font-bold text-emerald-800 uppercase tracking-wider text-[10px]">
-                  Soal 6: Strategi Exit Ticket 5–7 Menit
-                </span>
-                <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
-                  {selectedItem.jawaban_soal_6 || "-"}
-                </p>
-              </div>
-
-              {/* Soal 10 */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-                <span className="font-bold text-teal-800 uppercase tracking-wider text-[10px]">
-                  Soal 10: Perubahan Nyata & Trik Efektif Pengendalian Waktu
-                </span>
-                <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
-                  {selectedItem.jawaban_soal_10 || "-"}
-                </p>
-              </div>
-
-              {/* Soal 11 */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-                <span className="font-bold text-teal-800 uppercase tracking-wider text-[10px]">
-                  Soal 11: Komitmen Perbaikan KBM Berikutnya
-                </span>
-                <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
-                  {selectedItem.jawaban_soal_11 || "-"}
-                </p>
-              </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailTab("esai")}
+                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+                  detailTab === "esai"
+                    ? "border-emerald-600 text-emerald-800 font-extrabold bg-white rounded-t-lg shadow-2xs"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <span>Refleksi Waktu & Esai (Soal 5–11)</span>
+              </button>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
+            {/* Modal Body Content */}
+            <div className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+              {detailTab === "pilihan_ganda" ? (
+                <div className="space-y-4">
+                  <div className="p-3 bg-emerald-50/60 border border-emerald-100 rounded-xl text-[11px] text-emerald-950 flex items-start gap-2">
+                    <Info className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                    <div>
+                      Bagian A menguji pemahaman konsep pembeda antara <strong>Pertanyaan Pemantik (Apersepsi)</strong> vs <strong>Asesmen Awal & Asesmen Akhir</strong>. Nilai otomatis dihitung 25 poin per soal yang benar (total 100 poin).
+                    </div>
+                  </div>
+
+                  {SOAL_BAGIAN_A_PILIHAN.map((q) => {
+                    const rawAns = (selectedItem as any)[`jawaban_soal_${q.nomor}`] || "";
+                    const userAns = typeof rawAns === "string" ? rawAns.toUpperCase().trim() : "";
+                    const isCorrect = userAns === q.kunci;
+
+                    return (
+                      <div
+                        key={q.nomor}
+                        className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-900 font-black text-xs flex items-center justify-center shrink-0">
+                              {q.nomor}
+                            </span>
+                            <span className="font-bold text-slate-800 text-[13px]">
+                              Soal No. {q.nomor}
+                            </span>
+                          </div>
+                          {isCorrect ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Benar (+{q.bobotPoin} Poin)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 font-bold text-[11px]">
+                              <AlertCircle className="w-3.5 h-3.5" />
+                              Kurang Tepat (0 Poin)
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-slate-700 leading-relaxed font-medium text-xs">
+                          {q.pertanyaan}
+                        </p>
+
+                        {/* Daftar Opsi A, B, C, D */}
+                        <div className="space-y-1.5 pt-1">
+                          {q.opsi.map((opt) => {
+                            const isUserChoice = userAns === opt.kode;
+                            const isOfficialKey = q.kunci === opt.kode;
+
+                            let optStyle = "border-slate-200 bg-slate-50/50 text-slate-700";
+                            let badge = null;
+
+                            if (isUserChoice && isOfficialKey) {
+                              optStyle = "border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold ring-1 ring-emerald-400";
+                              badge = (
+                                <span className="ml-auto shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[10px] font-bold">
+                                  ✓ Jawaban Guru & Kunci Resmi
+                                </span>
+                              );
+                            } else if (isUserChoice && !isOfficialKey) {
+                              optStyle = "border-rose-400 bg-rose-50 text-rose-950 font-medium";
+                              badge = (
+                                <span className="ml-auto shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-600 text-white text-[10px] font-bold">
+                                  ✗ Jawaban Guru
+                                </span>
+                              );
+                            } else if (!isUserChoice && isOfficialKey) {
+                              optStyle = "border-emerald-400 bg-emerald-50/60 text-emerald-950 font-semibold border-dashed";
+                              badge = (
+                                <span className="ml-auto shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
+                                  Kunci Resmi (Opsi {opt.kode})
+                                </span>
+                              );
+                            }
+
+                            return (
+                              <div
+                                key={opt.kode}
+                                className={`p-2.5 rounded-lg border text-xs flex items-start gap-2.5 ${optStyle}`}
+                              >
+                                <span className="w-5 h-5 rounded-md font-bold flex items-center justify-center shrink-0 bg-white/80 border border-black/10 text-[11px]">
+                                  {opt.kode}
+                                </span>
+                                <span className="leading-snug flex-1">{opt.teks}</span>
+                                {badge}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Kotak Kunci Jawaban Resmi & Pembahasan Pedagogis */}
+                        <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-amber-950 space-y-1">
+                          <div className="flex items-center gap-1.5 font-bold text-amber-900 text-[11px]">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Kunci Jawaban Resmi: Opsi {q.kunci}</span>
+                          </div>
+                          <p className="text-[11px] leading-relaxed text-amber-900/90 font-medium">
+                            <strong className="text-amber-950">Pembahasan Pedagogis:</strong> {q.pembahasan}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Sesi Diikuti */}
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <span className="font-bold text-slate-800 uppercase tracking-wider text-[10px]">
+                      Sesi Praktik Baik yang Diikuti
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedItem.sesi_diikuti && selectedItem.sesi_diikuti.length > 0 ? (
+                        selectedItem.sesi_diikuti.map((sesi, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200/80 text-emerald-900 font-semibold text-[11px]"
+                          >
+                            {sesi}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-400 italic">Tidak ada sesi dipilih</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Soal 7 & 8: Waktu */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                      <span className="font-bold text-teal-800 uppercase tracking-wider text-[10px]">
+                        Soal 7: Keterlaksanaan Waktu (2×30 Menit)
+                      </span>
+                      <p className="font-bold text-slate-900 text-xs">
+                        Opsi {selectedItem.jawaban_soal_7 || "-"}
+                      </p>
+                      <p className="text-slate-700 leading-relaxed text-[11px]">
+                        {SOAL_7_OPSI.find((o) => o.kode === selectedItem.jawaban_soal_7)?.teks ||
+                          (selectedItem.is_waktu_tuntas
+                            ? "Selalu tuntas tepat waktu."
+                            : "Mengalami kendala alokasi waktu.")}
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                      <span className="font-bold text-teal-800 uppercase tracking-wider text-[10px]">
+                        Soal 8: Faktor Utama Kendala Waktu
+                      </span>
+                      <p className="font-bold text-slate-900 text-xs">
+                        Opsi {selectedItem.jawaban_soal_8 || "-"}
+                      </p>
+                      <p className="text-slate-700 leading-relaxed text-[11px]">
+                        {SOAL_8_OPSI.find((o) => o.kode === selectedItem.jawaban_soal_8)?.teks ||
+                          "Tidak tercatat kendala waktu."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Soal 9: Strategi Waktu */}
+                  {Array.isArray(selectedItem.jawaban_soal_9) && selectedItem.jawaban_soal_9.length > 0 && (
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                      <span className="font-bold text-teal-800 uppercase tracking-wider text-[10px]">
+                        Soal 9: Strategi Pengendalian Waktu yang Akan Diterapkan
+                      </span>
+                      <ul className="list-disc list-inside text-slate-800 space-y-1 leading-relaxed text-xs font-medium">
+                        {selectedItem.jawaban_soal_9.map((strat, sIdx) => (
+                          <li key={sIdx}>{strat}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Soal 5 */}
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <span className="font-bold text-emerald-800 uppercase tracking-wider text-[10px]">
+                      Soal 5: Contoh Pertanyaan Pemantik vs Soal Asesmen
+                    </span>
+                    <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
+                      {selectedItem.jawaban_soal_5 || "-"}
+                    </p>
+                  </div>
+
+                  {/* Soal 6 */}
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <span className="font-bold text-emerald-800 uppercase tracking-wider text-[10px]">
+                      Soal 6: Strategi Exit Ticket 5–7 Menit
+                    </span>
+                    <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
+                      {selectedItem.jawaban_soal_6 || "-"}
+                    </p>
+                  </div>
+
+                  {/* Soal 10 */}
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <span className="font-bold text-teal-800 uppercase tracking-wider text-[10px]">
+                      Soal 10: Perubahan Nyata & Trik Efektif Pengendalian Waktu
+                    </span>
+                    <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
+                      {selectedItem.jawaban_soal_10 || "-"}
+                    </p>
+                  </div>
+
+                  {/* Soal 11 */}
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                    <span className="font-bold text-teal-800 uppercase tracking-wider text-[10px]">
+                      Soal 11: Komitmen Perbaikan KBM Berikutnya
+                    </span>
+                    <p className="text-slate-800 whitespace-pre-wrap leading-relaxed font-medium">
+                      {selectedItem.jawaban_soal_11 || "-"}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <span className="text-[11px] text-slate-500 font-medium">
+                Komunitas Belajar (Kombel) SEBATIK • SMK Bayt Al-Hikmah
+              </span>
               <button
                 type="button"
                 onClick={() => setSelectedItem(null)}
-                className="py-2 px-5 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 cursor-pointer"
+                className="py-2 px-5 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 cursor-pointer shadow-xs transition-colors"
               >
                 Tutup Pratinjau
               </button>
