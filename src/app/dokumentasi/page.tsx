@@ -26,6 +26,8 @@ import {
   Clock,
   Layers,
   Eye,
+  RefreshCw,
+  Cloud,
 } from "lucide-react";
 import { formatIndonesianDate } from "@/lib/utils";
 import { DokumentasiKegiatan, KategoriDokumentasi } from "@/lib/database.types";
@@ -47,8 +49,8 @@ function getCategoryBadge(kategori: KategoriDokumentasi) {
   return item || { id: "lainnya", label: "Kegiatan Sekolah", badgeClass: "bg-gray-100 text-gray-800 border-gray-200" };
 }
 
-// Client-side lightweight photo compression for fast mobile uploads
-async function compressImageFile(file: File, maxDimension = 1280, quality = 0.8): Promise<string> {
+// Client-side lightweight photo compression for fast mobile uploads and reliable cloud sync
+async function compressImageFile(file: File, maxDimension = 960, quality = 0.65): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -73,6 +75,8 @@ async function compressImageFile(file: File, maxDimension = 1280, quality = 0.8)
           resolve(e.target?.result as string);
           return;
         }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, 0, 0, width, height);
         const compressed = canvas.toDataURL("image/jpeg", quality);
         resolve(compressed);
@@ -86,8 +90,26 @@ async function compressImageFile(file: File, maxDimension = 1280, quality = 0.8)
 }
 
 export default function DokumentasiKegiatanPage() {
-  const { dokumentasiList, addDokumentasi, deleteDokumentasi, addToast } = useAppData();
+  const { dokumentasiList, addDokumentasi, deleteDokumentasi, addToast, syncWithCloud, isCloudConnected } = useAppData();
   const { currentUser, isKepsek, isTU } = useAuth();
+
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await syncWithCloud();
+      addToast(
+        "success",
+        "Sinkronisasi Berhasil",
+        "Data dokumentasi terbaru telah disinkronkan dengan server cloud."
+      );
+    } catch {
+      addToast("error", "Gagal Sinkronisasi", "Terjadi kendala jaringan saat menyinkronkan data.");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -122,7 +144,7 @@ export default function DokumentasiKegiatanPage() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (file.type.startsWith("image/")) {
-          const compressed = await compressImageFile(file, 1280, 0.8);
+          const compressed = await compressImageFile(file, 960, 0.65);
           compressedList.push(compressed);
         }
       }
@@ -271,13 +293,26 @@ _Sistem Informasi Generasi Andal & Prestasi (SIGAP-SMK)_`;
           </p>
         </div>
 
-        <button
-          onClick={() => setIsUploadOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:shadow cursor-pointer select-none"
-        >
-          <Camera className="w-4 h-4" />
-          <span>Unggah Dokumentasi Baru</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Manual Cloud Sync Button */}
+          <button
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            title="Sinkronkan data dengan Cloud Supabase"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-60"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isSyncing ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">Sinkron Cloud</span>
+          </button>
+
+          <button
+            onClick={() => setIsUploadOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:shadow cursor-pointer select-none"
+          >
+            <Camera className="w-4 h-4" />
+            <span>Unggah Dokumentasi Baru</span>
+          </button>
+        </div>
       </div>
 
       {/* Metrics Banner */}

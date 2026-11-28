@@ -33,7 +33,19 @@ import {
 import { generateNomorSurat, getBulanRomawi } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { cloudSync } from "@/lib/supabaseSync";
-import { getIndexedDBSettings, saveIndexedDBSettings } from "@/lib/indexedDb";
+import {
+  getIndexedDBSettings,
+  saveIndexedDBSettings,
+  getIndexedDBDokumentasi,
+  saveIndexedDBDokumentasi,
+  getIndexedDBNotulen,
+  saveIndexedDBNotulen,
+} from "@/lib/indexedDb";
+
+export const DOKUMENTASI_CLOUD_ROW_ID = "dokumentasi-cloud-data";
+export const DOKUMENTASI_CLOUD_KODE = "DOKUMENTASI_SYNC";
+export const NOTULEN_CLOUD_ROW_ID = "notulen-cloud-data";
+export const NOTULEN_CLOUD_KODE = "NOTULEN_SYNC";
 
 export interface ToastMessage {
   id: string;
@@ -528,7 +540,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         }
 
         const activeCloudPers = cloudData.perspektif.filter(
-          (p) => !deletedPers.includes(p.id) && p.id !== "presensi-cloud-data" && p.kode !== "PRESENSI_SYNC"
+          (p) =>
+            !deletedPers.includes(p.id) &&
+            p.id !== "presensi-cloud-data" &&
+            p.kode !== "PRESENSI_SYNC" &&
+            p.id !== DOKUMENTASI_CLOUD_ROW_ID &&
+            p.kode !== DOKUMENTASI_CLOUD_KODE &&
+            p.id !== NOTULEN_CLOUD_ROW_ID &&
+            p.kode !== NOTULEN_CLOUD_KODE &&
+            p.id !== "user-presence-tracker"
         );
         setPerspektif((prev) => {
           const cloudIds = new Set(activeCloudPers.map((p) => p.id));
@@ -650,6 +670,64 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (err) {
           console.warn("Sync schoolSettings from cloud failed:", err);
+        }
+
+        // 9. Sync Dokumentasi Kegiatan from Supabase Cloud
+        try {
+          const { data: dokRow } = await supabase
+            .from("master_perspektif")
+            .select("deskripsi")
+            .eq("id", DOKUMENTASI_CLOUD_ROW_ID)
+            .single();
+
+          if (dokRow?.deskripsi) {
+            const parsed = JSON.parse(dokRow.deskripsi);
+            if (parsed && Array.isArray(parsed.albums) && parsed.albums.length > 0) {
+              const deletedDok = getDeletedIds(DELETED_KEYS.DOKUMENTASI);
+              const cloudAlbums: DokumentasiKegiatan[] = parsed.albums.filter(
+                (a: DokumentasiKegiatan) => !deletedDok.includes(a.id)
+              );
+              setDokumentasiList((prev) => {
+                const cloudIds = new Set(cloudAlbums.map((a) => a.id));
+                const localOnly = prev.filter((a) => !cloudIds.has(a.id) && !deletedDok.includes(a.id));
+                const merged = [...cloudAlbums, ...localOnly];
+                saveToStorage(STORAGE_KEYS.DOKUMENTASI, merged);
+                saveIndexedDBDokumentasi(merged);
+                return merged;
+              });
+            }
+          }
+        } catch (err) {
+          console.warn("Sync dokumentasi from cloud failed:", err);
+        }
+
+        // 10. Sync Notulen Rapat from Supabase Cloud
+        try {
+          const { data: notulenRow } = await supabase
+            .from("master_perspektif")
+            .select("deskripsi")
+            .eq("id", NOTULEN_CLOUD_ROW_ID)
+            .single();
+
+          if (notulenRow?.deskripsi) {
+            const parsed = JSON.parse(notulenRow.deskripsi);
+            if (parsed && Array.isArray(parsed.notulen) && parsed.notulen.length > 0) {
+              const deletedNotulen = getDeletedIds(DELETED_KEYS.NOTULEN);
+              const cloudNotulen: NotulenRapat[] = parsed.notulen.filter(
+                (n: NotulenRapat) => !deletedNotulen.includes(n.id)
+              );
+              setNotulenList((prev) => {
+                const cloudIds = new Set(cloudNotulen.map((n) => n.id));
+                const localOnly = prev.filter((n) => !cloudIds.has(n.id) && !deletedNotulen.includes(n.id));
+                const merged = [...cloudNotulen, ...localOnly];
+                saveToStorage(STORAGE_KEYS.NOTULEN, merged);
+                saveIndexedDBNotulen(merged);
+                return merged;
+              });
+            }
+          }
+        } catch (err) {
+          console.warn("Sync notulen from cloud failed:", err);
         }
       }
     } catch (e) {
@@ -775,6 +853,28 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
             });
           }
         });
+
+        // Query IndexedDB for persistent Dokumentasi (immune to localStorage quota)
+        getIndexedDBDokumentasi().then((idbAlbums) => {
+          if (idbAlbums && Array.isArray(idbAlbums) && idbAlbums.length > 0) {
+            const deletedDok = getDeletedIds(DELETED_KEYS.DOKUMENTASI);
+            const filtered = idbAlbums.filter((a) => !deletedDok.includes(a.id));
+            if (filtered.length > 0) {
+              setDokumentasiList(filtered);
+            }
+          }
+        });
+
+        // Query IndexedDB for persistent Notulen Rapat
+        getIndexedDBNotulen().then((idbNotulen) => {
+          if (idbNotulen && Array.isArray(idbNotulen) && idbNotulen.length > 0) {
+            const deletedNotulen = getDeletedIds(DELETED_KEYS.NOTULEN);
+            const filtered = idbNotulen.filter((n) => !deletedNotulen.includes(n.id));
+            if (filtered.length > 0) {
+              setNotulenList(filtered);
+            }
+          }
+        });
       } catch (e) {
         console.error("Failed to load initial data from storage", e);
       }
@@ -784,6 +884,17 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     if (isSupabaseConfigured) {
       syncWithCloud();
     }
+
+    // Auto-sync on window focus to ensure cross-device consistency
+    const handleFocus = () => {
+      if (isSupabaseConfigured) {
+        syncWithCloud();
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [syncWithCloud]);
 
   // Surat Keluar Actions
@@ -1188,17 +1299,23 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     addToast("info", "Laporan Diperbarui", "Data laporan berhasil diubah.");
   };
 
-  // Safe background cloud sync for notulen rapat
-  const syncNotulenToCloud = async (action: "upsert" | "delete", itemOrId: NotulenRapat | string) => {
+  // Safe background cloud sync for notulen rapat (using master_perspektif sync row)
+  const syncNotulenToCloud = async (list: NotulenRapat[]) => {
     if (!isSupabaseConfigured || !supabase) return;
     try {
-      if (action === "upsert") {
-        await (supabase.from("notulen_rapat") as any).upsert(itemOrId);
-      } else {
-        await (supabase.from("notulen_rapat") as any).delete().eq("id", itemOrId);
-      }
-    } catch {
-      // Table may not yet be provisioned on cloud
+      const payload = {
+        notulen: list,
+        updatedAt: new Date().toISOString(),
+      };
+      await supabase.from("master_perspektif").upsert({
+        id: NOTULEN_CLOUD_ROW_ID,
+        kode: NOTULEN_CLOUD_KODE,
+        nama: "Cloud Sync Notulen Rapat Dinas",
+        deskripsi: JSON.stringify(payload),
+        is_active: false,
+      });
+    } catch (err) {
+      console.warn("Failed to sync notulen to cloud:", err);
     }
   };
 
@@ -1214,7 +1331,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const updated = [newItem, ...notulenList];
     setNotulenList(updated);
     saveToStorage(STORAGE_KEYS.NOTULEN, updated);
-    syncNotulenToCloud("upsert", newItem);
+    saveIndexedDBNotulen(updated);
+    syncNotulenToCloud(updated);
     addToast(
       "success",
       "Notulen Rapat Dibuat",
@@ -1229,8 +1347,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     );
     setNotulenList(updated);
     saveToStorage(STORAGE_KEYS.NOTULEN, updated);
-    const target = updated.find((n) => n.id === id);
-    if (target) syncNotulenToCloud("upsert", target);
+    saveIndexedDBNotulen(updated);
+    syncNotulenToCloud(updated);
     addToast("info", "Notulen Diperbarui", "Perubahan data notulen rapat telah disimpan.");
   };
 
@@ -1239,7 +1357,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const updated = notulenList.filter((n) => n.id !== id);
     setNotulenList(updated);
     saveToStorage(STORAGE_KEYS.NOTULEN, updated);
-    syncNotulenToCloud("delete", id);
+    saveIndexedDBNotulen(updated);
+    syncNotulenToCloud(updated);
     addToast("info", "Notulen Dihapus", "Data notulen rapat telah dihapus.");
   };
 
@@ -1261,8 +1380,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     });
     setNotulenList(updated);
     saveToStorage(STORAGE_KEYS.NOTULEN, updated);
-    const target = updated.find((n) => n.id === id);
-    if (target) syncNotulenToCloud("upsert", target);
+    saveIndexedDBNotulen(updated);
+    syncNotulenToCloud(updated);
     addToast(
       "success",
       "Notulen Disetujui & Disahkan",
@@ -1288,21 +1407,27 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     });
     setNotulenList(updated);
     saveToStorage(STORAGE_KEYS.NOTULEN, updated);
-    const target = updated.find((n) => n.id === notulenId);
-    if (target) syncNotulenToCloud("upsert", target);
+    saveIndexedDBNotulen(updated);
+    syncNotulenToCloud(updated);
   };
 
-  // Safe background cloud sync for dokumentasi kegiatan
-  const syncDokumentasiToCloud = async (action: "upsert" | "delete", itemOrId: DokumentasiKegiatan | string) => {
+  // Safe background cloud sync for dokumentasi kegiatan (using master_perspektif sync row)
+  const syncDokumentasiToCloud = async (list: DokumentasiKegiatan[]) => {
     if (!isSupabaseConfigured || !supabase) return;
     try {
-      if (action === "upsert") {
-        await (supabase.from("dokumentasi_kegiatan") as any).upsert(itemOrId);
-      } else {
-        await (supabase.from("dokumentasi_kegiatan") as any).delete().eq("id", itemOrId);
-      }
-    } catch {
-      // safe fallback
+      const payload = {
+        albums: list,
+        updatedAt: new Date().toISOString(),
+      };
+      await supabase.from("master_perspektif").upsert({
+        id: DOKUMENTASI_CLOUD_ROW_ID,
+        kode: DOKUMENTASI_CLOUD_KODE,
+        nama: "Cloud Sync Dokumentasi Kegiatan Sekolah",
+        deskripsi: JSON.stringify(payload),
+        is_active: false,
+      });
+    } catch (err) {
+      console.warn("Failed to sync dokumentasi to cloud:", err);
     }
   };
 
@@ -1318,7 +1443,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const updated = [newItem, ...dokumentasiList];
     setDokumentasiList(updated);
     saveToStorage(STORAGE_KEYS.DOKUMENTASI, updated);
-    syncDokumentasiToCloud("upsert", newItem);
+    saveIndexedDBDokumentasi(updated);
+    syncDokumentasiToCloud(updated);
     addToast(
       "success",
       "Dokumentasi Berhasil Diunggah",
@@ -1333,8 +1459,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     );
     setDokumentasiList(updated);
     saveToStorage(STORAGE_KEYS.DOKUMENTASI, updated);
-    const target = updated.find((d) => d.id === id);
-    if (target) syncDokumentasiToCloud("upsert", target);
+    saveIndexedDBDokumentasi(updated);
+    syncDokumentasiToCloud(updated);
     addToast("info", "Dokumentasi Diperbarui", "Perubahan album dokumentasi telah disimpan.");
   };
 
@@ -1343,7 +1469,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const updated = dokumentasiList.filter((d) => d.id !== id);
     setDokumentasiList(updated);
     saveToStorage(STORAGE_KEYS.DOKUMENTASI, updated);
-    syncDokumentasiToCloud("delete", id);
+    saveIndexedDBDokumentasi(updated);
+    syncDokumentasiToCloud(updated);
     addToast("info", "Dokumentasi Dihapus", "Album dokumentasi kegiatan telah dihapus.");
   };
 
@@ -1484,6 +1611,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setActionReports(INITIAL_ACTION_REPORTS);
     setNotulenList(INITIAL_NOTULEN_RAPAT);
     setDokumentasiList(INITIAL_DOKUMENTASI);
+    saveIndexedDBDokumentasi(INITIAL_DOKUMENTASI);
+    saveIndexedDBNotulen(INITIAL_NOTULEN_RAPAT);
     addToast("info", "Data Demo Direset", "Semua data telah dikembalikan ke kondisi awal seeder.");
   };
 
